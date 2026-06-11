@@ -1,0 +1,29 @@
+services:
+  api:
+    image: ghcr.io/k-bilaluddin/jobvault-api:latest
+    container_name: jobvault-api
+    ports:
+      - "5000:8080"
+    env_file:
+      - .env
+    restart: unless-stopped
+
+  worker:
+    image: ghcr.io/k-bilaluddin/jobvault-worker:latest
+    container_name: jobvault-worker
+    env_file:
+      - .env
+    restart: unless-stopped
+    depends_on:
+      - api
+
+  webhook:
+    build: ./webhook-server
+    container_name: jobvault-webhook
+    ports:
+      - "3001:3001"
+    env_file:
+      - ./webhook-server/.env
+    restart: unless-stopped
+    volumes:
+      - //var/run/docker.sock:/var/run/docker.sock
