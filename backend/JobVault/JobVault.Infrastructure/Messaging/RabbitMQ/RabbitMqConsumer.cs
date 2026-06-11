@@ -1,0 +1,125 @@
+using JobVault.Application.Interfaces;
+using JobVault.Contracts.Events;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using RabbitMQ.Client;
+using RabbitMQ.Client.Events;
+using System.Text.Json;
+
+namespace JobVault.Infrastructure.Messaging.RabbitMQ;
+
+public class RabbitMqConsumer : BackgroundService
+{
+    private readonly IConfiguration _configuration;
+    private readonly IServiceProvider _serviceProvider;
+    private readonly ILogger<RabbitMqConsumer> _logger;
+    private IConnection? _connection;
+    private IChannel? _channel;
+
+    public RabbitMqConsumer(
+        IConfiguration configuration,
+        IServiceProvider serviceProvider,
+        ILogger<RabbitMqConsumer> logger)
+    {
+        _configuration = configuration;
+        _serviceProvider = serviceProvider;
+        _logger = logger;
+    }
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        var connectionString = _configuration["RabbitMq:ConnectionString"];
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            _logger.LogWarning("RabbitMQ connection string not configured. Consumer will not start.");
+            return;
+        }
+
+        try
+        {
+            await InitializeRabbitMqAsync(connectionString);
+            await ConsumeMessagesAsync(stoppingToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Fatal error in RabbitMQ consumer");
+        }
+    }
+
+    private async Task InitializeRabbitMqAsync(string connectionString)
+    {
+        var factory = new ConnectionFactory { Uri = new Uri(connectionString) };
+        _connection = await factory.CreateConnectionAsync();
+        _channel = await _connection.CreateChannelAsync();
+
+        var queueName = _configuration["RabbitMq:JobApplicationCreatedQueueName"] ?? "job.applications.created";
+        await _channel.BasicQosAsync(prefetchSize: 0, prefetchCount: 1, global: false);
+
+        _logger.LogInformation("RabbitMQ consumer initialized on queue: {QueueName}", queueName);
+    }
+
+    private async Task ConsumeMessagesAsync(CancellationToken stoppingToken)
+    {
+        if (_channel == null) return;
+
+        var createdQueue = _configuration["RabbitMq:JobApplicationCreatedQueueName"] ?? "job.applications.created";
+        var updatedQueue = _configuration["RabbitMq:JobApplicationUpdatedQueueName"] ?? "job.applications.updated";
+
+        var consumer = new AsyncEventingBasicConsumer(_channel);
+
+        consumer.ReceivedAsync += async (model, ea) =>
+        {
+            try
+            {
+                var body = ea.Body.ToArray();
+                var message = System.Text.Encoding.UTF8.GetString(body);
+                var jobEvent = JsonSerializer.Deserialize<JobApplicationEvent>(message);
+
+                if (jobEvent != null)
+                {
+                    await ProcessJobEventAsync(jobEvent);
+                    await _channel.BasicAckAsync(deliveryTag: ea.DeliveryTag, multiple: false);
+                }
+                else
+                {
+                    _logger.LogWarning("Failed to deserialize message, rejecting");
+                    await _channel.BasicNackAsync(deliveryTag: ea.DeliveryTag, multiple: false, requeue: false);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing message");
+                await _channel.BasicNackAsync(deliveryTag: ea.DeliveryTag, multiple: false, requeue: false);
+            }
+        };
+
+        await _channel.BasicConsumeAsync(queue: createdQueue, autoAck: false, consumer: consumer);
+        await _channel.BasicConsumeAsync(queue: updatedQueue, autoAck: false, consumer: consumer);
+
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            await Task.Delay(1000, stoppingToken);
+        }
+    }
+
+    private async Task ProcessJobEventAsync(JobApplicationEvent jobEvent)
+    {
+        using var scope = _serviceProvider.CreateScope();
+        var telegramService = scope.ServiceProvider.GetRequiredService<ITelegramNotificationService>();
+
+        _logger.LogInformation("Processing {EventType} event for {CompanyName}",
+            jobEvent.EventType, jobEvent.CompanyName);
+
+        await telegramService.SendNotificationAsync(jobEvent);
+    }
+
+    public override async Task StopAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Stopping RabbitMQ consumer");
+        _channel?.Dispose();
+        _connection?.Dispose();
+        await base.StopAsync(cancellationToken);
+    }
+}
