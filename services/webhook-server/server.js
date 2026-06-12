@@ -1,4 +1,5 @@
 import express from "express";
+import rateLimit from "express-rate-limit";
 import { exec } from "child_process";
 import crypto from "crypto";
 import { createWriteStream } from "fs";
@@ -12,6 +13,8 @@ const PORT = process.env.WEBHOOK_PORT || 3001;
 const SECRET = process.env.WEBHOOK_SECRET;
 const COMPOSE_DIR = process.env.COMPOSE_DIR || __dirname;
 const LOG_FILE = join(__dirname, "deploy.log");
+const DEPLOY_RATE_WINDOW_MS = Number(process.env.DEPLOY_RATE_WINDOW_MS || 60_000);
+const DEPLOY_RATE_MAX = Number(process.env.DEPLOY_RATE_MAX || 10);
 
 if (!SECRET) {
   console.error("❌ WEBHOOK_SECRET env variable is required");
@@ -25,6 +28,23 @@ function log(msg) {
   logStream.write(line + "\n");
 }
 
+function sanitizeForLog(value) {
+  return String(value ?? "unknown").replace(/[\r\n]/g, "");
+}
+
+const deployRateLimiter = rateLimit({
+  windowMs: DEPLOY_RATE_WINDOW_MS,
+  max: DEPLOY_RATE_MAX,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => sanitizeForLog(req.ip || req.socket?.remoteAddress),
+  handler: (req, res) => {
+    const clientIp = sanitizeForLog(req.ip || req.socket?.remoteAddress);
+    log(`⚠️  Rate limit exceeded for ${clientIp}`);
+    res.status(429).json({ error: "Too Many Requests" });
+  },
+});
+
 // Use raw buffer — captures body once, used for both HMAC and JSON parse
 app.use(express.raw({ type: "*/*" }));
 
@@ -32,7 +52,7 @@ app.get("/health", (req, res) => {
   res.json({ status: "ok", uptime: process.uptime() });
 });
 
-app.post("/webhook/deploy", (req, res) => {
+app.post("/webhook/deploy", deployRateLimiter, (req, res) => {
   const signature = req.headers["x-hub-signature-256"];
   if (!signature) {
     log("⚠️  Missing signature");

@@ -23,12 +23,12 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\JobVault.API\JobVault.API.csproj" />
-		<ProjectReference Include="..\JobVault.Application\JobVault.Application.csproj" />
-		<ProjectReference Include="..\JobVault.Contracts\JobVault.Contracts.csproj" />
-		<ProjectReference Include="..\JobVault.Domain\JobVault.Domain.csproj" />
-		<ProjectReference Include="..\JobVault.Infrastructure\JobVault.Infrastructure.csproj" />
-		<ProjectReference Include="..\JobVault.Worker\JobVault.Worker.csproj" />
+		<ProjectReference Include="..\..\src\JobVault.API\JobVault.API.csproj" />
+		<ProjectReference Include="..\..\src\JobVault.Application\JobVault.Application.csproj" />
+		<ProjectReference Include="..\..\src\JobVault.Contracts\JobVault.Contracts.csproj" />
+		<ProjectReference Include="..\..\src\JobVault.Domain\JobVault.Domain.csproj" />
+		<ProjectReference Include="..\..\src\JobVault.Infrastructure\JobVault.Infrastructure.csproj" />
+		<ProjectReference Include="..\..\src\JobVault.Worker\JobVault.Worker.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>

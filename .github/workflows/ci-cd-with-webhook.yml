@@ -33,15 +33,15 @@ jobs:
           dotnet-version: "9.0.x"
 
       - name: Restore dependencies
-        working-directory: backend/JobVault/JobVault.API
+        working-directory: backend/src/JobVault.API
         run: dotnet restore JobVault.sln
 
       - name: Build
-        working-directory: backend/JobVault/JobVault.API
+        working-directory: backend/src/JobVault.API
         run: dotnet build JobVault.sln -c Release --no-restore
 
       - name: Run tests
-        working-directory: backend/JobVault/JobVault.API
+        working-directory: backend/src/JobVault.API
         run: dotnet test JobVault.sln --no-build -c Release --verbosity normal
 
   # ================================
@@ -84,7 +84,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: Dockerfile.api
+          file: docker/api.Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -131,7 +131,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: Dockerfile.worker
+          file: docker/worker.Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
