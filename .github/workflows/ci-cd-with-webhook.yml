@@ -151,18 +151,67 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Create root .env for Docker Compose
+        shell: pwsh
+        working-directory: ${{ github.workspace }}
+        env:
+          MONGODB_CONNECTION_STRING: ${{ secrets.MONGODB_CONNECTION_STRING }}
+          MONGODB_DATABASE_NAME: ${{ secrets.MONGODB_DATABASE_NAME }}
+          MONGODB_JOB_APPLICATIONS_COLLECTION_NAME: ${{ secrets.MONGODB_JOB_APPLICATIONS_COLLECTION_NAME }}
+          RABBITMQ_CONNECTION_STRING: ${{ secrets.RABBITMQ_CONNECTION_STRING }}
+          RABBITMQ_EXCHANGE_NAME: ${{ secrets.RABBITMQ_EXCHANGE_NAME }}
+          RABBITMQ_JOB_APPLICATION_CREATED_QUEUE_NAME: ${{ secrets.RABBITMQ_JOB_APPLICATION_CREATED_QUEUE_NAME }}
+          RABBITMQ_JOB_APPLICATION_UPDATED_QUEUE_NAME: ${{ secrets.RABBITMQ_JOB_APPLICATION_UPDATED_QUEUE_NAME }}
+          RABBITMQ_DEAD_LETTER_QUEUE_NAME: ${{ secrets.RABBITMQ_DEAD_LETTER_QUEUE_NAME }}
+          RABBITMQ_DEAD_LETTER_EXCHANGE_NAME: ${{ secrets.RABBITMQ_DEAD_LETTER_EXCHANGE_NAME }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          APP_GH_TOKEN: ${{ secrets.APP_GH_TOKEN }}
+          APP_GH_OWNER: ${{ secrets.APP_GH_OWNER }}
+          APP_GH_REPOSITORY: ${{ secrets.APP_GH_REPOSITORY }}
+          APP_GH_BRANCH: ${{ secrets.APP_GH_BRANCH }}
+        run: |
+          @"
+          MongoDb__ConnectionString=$env:MONGODB_CONNECTION_STRING
+          MongoDb__DatabaseName=$env:MONGODB_DATABASE_NAME
+          MongoDb__JobApplicationsCollectionName=$env:MONGODB_JOB_APPLICATIONS_COLLECTION_NAME
+          RabbitMq__ConnectionString=$env:RABBITMQ_CONNECTION_STRING
+          RabbitMq__ExchangeName=$env:RABBITMQ_EXCHANGE_NAME
+          RabbitMq__JobApplicationCreatedQueueName=$env:RABBITMQ_JOB_APPLICATION_CREATED_QUEUE_NAME
+          RabbitMq__JobApplicationUpdatedQueueName=$env:RABBITMQ_JOB_APPLICATION_UPDATED_QUEUE_NAME
+          RabbitMq__DeadLetterQueueName=$env:RABBITMQ_DEAD_LETTER_QUEUE_NAME
+          RabbitMq__DeadLetterExchangeName=$env:RABBITMQ_DEAD_LETTER_EXCHANGE_NAME
+          Telegram__BotToken=$env:TELEGRAM_BOT_TOKEN
+          Telegram__ChatId=$env:TELEGRAM_CHAT_ID
+          GitHub__Token=$env:APP_GH_TOKEN
+          GitHub__Owner=$env:APP_GH_OWNER
+          GitHub__Repository=$env:APP_GH_REPOSITORY
+          GitHub__Branch=$env:APP_GH_BRANCH
+          "@ | Set-Content -Path .env -Encoding utf8
+
+      - name: Verify .env exists
+        shell: pwsh
+        working-directory: ${{ github.workspace }}
+        run: |
+          if (-not (Test-Path -Path .env -PathType Leaf)) {
+            throw "Required .env file was not created."
+          }
+
       - name: Deploy with Docker Compose
-        shell: powershell
+        shell: pwsh
         working-directory: ${{ github.workspace }}
         run: |
           docker compose pull
           docker compose up -d
 
       - name: Notify Telegram
+        shell: pwsh
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-            -d chat_id="${TELEGRAM_CHAT_ID}" \
-            -d text="🚀 JobVault deployed%0ACommit: ${{ github.sha }}%0ABy: ${{ github.actor }}"
+          $message = "🚀 JobVault deployed`nCommit: ${{ github.sha }}`nBy: ${{ github.actor }}"
+          Invoke-RestMethod -Method Post -Uri "https://api.telegram.org/bot$env:TELEGRAM_BOT_TOKEN/sendMessage" -Body @{
+            chat_id = $env:TELEGRAM_CHAT_ID
+            text    = $message
+          } | Out-Null
