@@ -14,7 +14,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JobVault.Contracts", "..\Jo
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JobVault.Worker", "..\JobVault.Worker\JobVault.Worker.csproj", "{F6A7B8C9-D0E1-2345-F012-456789012345}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JobVault.ArchitectureTests", "..\JobVault.ArchitectureTests\JobVault.ArchitectureTests.csproj", "{7823B902-50EB-495F-9167-0CCBFD397912}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JobVault.ArchitectureTests", "..\..\tests\JobVault.ArchitectureTests\JobVault.ArchitectureTests.csproj", "{7823B902-50EB-495F-9167-0CCBFD397912}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
