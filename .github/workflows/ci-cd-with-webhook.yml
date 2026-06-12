@@ -153,8 +153,8 @@ jobs:
 
       - name: Deploy with Docker Compose
         shell: powershell
+        working-directory: ${{ github.workspace }}
         run: |
-          Set-Location 'D:\Personal\Job-Applications\Automation\jobvault'
           docker compose pull
           docker compose up -d
 

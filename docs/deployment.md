@@ -16,4 +16,4 @@
 The workflow in `.github/workflows/ci-cd-with-webhook.yml`:
 - restores/builds/tests from `backend/src/JobVault.API/JobVault.sln`
 - builds container images from `docker/api.Dockerfile` and `docker/worker.Dockerfile`
-- deploys on the self-hosted Windows runner after successful image publish on `master` pushes by running `docker compose pull` and `docker compose up -d` from `D:\Personal\Job-Applications\Automation\jobvault`.
+- deploys on the self-hosted Windows runner after successful image publish on `master` pushes by running `docker compose pull` and `docker compose up -d` from the checked-out runner workspace.
