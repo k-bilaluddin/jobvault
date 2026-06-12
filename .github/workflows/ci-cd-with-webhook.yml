@@ -139,28 +139,24 @@ jobs:
           cache-to: type=gha,mode=max
 
   # ================================
-  # Job 4: Trigger Deploy Webhook
+  # Job 4: Deploy on Self-Hosted Runner
   # ================================
   deploy:
-    name: Trigger Deploy
-    runs-on: ubuntu-latest
+    name: Deploy
+    runs-on: [self-hosted, Windows]
     needs: [build-api, build-worker]
     if: github.ref == 'refs/heads/master' && github.event_name == 'push'
 
     steps:
-      - name: Call deploy webhook
-        env:
-          WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
-          WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy with Docker Compose
+        shell: powershell
+        working-directory: ${{ github.workspace }}
         run: |
-          PAYLOAD='{"event":"deploy","sha":"${{ github.sha }}","actor":"${{ github.actor }}"}'
-          SIGNATURE="sha256=$(echo -n "$PAYLOAD" | openssl dgst -sha256 -hmac "$WEBHOOK_SECRET" | awk '{print $2}')"
-          
-          curl -s -X POST "$WEBHOOK_URL/webhook/deploy" \
-            -H "Content-Type: application/json" \
-            -H "X-Hub-Signature-256: $SIGNATURE" \
-            -H "X-GitHub-Event: deploy" \
-            -d "$PAYLOAD"
+          docker compose pull
+          docker compose up -d
 
       - name: Notify Telegram
         env:
