@@ -83,7 +83,7 @@ flowchart TD
 | CI/CD | GitHub Actions |
 | Hosting | Windows + Cloudflare Tunnel → Hetzner CX22 *(planned)* |
 | Notifications | Telegram Bot API |
-| Deploy Trigger | Node.js webhook server (push-based CD) |
+| Deploy Trigger | Self-hosted GitHub Actions runner on Windows |
 
 ---
 
@@ -92,21 +92,17 @@ flowchart TD
 ```
 jobvault/
 ├── backend/
-│   └── JobVault/
-│       ├── JobVault.API/               # ASP.NET Core controllers, Swagger, Program.cs
-│       ├── JobVault.Application/       # Use cases, service interfaces
-│       ├── JobVault.Domain/            # Entities, value objects
-│       ├── JobVault.Infrastructure/    # MongoDB, RabbitMQ, Telegram, GitHub
-│       ├── JobVault.Contracts/         # DTOs, request/response models
-│       ├── JobVault.Worker/            # Background hosted services
+│   ├── src/
+│   │   ├── JobVault.API/               # ASP.NET Core controllers, Swagger, Program.cs
+│   │   ├── JobVault.Application/       # Use cases, service interfaces
+│   │   ├── JobVault.Domain/            # Entities, value objects
+│   │   ├── JobVault.Infrastructure/    # MongoDB, RabbitMQ, Telegram, GitHub
+│   │   ├── JobVault.Contracts/         # DTOs, request/response models
+│   │   └── JobVault.Worker/            # Background hosted services
+│   └── tests/
 │       └── JobVault.ArchitectureTests/ # Architecture enforcement tests
 ├── frontend/                           # Vue 3 + Vite + Pinia
-├── webhook-server/                     # Node.js CD webhook (Express)
-│   ├── server.js
-│   ├── Dockerfile
-│   └── package.json
-├── Dockerfile.api
-├── Dockerfile.worker
+├── docker/                             # Dockerfiles for API and worker images
 ├── docker-compose.yml
 ├── .github/
 │   └── workflows/
@@ -129,7 +125,7 @@ GitHub Actions
                              ├── parallel → GHCR
 ③ Build & Push Worker Image ┘
       ↓
-④ POST https://deploy.kbilaluddin.dev/webhook/deploy  (HMAC signed)
+④ Self-hosted Windows runner deploy job
       ↓
 ⑤ docker compose pull && docker compose up -d
       ↓
@@ -172,12 +168,11 @@ docker compose up -d
 This starts:
 - `jobvault-api` → http://localhost:5000/swagger
 - `jobvault-worker` → background service
-- `jobvault-webhook` → http://localhost:3001/health
 
 ### 4. Run API locally (without Docker)
 
 ```bash
-cd backend/JobVault/JobVault.API
+cd backend/src/JobVault.API
 dotnet restore
 dotnet run
 ```
@@ -204,7 +199,6 @@ npm run dev
 | `GITHUB_TOKEN` | PAT for vault repo access | `ghp_...` |
 | `GITHUB_REPO_OWNER` | GitHub username | `k-bilaluddin` |
 | `GITHUB_REPO_NAME` | Vault repo name | `job-applications-vault` |
-| `WEBHOOK_SECRET` | HMAC secret for deploy webhook | `32-byte hex string` |
 
 ---
 
@@ -228,7 +222,7 @@ docker pull ghcr.io/k-bilaluddin/jobvault-worker:latest
 - [x] GitHub webhook ingestion
 - [x] Docker + Docker Compose
 - [x] GitHub Actions CI/CD
-- [x] Push-based CD via webhook
+- [x] Self-hosted GitHub Actions deployment on Windows
 - [x] Cloudflare Tunnel (HTTPS, no open ports)
 - [x] Vue 3 frontend — overview dashboard, direct apply, history, follow-up notifications *(prototype)*
 - [ ] Migrate to Hetzner CX22
