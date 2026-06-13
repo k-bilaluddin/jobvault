@@ -97,4 +97,101 @@ public class MongoDbService : IJobApplicationRepository
             return UpsertResult.Failure();
         }
     }
+
+    public async Task<(List<JobApplication> Applications, long TotalCount)> GetApplicationsAsync(
+        int page,
+        int pageSize,
+        string? status = null,
+        string? company = null,
+        DateTime? fromDate = null,
+        DateTime? toDate = null,
+        int? minScore = null,
+        int? maxScore = null)
+    {
+        try
+        {
+            var filterBuilder = Builders<BsonDocument>.Filter;
+            var filters = new List<FilterDefinition<BsonDocument>>();
+
+            // Apply filters
+            if (!string.IsNullOrWhiteSpace(status))
+            {
+                filters.Add(filterBuilder.Eq("status", status));
+            }
+
+            if (!string.IsNullOrWhiteSpace(company))
+            {
+                filters.Add(filterBuilder.Regex("companyName", new BsonRegularExpression(company, "i")));
+            }
+
+            if (fromDate.HasValue)
+            {
+                filters.Add(filterBuilder.Gte("createdAt", fromDate.Value));
+            }
+
+            if (toDate.HasValue)
+            {
+                filters.Add(filterBuilder.Lte("createdAt", toDate.Value.AddDays(1).AddTicks(-1)));
+            }
+
+            if (minScore.HasValue)
+            {
+                filters.Add(filterBuilder.Gte("matchScore", minScore.Value));
+            }
+
+            if (maxScore.HasValue)
+            {
+                filters.Add(filterBuilder.Lte("matchScore", maxScore.Value));
+            }
+
+            var combinedFilter = filters.Count > 0
+                ? filterBuilder.And(filters)
+                : filterBuilder.Empty;
+
+            // Get total count
+            var totalCount = await _collection.CountDocumentsAsync(combinedFilter);
+
+            // Get paginated results
+            var skip = (page - 1) * pageSize;
+            var documents = await _collection
+                .Find(combinedFilter)
+                .Sort(Builders<BsonDocument>.Sort.Descending("createdAt"))
+                .Skip(skip)
+                .Limit(pageSize)
+                .ToListAsync();
+
+            var applications = documents.Select(doc => new JobApplication
+            {
+                Id = doc.Contains("_id") ? doc["_id"].ToString() : null,
+                CompanyName = doc["companyName"].AsString,
+                JobTitle = doc["jobTitle"].AsString,
+                Location = doc["location"].AsString,
+                JobUrl = doc["jobUrl"].AsString,
+                WorkMode = doc["workMode"].AsString,
+                EmploymentType = doc["employmentType"].AsString,
+                SalaryMin = doc["salaryMin"].IsBsonNull ? null : doc["salaryMin"].AsInt32,
+                SalaryMax = doc["salaryMax"].IsBsonNull ? null : doc["salaryMax"].AsInt32,
+                Currency = doc["currency"].AsString,
+                SalaryPeriod = doc["salaryPeriod"].AsString,
+                MatchScore = doc["matchScore"].AsInt32,
+                Recommendation = doc["recommendation"].AsString,
+                Status = doc["status"].AsString,
+                CreatedAt = doc["createdAt"].ToUniversalTime(),
+                UpdatedAt = doc["updatedAt"].ToUniversalTime()
+            }).ToList();
+
+            _logger.LogInformation(
+                "Retrieved {Count} applications (page {Page}/{TotalPages})",
+                applications.Count,
+                page,
+                Math.Ceiling(totalCount / (double)pageSize));
+
+            return (applications, totalCount);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving applications");
+            return (new List<JobApplication>(), 0);
+        }
+    }
 }
