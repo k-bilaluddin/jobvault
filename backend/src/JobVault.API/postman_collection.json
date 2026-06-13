@@ -1,0 +1,567 @@
+{
+  "info": {
+    "name": "JobVault API",
+    "description": "Complete API collection for JobVault application management system",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "item": [
+    {
+      "name": "Applications",
+      "item": [
+        {
+          "name": "Get All Applications",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/applications?page=1&pageSize=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "applications"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (default: 1)"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10",
+                  "description": "Items per page (default: 10, max: 100)"
+                },
+                {
+                  "key": "status",
+                  "value": "Applied",
+                  "description": "Filter by status",
+                  "disabled": true
+                },
+                {
+                  "key": "company",
+                  "value": "google",
+                  "description": "Filter by company name (partial match)",
+                  "disabled": true
+                },
+                {
+                  "key": "fromDate",
+                  "value": "2026-01-01",
+                  "description": "Filter from date (ISO 8601)",
+                  "disabled": true
+                },
+                {
+                  "key": "toDate",
+                  "value": "2026-12-31",
+                  "description": "Filter to date (ISO 8601)",
+                  "disabled": true
+                },
+                {
+                  "key": "minScore",
+                  "value": "70",
+                  "description": "Minimum match score",
+                  "disabled": true
+                },
+                {
+                  "key": "maxScore",
+                  "value": "100",
+                  "description": "Maximum match score",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Retrieves paginated list of job applications with optional filtering by status, company, date range, and score."
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/applications?page=1&pageSize=10",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "applications"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "pageSize",
+                      "value": "10"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"items\": [\n    {\n      \"id\": \"507f1f77bcf86cd799439011\",\n      \"companyName\": \"Google\",\n      \"jobTitle\": \"Senior Software Engineer\",\n      \"location\": \"Mountain View, CA\",\n      \"jobUrl\": \"https://careers.google.com/jobs/123\",\n      \"workMode\": \"Hybrid\",\n      \"employmentType\": \"Full-time\",\n      \"salaryMin\": 150000,\n      \"salaryMax\": 200000,\n      \"currency\": \"USD\",\n      \"salaryPeriod\": \"annual\",\n      \"matchScore\": 85,\n      \"recommendation\": \"Strong match\",\n      \"status\": \"Applied\",\n      \"createdAt\": \"2026-06-01T10:00:00Z\",\n      \"updatedAt\": \"2026-06-01T10:00:00Z\"\n    }\n  ],\n  \"totalCount\": 50,\n  \"page\": 1,\n  \"pageSize\": 10,\n  \"totalPages\": 5,\n  \"hasNextPage\": true,\n  \"hasPreviousPage\": false\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Application by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/applications/{{application_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "applications", "{{application_id}}"]
+            },
+            "description": "Retrieves full details of a specific job application by ID."
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/applications/507f1f77bcf86cd799439011",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "applications", "507f1f77bcf86cd799439011"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"507f1f77bcf86cd799439011\",\n  \"companyName\": \"Google\",\n  \"jobTitle\": \"Senior Software Engineer\",\n  \"location\": \"Mountain View, CA\",\n  \"jobUrl\": \"https://careers.google.com/jobs/123\",\n  \"workMode\": \"Hybrid\",\n  \"employmentType\": \"Full-time\",\n  \"salaryMin\": 150000,\n  \"salaryMax\": 200000,\n  \"currency\": \"USD\",\n  \"salaryPeriod\": \"annual\",\n  \"matchScore\": 85,\n  \"recommendation\": \"Strong match based on skills and experience\",\n  \"status\": \"Applied\",\n  \"createdAt\": \"2026-06-01T10:00:00Z\",\n  \"updatedAt\": \"2026-06-01T10:00:00Z\"\n}"
+            },
+            {
+              "name": "Not Found",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/applications/invalid_id",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "applications", "invalid_id"]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"Application with ID 'invalid_id' not found\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Application Status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"Interview Scheduled\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/applications/{{application_id}}/status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "applications", "{{application_id}}", "status"]
+            },
+            "description": "Updates the status of a job application atomically and emits an event to RabbitMQ."
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"Interview Scheduled\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/applications/507f1f77bcf86cd799439011/status",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "applications", "507f1f77bcf86cd799439011", "status"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"507f1f77bcf86cd799439011\",\n  \"companyName\": \"Google\",\n  \"jobTitle\": \"Senior Software Engineer\",\n  \"location\": \"Mountain View, CA\",\n  \"jobUrl\": \"https://careers.google.com/jobs/123\",\n  \"workMode\": \"Hybrid\",\n  \"employmentType\": \"Full-time\",\n  \"salaryMin\": 150000,\n  \"salaryMax\": 200000,\n  \"currency\": \"USD\",\n  \"salaryPeriod\": \"annual\",\n  \"matchScore\": 85,\n  \"recommendation\": \"Strong match\",\n  \"status\": \"Interview Scheduled\",\n  \"createdAt\": \"2026-06-01T10:00:00Z\",\n  \"updatedAt\": \"2026-06-13T14:30:00Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Application Files",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/applications/{{application_id}}/files",
+              "host": ["{{base_url}}"],
+              "path": ["api", "applications", "{{application_id}}", "files"]
+            },
+            "description": "Returns a list of files (name, size, content-type, url) associated with the application."
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/applications/507f1f77bcf86cd799439011/files",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "applications", "507f1f77bcf86cd799439011", "files"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "[\n  {\n    \"name\": \"Google_job_description.md\",\n    \"size\": 0,\n    \"contentType\": \"text/markdown\",\n    \"url\": \"/api/files/507f1f77bcf86cd799439011/Google_job_description.md\"\n  },\n  {\n    \"name\": \"Google_analysis.md\",\n    \"size\": 0,\n    \"contentType\": \"text/markdown\",\n    \"url\": \"/api/files/507f1f77bcf86cd799439011/Google_analysis.md\"\n  }\n]"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Get Dashboard Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/dashboard/stats",
+              "host": ["{{base_url}}"],
+              "path": ["api", "dashboard", "stats"]
+            },
+            "description": "Returns aggregated metrics including total applications, by-status counts, and average score. Optimized to return within 200ms for typical datasets."
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/dashboard/stats",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "dashboard", "stats"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"totalApplications\": 150,\n  \"statusCounts\": {\n    \"Applied\": 45,\n    \"Interview Scheduled\": 30,\n    \"Offer Received\": 15,\n    \"Rejected\": 35,\n    \"Withdrawn\": 10,\n    \"Pending\": 15\n  },\n  \"averageScore\": 78.5\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Dashboard Activity",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/dashboard/activity?page=1&pageSize=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "dashboard", "activity"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (default: 1)"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20",
+                  "description": "Items per page (default: 20, max: 100)"
+                }
+              ]
+            },
+            "description": "Returns paginated recent activity including created, updated, and status change events."
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/dashboard/activity?page=1&pageSize=20",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "dashboard", "activity"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "pageSize",
+                      "value": "20"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"items\": [\n    {\n      \"id\": \"507f1f77bcf86cd799439011\",\n      \"companyName\": \"Google\",\n      \"jobTitle\": \"Senior Software Engineer\",\n      \"activityType\": \"Updated\",\n      \"oldStatus\": null,\n      \"newStatus\": \"Interview Scheduled\",\n      \"timestamp\": \"2026-06-13T14:30:00Z\"\n    },\n    {\n      \"id\": \"507f1f77bcf86cd799439012\",\n      \"companyName\": \"Microsoft\",\n      \"jobTitle\": \"Cloud Solutions Architect\",\n      \"activityType\": \"Created\",\n      \"oldStatus\": null,\n      \"newStatus\": \"Applied\",\n      \"timestamp\": \"2026-06-13T10:15:00Z\"\n    }\n  ],\n  \"totalCount\": 150,\n  \"page\": 1,\n  \"pageSize\": 20,\n  \"totalPages\": 8,\n  \"hasNextPage\": true,\n  \"hasPreviousPage\": false\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Files",
+      "item": [
+        {
+          "name": "Get File",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/files/{{application_id}}/{{filename}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "files", "{{application_id}}", "{{filename}}"]
+            },
+            "description": "Proxies files from GitHub (or object store) and returns correct Content-Type and caching headers (Cache-Control: public, max-age=3600)."
+          },
+          "response": [
+            {
+              "name": "Success Response - Markdown",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/files/507f1f77bcf86cd799439011/Google_job_description.md",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "files", "507f1f77bcf86cd799439011", "Google_job_description.md"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "text",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "text/markdown"
+                },
+                {
+                  "key": "Cache-Control",
+                  "value": "public, max-age=3600"
+                },
+                {
+                  "key": "ETag",
+                  "value": "\"abc123def456\""
+                }
+              ],
+              "body": "# Senior Software Engineer - Google\n\n## Job Description\n\nWe are looking for an experienced software engineer...\n\n## Requirements\n\n- 5+ years of experience\n- Strong knowledge of distributed systems\n- Experience with cloud platforms"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Ingestion",
+      "item": [
+        {
+          "name": "Ingest Files",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "companyName",
+                  "value": "Google",
+                  "description": "Company name",
+                  "type": "text"
+                },
+                {
+                  "key": "files",
+                  "description": "Files to upload",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/ingest",
+              "host": ["{{base_url}}"],
+              "path": ["api", "ingest"]
+            },
+            "description": "Uploads job application files to GitHub repository for processing."
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "companyName",
+                      "value": "Google",
+                      "type": "text"
+                    },
+                    {
+                      "key": "files",
+                      "type": "file",
+                      "src": []
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/ingest",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "ingest"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"companyName\": \"Google\",\n  \"commitUrl\": \"https://github.com/k-bilaluddin/job-applications-vault/commit/abc123\",\n  \"filesUploaded\": [\n    \"job_description.pdf\",\n    \"cover_letter.pdf\"\n  ]\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Webhooks",
+      "item": [
+        {
+          "name": "Handle GitHub Webhook",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-GitHub-Event",
+                "value": "push"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ref\": \"refs/heads/main\",\n  \"repository\": {\n    \"full_name\": \"k-bilaluddin/job-applications-vault\"\n  },\n  \"commits\": [\n    {\n      \"added\": [\"Google/job_description.md\"],\n      \"modified\": [],\n      \"removed\": []\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/webhook",
+              "host": ["{{base_url}}"],
+              "path": ["api", "webhook"]
+            },
+            "description": "Handles GitHub push events to trigger job application processing."
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"ref\": \"refs/heads/main\",\n  \"repository\": {\n    \"full_name\": \"k-bilaluddin/job-applications-vault\"\n  },\n  \"commits\": [\n    {\n      \"added\": [\"Google/job_description.md\"],\n      \"modified\": [],\n      \"removed\": []\n    }\n  ]\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/webhook",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "webhook"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Webhook processed successfully\"\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://localhost:7000",
+      "type": "string"
+    },
+    {
+      "key": "application_id",
+      "value": "507f1f77bcf86cd799439011",
+      "type": "string"
+    },
+    {
+      "key": "filename",
+      "value": "Google_job_description.md",
+      "type": "string"
+    }
+  ]
+}

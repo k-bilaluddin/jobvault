@@ -104,6 +104,12 @@ public class RabbitMqPublisher : IRabbitMqPublisher
                 exchange: _exchangeName,
                 routingKey: "job.application.updated").GetAwaiter().GetResult();
 
+            // Also bind status changed events to the updated queue
+            _channel.QueueBindAsync(
+                queue: _jobApplicationUpdatedQueueName,
+                exchange: _exchangeName,
+                routingKey: "job.application.statuschanged").GetAwaiter().GetResult();
+
             _logger.LogInformation("RabbitMQ publisher initialized successfully");
         }
         catch (Exception ex)
@@ -126,6 +132,7 @@ public class RabbitMqPublisher : IRabbitMqPublisher
             {
                 "created" => "job.application.created",
                 "updated" => "job.application.updated",
+                "statuschanged" => "job.application.statuschanged",
                 _ => "job.application.unknown"
             };
 
@@ -163,9 +170,7 @@ public class RabbitMqPublisher : IRabbitMqPublisher
     public void Dispose()
     {
         if (_disposed)
-        {
             return;
-        }
 
         try
         {
@@ -179,6 +184,5 @@ public class RabbitMqPublisher : IRabbitMqPublisher
         }
 
         _disposed = true;
-        GC.SuppressFinalize(this);
     }
 }

@@ -36,4 +36,33 @@ public interface IJobApplicationRepository
         DateTime? toDate = null,
         int? minScore = null,
         int? maxScore = null);
+
+    /// <summary>
+    /// Gets a job application by ID.
+    /// </summary>
+    /// <param name="id">The application ID.</param>
+    /// <returns>The job application or null if not found.</returns>
+    Task<JobApplication?> GetApplicationByIdAsync(string id);
+
+    /// <summary>
+    /// Updates the status of a job application atomically.
+    /// </summary>
+    /// <param name="id">The application ID.</param>
+    /// <param name="newStatus">The new status value.</param>
+    /// <returns>The updated job application or null if not found.</returns>
+    Task<JobApplication?> UpdateApplicationStatusAsync(string id, string newStatus);
+
+    /// <summary>
+    /// Gets dashboard statistics.
+    /// </summary>
+    /// <returns>Dashboard statistics including total count, status counts, and average score.</returns>
+    Task<(int TotalCount, Dictionary<string, int> StatusCounts, double AverageScore)> GetDashboardStatsAsync();
+
+    /// <summary>
+    /// Gets recent activity with pagination.
+    /// </summary>
+    /// <param name="page">Page number (1-based).</param>
+    /// <param name="pageSize">Number of items per page.</param>
+    /// <returns>A tuple containing the list of recent updates and total count.</returns>
+    Task<(List<JobApplication> Applications, long TotalCount)> GetRecentActivityAsync(int page, int pageSize);
 }

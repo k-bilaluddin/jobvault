@@ -160,25 +160,7 @@ public class MongoDbService : IJobApplicationRepository
                 .Limit(pageSize)
                 .ToListAsync();
 
-            var applications = documents.Select(doc => new JobApplication
-            {
-                Id = doc.Contains("_id") ? doc["_id"].ToString() : null,
-                CompanyName = doc["companyName"].AsString,
-                JobTitle = doc["jobTitle"].AsString,
-                Location = doc["location"].AsString,
-                JobUrl = doc["jobUrl"].AsString,
-                WorkMode = doc["workMode"].AsString,
-                EmploymentType = doc["employmentType"].AsString,
-                SalaryMin = doc["salaryMin"].IsBsonNull ? null : doc["salaryMin"].AsInt32,
-                SalaryMax = doc["salaryMax"].IsBsonNull ? null : doc["salaryMax"].AsInt32,
-                Currency = doc["currency"].AsString,
-                SalaryPeriod = doc["salaryPeriod"].AsString,
-                MatchScore = doc["matchScore"].AsInt32,
-                Recommendation = doc["recommendation"].AsString,
-                Status = doc["status"].AsString,
-                CreatedAt = doc["createdAt"].ToUniversalTime(),
-                UpdatedAt = doc["updatedAt"].ToUniversalTime()
-            }).ToList();
+            var applications = documents.Select(MapBsonToApplication).ToList();
 
             _logger.LogInformation(
                 "Retrieved {Count} applications (page {Page}/{TotalPages})",
@@ -193,5 +175,183 @@ public class MongoDbService : IJobApplicationRepository
             _logger.LogError(ex, "Error retrieving applications");
             return (new List<JobApplication>(), 0);
         }
+    }
+
+    public async Task<JobApplication?> GetApplicationByIdAsync(string id)
+    {
+        try
+        {
+            if (!ObjectId.TryParse(id, out var objectId))
+            {
+                _logger.LogWarning("Invalid ObjectId format: {Id}", id);
+                return null;
+            }
+
+            var filter = Builders<BsonDocument>.Filter.Eq("_id", objectId);
+            var document = await _collection.Find(filter).FirstOrDefaultAsync();
+
+            if (document == null)
+            {
+                _logger.LogInformation("Application not found with ID: {Id}", id);
+                return null;
+            }
+
+            return MapBsonToApplication(document);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving application by ID: {Id}", id);
+            return null;
+        }
+    }
+
+    public async Task<JobApplication?> UpdateApplicationStatusAsync(string id, string newStatus)
+    {
+        try
+        {
+            if (!ObjectId.TryParse(id, out var objectId))
+            {
+                _logger.LogWarning("Invalid ObjectId format: {Id}", id);
+                return null;
+            }
+
+            var filter = Builders<BsonDocument>.Filter.Eq("_id", objectId);
+            var update = Builders<BsonDocument>.Update
+                .Set("status", newStatus)
+                .Set("updatedAt", DateTime.UtcNow);
+
+            var options = new FindOneAndUpdateOptions<BsonDocument>
+            {
+                ReturnDocument = ReturnDocument.After
+            };
+
+            var updatedDocument = await _collection.FindOneAndUpdateAsync(filter, update, options);
+
+            if (updatedDocument == null)
+            {
+                _logger.LogWarning("Application not found with ID: {Id}", id);
+                return null;
+            }
+
+            _logger.LogInformation("Updated status for application {Id} to {Status}", id, newStatus);
+            return MapBsonToApplication(updatedDocument);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating status for application {Id}", id);
+            return null;
+        }
+    }
+
+    public async Task<(int TotalCount, Dictionary<string, int> StatusCounts, double AverageScore)> GetDashboardStatsAsync()
+    {
+        try
+        {
+            var pipeline = new[]
+            {
+                new BsonDocument("$facet", new BsonDocument
+                {
+                    ["totalCount"] = new BsonArray { new BsonDocument("$count", "count") },
+                    ["statusCounts"] = new BsonArray
+                    {
+                        new BsonDocument("$group", new BsonDocument
+                        {
+                            ["_id"] = "$status",
+                            ["count"] = new BsonDocument("$sum", 1)
+                        })
+                    },
+                    ["averageScore"] = new BsonArray
+                    {
+                        new BsonDocument("$group", new BsonDocument
+                        {
+                            ["_id"] = BsonNull.Value,
+                            ["avg"] = new BsonDocument("$avg", "$matchScore")
+                        })
+                    }
+                })
+            };
+
+            var results = await _collection.AggregateAsync<BsonDocument>(pipeline);
+            var result = await results.FirstOrDefaultAsync();
+
+            if (result == null)
+            {
+                return (0, new Dictionary<string, int>(), 0.0);
+            }
+
+            var totalCount = result["totalCount"].AsBsonArray.Count > 0
+                ? result["totalCount"][0]["count"].AsInt32
+                : 0;
+
+            var statusCounts = new Dictionary<string, int>();
+            foreach (var item in result["statusCounts"].AsBsonArray)
+            {
+                var status = item["_id"].AsString;
+                var count = item["count"].AsInt32;
+                statusCounts[status] = count;
+            }
+
+            var averageScore = result["averageScore"].AsBsonArray.Count > 0
+                ? result["averageScore"][0]["avg"].ToDouble()
+                : 0.0;
+
+            _logger.LogInformation("Retrieved dashboard stats: Total={Total}, Avg Score={AvgScore}", totalCount, averageScore);
+            return (totalCount, statusCounts, averageScore);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving dashboard stats");
+            return (0, new Dictionary<string, int>(), 0.0);
+        }
+    }
+
+    public async Task<(List<JobApplication> Applications, long TotalCount)> GetRecentActivityAsync(int page, int pageSize)
+    {
+        try
+        {
+            var filter = Builders<BsonDocument>.Filter.Empty;
+            var totalCount = await _collection.CountDocumentsAsync(filter);
+
+            var skip = (page - 1) * pageSize;
+            var documents = await _collection
+                .Find(filter)
+                .Sort(Builders<BsonDocument>.Sort.Descending("updatedAt"))
+                .Skip(skip)
+                .Limit(pageSize)
+                .ToListAsync();
+
+            var applications = documents.Select(MapBsonToApplication).ToList();
+
+            _logger.LogInformation("Retrieved {Count} recent activities (page {Page})", applications.Count, page);
+            return (applications, totalCount);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving recent activity");
+            return (new List<JobApplication>(), 0);
+        }
+    }
+
+    private static JobApplication MapBsonToApplication(BsonDocument doc)
+    {
+        return new JobApplication
+        {
+            Id = doc.Contains("_id") ? doc["_id"].ToString() : null,
+            CompanyName = doc["companyName"].AsString,
+            JobTitle = doc["jobTitle"].AsString,
+            Location = doc["location"].AsString,
+            JobUrl = doc["jobUrl"].AsString,
+            WorkMode = doc["workMode"].AsString,
+            EmploymentType = doc["employmentType"].AsString,
+            SalaryMin = doc["salaryMin"].IsBsonNull ? null : doc["salaryMin"].AsInt32,
+            SalaryMax = doc["salaryMax"].IsBsonNull ? null : doc["salaryMax"].AsInt32,
+            Currency = doc["currency"].AsString,
+            SalaryPeriod = doc["salaryPeriod"].AsString,
+            MatchScore = doc["matchScore"].AsInt32,
+            Recommendation = doc["recommendation"].AsString,
+            Status = doc["status"].AsString,
+            CreatedAt = doc["createdAt"].ToUniversalTime(),
+            UpdatedAt = doc["updatedAt"].ToUniversalTime()
+        };
     }
 }
