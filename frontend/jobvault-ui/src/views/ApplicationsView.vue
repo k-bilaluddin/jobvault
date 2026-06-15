@@ -243,6 +243,14 @@ const QUICK_STAGES: ApplicationStage[] = ['Ready to Apply', 'Applied', 'Intervie
                   <span v-if="c.has_report" class="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0" title="Has report"/>
                   <span v-if="(c.interviews?.length ?? 0) > 0" class="text-[10px] text-violet-400 flex-shrink-0 font-medium">{{ c.interviews.length }}✦</span>
                   <span v-if="isFollowUpDue(c)" class="text-[10px] text-amber-400 flex-shrink-0" title="Follow-up due">⏰</span>
+                  <!-- Job posting link — always visible when URL exists -->
+                  <a v-if="c.job_url" :href="c.job_url" target="_blank" @click.stop
+                    class="flex-shrink-0 text-text-muted hover:text-blue-400 transition-colors"
+                    title="Open job posting">
+                    <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                    </svg>
+                  </a>
                 </div>
                 <p v-if="roleStr(c.role)" class="text-xs text-text-muted truncate mt-0.5">{{ roleStr(c.role) }}</p>
               </div>

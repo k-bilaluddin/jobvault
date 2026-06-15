@@ -116,6 +116,14 @@ const DIST_TEXT: Record<string, string> = {
   'No Report':      'text-slate-500',
 }
 
+// ── Follow-ups due ────────────────────────────────────────────
+const today = new Date().toISOString().split('T')[0]
+const followUpsDue = computed(() =>
+  companies.value
+    .filter(c => c.follow_up_date && c.follow_up_date <= today)
+    .sort((a, b) => (a.follow_up_date ?? '').localeCompare(b.follow_up_date ?? ''))
+)
+
 // ── Recent activity ───────────────────────────────────────────
 const recentActivity = computed(() =>
   [...companies.value]
@@ -331,6 +339,32 @@ const avgSalary = computed(() => {
         </div>
       </div>
 
+      <!-- Follow-ups due -->
+      <div v-if="followUpsDue.length" class="bg-amber-500/5 border border-amber-500/25 rounded-xl p-5">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">⏰</span>
+            <h3 class="text-sm font-semibold text-amber-400">Follow-ups Due</h3>
+            <span class="text-[10px] bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full font-semibold">{{ followUpsDue.length }}</span>
+          </div>
+        </div>
+        <div class="space-y-1">
+          <div v-for="c in followUpsDue" :key="c.name"
+            @click="router.push(`/company/${encodeURIComponent(c.name)}`)"
+            class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-amber-500/10 cursor-pointer transition-colors group">
+            <CompanyAvatar :name="c.name" size="sm"/>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-medium text-text-primary truncate group-hover:text-amber-400 transition-colors">{{ c.name }}</p>
+              <p class="text-xs text-text-muted">{{ c.stage }}</p>
+            </div>
+            <div class="text-right flex-shrink-0">
+              <p class="text-xs font-mono text-amber-400 font-semibold">{{ c.follow_up_date }}</p>
+              <p class="text-[10px] text-text-muted">follow-up</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Top Matches + Recent Activity -->
       <div class="grid grid-cols-2 gap-5">
 
@@ -381,3 +415,4 @@ const avgSalary = computed(() => {
     </div>
   </div>
 </template>
+<!-- This file will be updated via router addition only -->

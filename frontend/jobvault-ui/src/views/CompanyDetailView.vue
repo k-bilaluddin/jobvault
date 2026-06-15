@@ -6,7 +6,7 @@ import CompanyAvatar from '@/components/common/CompanyAvatar.vue'
 import RecommendBadge from '@/components/common/RecommendBadge.vue'
 import MatchRing from '@/components/common/MatchRing.vue'
 import { useCompanies } from '@/composables/useCompanies'
-import { OUTCOME_COLORS } from '@/utils/score'
+import { OUTCOME_COLORS, STAGE_COLORS } from '@/utils/score'
 import { PIPELINE_STAGES } from '@/types'
 import type { ApplicationStage } from '@/types'
 
@@ -19,9 +19,9 @@ const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:5100'
 const companyName = computed(() => decodeURIComponent(route.params.name as string))
 const company     = computed(() => getByName(companyName.value))
 
-const TABS = ['Compatibility Report', 'Tailoring Notes', 'Details', 'My Notes', 'Files', 'Interviews', 'Pipeline'] as const
+const TABS = ['Analysis', 'Strategy', 'Details', 'My Notes', 'Files', 'Interviews', 'Pipeline'] as const
 type Tab = typeof TABS[number]
-const activeTab = ref<Tab>('Compatibility Report')
+const activeTab = ref<Tab>('Analysis')
 
 // ── Stage dropdown ────────────────────────────────────────────
 const currentStage = ref<ApplicationStage>('Applied')
@@ -98,13 +98,13 @@ async function loadNotes() {
 
 // Load on tab switch
 watch(activeTab, (tab) => {
-  if (tab === 'Compatibility Report') loadReport()
-  if (tab === 'Tailoring Notes') loadNotes()
+  if (tab === 'Analysis') loadReport()
+  if (tab === 'Strategy') loadNotes()
 })
 
 // Load report on mount if it's the default tab
 watch(() => company.value, (c) => {
-  if (c && activeTab.value === 'Compatibility Report') loadReport()
+  if (c && activeTab.value === 'Analysis') loadReport()
 }, { immediate: true })
 
 // ── Personal notes ────────────────────────────────────────────
@@ -159,21 +159,100 @@ const salaryDisplay = computed(() => {
 
 function formatSal(v: string) {
   if (!v) return ''
+  // Reject values that look like dates (e.g. 21052026) or are unrealistically large
   if (v.includes('-')) {
-    const [lo, hi] = v.split('-').map(n => Math.round(+n / 1000) + 'k')
+    const parts = v.split('-').map(n => parseInt(n))
+    if (parts.some(n => isNaN(n) || n > 500000)) return '—'
+    const [lo, hi] = parts.map(n => n >= 1000 ? Math.round(n / 1000) + 'k' : String(n))
     return `€${lo} – €${hi}`
   }
   const n = parseInt(v)
-  return isNaN(n) ? v : `€${Math.round(n / 1000)}k`
+  if (isNaN(n) || n > 500000 || n < 100) return '—'
+  return n >= 1000 ? `€${Math.round(n / 1000)}k` : `€${n}`
 }
 
-const INTERVIEW_TYPE_COLOR: Record<string, string> = {
-  HR:        'bg-blue-500/15 text-blue-400',
-  Technical: 'bg-violet-500/15 text-violet-400',
-  Onsite:    'bg-amber-500/15 text-amber-400',
-  Final:     'bg-emerald-500/15 text-emerald-400',
-  Phone:     'bg-sky-500/15 text-sky-400',
+
+function copyToClipboard(text: string) {
+  if (!text) return
+  const el = document.createElement('textarea')
+  el.value = text
+  document.body.appendChild(el)
+  el.select()
+  document.execCommand('copy')
+  document.body.removeChild(el)
 }
+
+
+// ── Interviews ────────────────────────────────────────────────
+const localInterviews = ref<typeof company.value extends null ? never[] : NonNullable<typeof company.value>['interviews']>([])
+const interviewsInit  = ref(false)
+
+watch(() => company.value?.interviews, (ivs) => {
+  if (ivs && !interviewsInit.value) {
+    localInterviews.value = JSON.parse(JSON.stringify(ivs))
+    interviewsInit.value = true
+  }
+}, { immediate: true })
+
+const newInterview = ref({
+  date:    new Date().toISOString().split('T')[0],
+  type:    'HR',
+  notes:   '',
+  outcome: 'Pending',
+})
+const addingInterview = ref(false)
+const ivSaving        = ref(false)
+const ivError         = ref('')
+
+async function saveInterview() {
+  if (!newInterview.value.notes.trim()) { ivError.value = 'Please add notes'; return }
+  ivSaving.value = true
+  ivError.value  = ''
+  try {
+    const res = await fetch(`${API_BASE}/api/company/${encodeURIComponent(companyName.value)}/interviews`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(newInterview.value),
+    })
+    const data = await res.json()
+    if (data.ok) {
+      localInterviews.value = data.interviews
+      if (company.value) company.value.interviews = data.interviews
+      addingInterview.value = false
+      newInterview.value = { date: new Date().toISOString().split('T')[0], type: 'HR', notes: '', outcome: 'Pending' }
+    }
+  } catch { ivError.value = 'Failed to save' }
+  finally  { ivSaving.value = false }
+}
+
+async function deleteInterview(idx: number) {
+  try {
+    const res = await fetch(`${API_BASE}/api/company/${encodeURIComponent(companyName.value)}/interviews?idx=${idx}`, { method: 'DELETE' })
+    const data = await res.json()
+    if (data.ok) {
+      localInterviews.value = localInterviews.value.filter((_, i) => i !== idx)
+      if (company.value) company.value.interviews = localInterviews.value
+    }
+  } catch { /* ignore */ }
+}
+
+const INTERVIEW_TYPES = ['HR', 'Technical', 'Phone', 'Onsite', 'Final']
+const INTERVIEW_OUTCOMES = ['Pending', 'Pass', 'Fail']
+
+const TYPE_STYLE: Record<string, { dot: string; badge: string }> = {
+  HR:        { dot: 'bg-blue-500',    badge: 'bg-blue-500/15 text-blue-400 border-blue-500/30'       },
+  Technical: { dot: 'bg-violet-500',  badge: 'bg-violet-500/15 text-violet-400 border-violet-500/30' },
+  Phone:     { dot: 'bg-sky-500',     badge: 'bg-sky-500/15 text-sky-400 border-sky-500/30'          },
+  Onsite:    { dot: 'bg-amber-500',   badge: 'bg-amber-500/15 text-amber-400 border-amber-500/30'    },
+  Final:     { dot: 'bg-emerald-500', badge: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' },
+}
+
+const OUTCOME_STYLE: Record<string, { selected: string; unselected: string }> = {
+  Pending: { selected: 'bg-amber-500 text-white',   unselected: 'bg-surface-overlay text-amber-400 border border-amber-500/30 hover:bg-amber-500/15' },
+  Pass:    { selected: 'bg-emerald-500 text-white',  unselected: 'bg-surface-overlay text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/15' },
+  Fail:    { selected: 'bg-red-500 text-white',      unselected: 'bg-surface-overlay text-red-400 border border-red-500/30 hover:bg-red-500/15' },
+}
+
 </script>
 
 <template>
@@ -257,7 +336,7 @@ const INTERVIEW_TYPE_COLOR: Record<string, string> = {
       <div class="flex-1 overflow-y-auto p-6">
 
         <!-- ── COMPATIBILITY REPORT ── -->
-        <div v-if="activeTab === 'Compatibility Report'" class="grid grid-cols-3 gap-6">
+        <div v-if="activeTab === 'Analysis'" class="grid grid-cols-3 gap-6">
           <div class="col-span-1 space-y-4">
             <div class="bg-surface-raised border border-border rounded-xl p-5 flex flex-col items-center">
               <p class="text-xs font-semibold text-text-muted uppercase tracking-wider mb-4">Match Score</p>
@@ -306,7 +385,7 @@ const INTERVIEW_TYPE_COLOR: Record<string, string> = {
         </div>
 
         <!-- ── TAILORING NOTES ── -->
-        <div v-else-if="activeTab === 'Tailoring Notes'" class="max-w-3xl">
+        <div v-else-if="activeTab === 'Strategy'" class="max-w-3xl">
           <div class="bg-surface-raised border border-border rounded-xl p-5 min-h-[300px]">
             <p class="text-xs font-semibold text-text-muted uppercase tracking-wider mb-4">Tailoring Notes</p>
             <div v-if="notesLoading" class="flex items-center gap-2 text-text-muted text-sm">
@@ -320,45 +399,143 @@ const INTERVIEW_TYPE_COLOR: Record<string, string> = {
         </div>
 
         <!-- ── DETAILS ── -->
-        <div v-else-if="activeTab === 'Details'" class="max-w-2xl space-y-4">
-          <div class="bg-surface-raised border border-border rounded-xl divide-y divide-border">
-            <div v-for="row in [
-              { label: 'Company',      value: company.name },
-              { label: 'Stage',        value: company.stage },
-              { label: 'Applied',      value: company.applied ? 'Yes' : 'No' },
-              { label: 'Applied Date', value: company.applied_date || '—' },
-              { label: 'Source',       value: company.source || 'Direct' },
-              { label: 'Follow-up',    value: company.follow_up_date || '—' },
-              { label: 'Match %',      value: company.match_pct !== null ? company.match_pct + '%' : '—' },
-              { label: 'Verdict',      value: company.recommend || '—' },
-              { label: 'Has Report',   value: company.has_report ? '✓ Yes' : '✗ No' },
-              { label: 'Has Notes',    value: company.has_notes  ? '✓ Yes' : '✗ No' },
-              { label: 'Has CV PDF',   value: company.has_cv_pdf ? '✓ Yes' : '✗ No' },
-              { label: 'Has Letter',   value: company.has_letter_pdf ? '✓ Yes' : '✗ No' },
-            ]" :key="row.label" class="flex items-center gap-4 px-5 py-3">
-              <span class="text-xs text-text-muted w-28 flex-shrink-0">{{ row.label }}</span>
-              <span class="text-sm text-text-primary">{{ row.value }}</span>
-            </div>
-          </div>
+        <div v-else-if="activeTab === 'Details'" class="max-w-3xl space-y-5">
 
-          <div v-if="company.recruiter?.name || company.recruiter?.email" class="bg-surface-raised border border-border rounded-xl p-4">
-            <p class="text-xs font-semibold text-text-muted uppercase tracking-wider mb-3">Recruiter</p>
-            <div class="space-y-2 text-xs">
-              <div v-if="company.recruiter.name" class="flex gap-3"><span class="text-text-muted w-16">Name</span><span class="text-text-primary">{{ company.recruiter.name }}</span></div>
-              <div v-if="company.recruiter.email" class="flex gap-3"><span class="text-text-muted w-16">Email</span><a :href="`mailto:${company.recruiter.email}`" class="text-accent hover:underline">{{ company.recruiter.email }}</a></div>
-              <div v-if="company.recruiter.linkedin" class="flex gap-3"><span class="text-text-muted w-16">LinkedIn</span><a :href="company.recruiter.linkedin" target="_blank" class="text-accent hover:underline">{{ company.recruiter.linkedin }}</a></div>
+          <!-- Application overview cards -->
+          <div class="grid grid-cols-3 gap-4">
+            <!-- Stage -->
+            <div class="bg-surface-raised border border-border rounded-xl p-4">
+              <p class="text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-2">Stage</p>
+              <div class="flex items-center gap-2">
+                <span :class="['w-2 h-2 rounded-full flex-shrink-0', STAGE_COLORS[company.stage as ApplicationStage]?.dot ?? 'bg-slate-500']"/>
+                <span :class="['text-sm font-semibold', STAGE_COLORS[company.stage as ApplicationStage]?.text ?? 'text-slate-400']">{{ company.stage }}</span>
+              </div>
             </div>
-          </div>
-
-          <div class="bg-surface-raised border border-border rounded-xl p-4">
-            <p class="text-xs font-semibold text-text-muted uppercase tracking-wider mb-3">Salary</p>
-            <div class="grid grid-cols-2 gap-3">
-              <div v-for="(val, key) in company.salary" :key="key" class="text-xs">
-                <p class="text-text-muted capitalize mb-0.5">{{ key }}</p>
-                <p class="text-text-primary font-medium">{{ val ? formatSal(val) : '—' }}</p>
+            <!-- Applied date -->
+            <div class="bg-surface-raised border border-border rounded-xl p-4">
+              <p class="text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-2">Applied</p>
+              <p class="text-sm font-semibold text-text-primary">{{ company.applied_date || '—' }}</p>
+              <p class="text-[10px] text-text-muted mt-0.5">{{ company.applied ? 'Submitted' : 'Not yet applied' }}</p>
+            </div>
+            <!-- Source -->
+            <div class="bg-surface-raised border border-border rounded-xl p-4">
+              <p class="text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-2">Source</p>
+              <div class="flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                </svg>
+                <span class="text-sm font-semibold text-text-primary">{{ company.source || 'Direct' }}</span>
               </div>
             </div>
           </div>
+
+          <!-- Follow-up -->
+          <div v-if="company.follow_up_date"
+            :class="['rounded-xl p-4 border flex items-center gap-3',
+              company.follow_up_date <= new Date().toISOString().split('T')[0]
+                ? 'bg-amber-500/10 border-amber-500/30'
+                : 'bg-surface-raised border-border']">
+            <span class="text-xl">⏰</span>
+            <div>
+              <p class="text-xs font-semibold"
+                :class="company.follow_up_date <= new Date().toISOString().split('T')[0] ? 'text-amber-400' : 'text-text-primary'">
+                Follow-up {{ company.follow_up_date <= new Date().toISOString().split('T')[0] ? 'overdue' : 'scheduled' }}
+              </p>
+              <p class="text-sm font-bold"
+                :class="company.follow_up_date <= new Date().toISOString().split('T')[0] ? 'text-amber-400' : 'text-text-secondary'">
+                {{ company.follow_up_date }}
+              </p>
+            </div>
+          </div>
+
+          <!-- Recruiter card -->
+          <div v-if="company.recruiter?.name || company.recruiter?.email || company.recruiter?.linkedin"
+            class="bg-surface-raised border border-border rounded-xl p-5">
+            <p class="text-xs font-semibold text-text-muted uppercase tracking-wider mb-4">Recruiter / Contact</p>
+            <div class="flex items-start gap-4">
+              <!-- Avatar -->
+              <div class="w-10 h-10 rounded-full bg-accent/20 border border-accent/30 flex items-center justify-center flex-shrink-0">
+                <svg class="w-5 h-5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                </svg>
+              </div>
+              <div class="flex-1 space-y-2">
+                <!-- Name — strip email if duplicated in name field -->
+                <p v-if="company.recruiter.name" class="text-sm font-semibold text-text-primary">
+                  {{ company.recruiter.name.split('—')[0].split('(')[0].trim() }}
+                </p>
+                <!-- Email -->
+                <a v-if="company.recruiter.email"
+                  :href="`mailto:${company.recruiter.email}`"
+                  class="flex items-center gap-2 text-xs text-accent hover:underline w-fit">
+                  <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                  </svg>
+                  {{ company.recruiter.email }}
+                </a>
+                <!-- LinkedIn -->
+                <a v-if="company.recruiter.linkedin"
+                  :href="company.recruiter.linkedin" target="_blank"
+                  class="flex items-center gap-2 text-xs text-blue-400 hover:underline w-fit">
+                  <svg class="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                  </svg>
+                  LinkedIn Profile
+                </a>
+                <!-- Extra notes from recruiter name field (after —) -->
+                <p v-if="company.recruiter.name?.includes('—') || company.recruiter.name?.includes('(')"
+                  class="text-[10px] text-text-muted leading-relaxed">
+                  {{ company.recruiter.name }}
+                </p>
+              </div>
+              <!-- Quick email copy -->
+              <button v-if="company.recruiter.email"
+                @click="copyToClipboard(company.recruiter?.email ?? '')"
+                class="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-surface-overlay hover:bg-border rounded-lg text-text-muted hover:text-text-primary transition-colors flex-shrink-0">
+                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                Copy
+              </button>
+            </div>
+          </div>
+
+          <!-- Salary card -->
+          <div class="bg-surface-raised border border-border rounded-xl p-5">
+            <p class="text-xs font-semibold text-text-muted uppercase tracking-wider mb-4">Salary</p>
+            <div class="grid grid-cols-2 gap-4">
+              <div v-for="(val, key) in company.salary" :key="key"
+                class="p-3 rounded-lg bg-surface-overlay border border-border">
+                <p class="text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-1.5">{{ key }}</p>
+                <p class="text-base font-bold"
+                  :class="val ? 'text-emerald-400' : 'text-text-muted'">
+                  {{ val ? formatSal(val) : '—' }}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Vault files status -->
+          <div class="bg-surface-raised border border-border rounded-xl p-5">
+            <p class="text-xs font-semibold text-text-muted uppercase tracking-wider mb-4">Vault Files</p>
+            <div class="grid grid-cols-2 gap-3">
+              <div v-for="f in [
+                { label: 'Compatibility Report', present: company.has_report,     icon: '📄' },
+                { label: 'Tailoring Notes',      present: company.has_notes,      icon: '📝' },
+                { label: 'CV PDF',               present: company.has_cv_pdf,     icon: '📋' },
+                { label: 'Cover Letter PDF',      present: company.has_letter_pdf, icon: '✉️'  },
+              ]" :key="f.label"
+                class="flex items-center gap-3 p-3 rounded-lg border"
+                :class="f.present ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-surface-overlay border-border opacity-50'">
+                <span class="text-base">{{ f.icon }}</span>
+                <div>
+                  <p class="text-xs font-medium" :class="f.present ? 'text-text-primary' : 'text-text-muted'">{{ f.label }}</p>
+                  <p class="text-[10px]" :class="f.present ? 'text-emerald-400' : 'text-text-muted'">
+                    {{ f.present ? '✓ Available' : '✗ Not found' }}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
 
         <!-- ── MY NOTES ── -->
@@ -445,32 +622,153 @@ const INTERVIEW_TYPE_COLOR: Record<string, string> = {
         </div>
 
         <!-- ── INTERVIEWS ── -->
-        <div v-else-if="activeTab === 'Interviews'" class="max-w-2xl">
-          <div v-if="!company.interviews?.length" class="flex flex-col items-center justify-center py-16 opacity-50 text-center">
-            <p class="text-3xl mb-2">📅</p>
-            <p class="text-sm text-text-muted">No interviews recorded</p>
+        <div v-else-if="activeTab === 'Interviews'" class="max-w-2xl space-y-4">
+
+          <!-- Summary bar -->
+          <div v-if="localInterviews.length" class="flex items-center gap-3 px-4 py-3 bg-surface-raised border border-border rounded-xl">
+            <span class="text-xs text-text-muted font-medium">{{ localInterviews.length }} round{{ localInterviews.length > 1 ? 's' : '' }}</span>
+            <span class="w-px h-3 bg-border"/>
+            <span class="text-xs text-emerald-400 font-medium">{{ localInterviews.filter(i=>i.outcome==="Pass").length }} passed</span>
+            <span class="text-xs text-red-400 font-medium">{{ localInterviews.filter(i=>i.outcome==="Fail").length }} failed</span>
+            <span v-if="localInterviews.filter(i=>i.outcome==='Pending').length" class="text-xs text-amber-400 font-medium">{{ localInterviews.filter(i=>i.outcome==="Pending").length }} pending</span>
+            <div class="flex-1"/>
+            <button @click="addingInterview = !addingInterview"
+              :class="['flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors', addingInterview ? 'bg-surface-overlay text-text-muted' : 'bg-accent/15 text-accent hover:bg-accent/25 border border-accent/30']">
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              {{ addingInterview ? 'Cancel' : 'Add Round' }}
+            </button>
           </div>
-          <div v-else class="space-y-3">
-            <div v-for="iv in company.interviews" :key="iv.id" class="bg-surface-raised border border-border rounded-xl p-4">
-              <div class="flex items-start justify-between gap-3 mb-2">
-                <div class="flex items-center gap-2 flex-wrap">
-                  <span :class="['text-xs font-semibold px-2 py-0.5 rounded-full', INTERVIEW_TYPE_COLOR[iv.type] ?? 'bg-slate-500/15 text-slate-400']">{{ iv.type }}</span>
-                  <span v-if="iv.date" class="text-xs text-text-muted font-mono">{{ iv.date }}</span>
-                  <span v-else class="text-xs text-text-muted italic">No date</span>
+
+          <!-- Timeline -->
+          <div v-if="localInterviews.length" class="relative">
+            <!-- Vertical line -->
+            <div class="absolute left-5 top-5 bottom-5 w-px bg-border"/>
+
+            <div class="space-y-3">
+              <div v-for="(iv, idx) in localInterviews" :key="iv.id"
+                class="relative flex gap-4 group">
+                <!-- Timeline dot -->
+                <div class="flex-shrink-0 w-10 flex justify-center pt-3.5 z-10">
+                  <div :class="['w-3 h-3 rounded-full border-2 border-surface-raised', TYPE_STYLE[iv.type]?.dot ?? 'bg-slate-500']"/>
                 </div>
-                <span :class="['text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0', OUTCOME_COLORS[iv.outcome] ?? 'bg-slate-500/15 text-slate-400']">{{ iv.outcome }}</span>
-              </div>
-              <p class="text-sm text-text-secondary">{{ iv.notes }}</p>
-            </div>
-            <div class="bg-surface-overlay border border-border rounded-xl p-4">
-              <div class="flex items-center gap-4 text-xs">
-                <span class="text-text-muted">{{ company.interviews.length }} round{{ company.interviews.length > 1 ? 's' : '' }}</span>
-                <span class="text-emerald-400">{{ company.interviews.filter(i=>i.outcome==='Pass').length }} passed</span>
-                <span class="text-red-400">{{ company.interviews.filter(i=>i.outcome==='Fail').length }} failed</span>
-                <span v-if="company.interviews.filter(i=>i.outcome==='Pending').length" class="text-amber-400">{{ company.interviews.filter(i=>i.outcome==='Pending').length }} pending</span>
+
+                <!-- Card -->
+                <div class="flex-1 bg-surface-raised border border-border rounded-xl p-4 hover:border-border transition-colors">
+                  <div class="flex items-start justify-between gap-3 mb-3">
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <!-- Round number -->
+                      <span class="text-[10px] font-mono text-text-muted">#{{ idx + 1 }}</span>
+                      <!-- Type badge -->
+                      <span :class="['text-xs font-semibold px-2.5 py-1 rounded-full border', TYPE_STYLE[iv.type]?.badge ?? 'bg-slate-500/15 text-slate-400 border-slate-500/30']">
+                        {{ iv.type }}
+                      </span>
+                      <!-- Date -->
+                      <span v-if="iv.date" class="text-xs text-text-muted font-mono">{{ iv.date }}</span>
+                    </div>
+                    <div class="flex items-center gap-2 flex-shrink-0">
+                      <!-- Outcome badge -->
+                      <span :class="['text-xs font-semibold px-2.5 py-1 rounded-full', OUTCOME_COLORS[iv.outcome] ?? 'bg-slate-500/15 text-slate-400']">
+                        {{ iv.outcome }}
+                      </span>
+                      <!-- Delete -->
+                      <button @click="deleteInterview(idx)"
+                        class="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-lg hover:bg-red-500/15 text-text-muted hover:text-red-400">
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                      </button>
+                    </div>
+                  </div>
+                  <p class="text-sm text-text-secondary leading-relaxed">{{ iv.notes }}</p>
+                </div>
               </div>
             </div>
           </div>
+
+          <!-- Empty state -->
+          <div v-if="!localInterviews.length && !addingInterview"
+            class="flex flex-col items-center justify-center py-16 text-center border border-dashed border-border rounded-xl">
+            <div class="w-12 h-12 rounded-full bg-surface-overlay flex items-center justify-center mb-3">
+              <svg class="w-6 h-6 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+              </svg>
+            </div>
+            <p class="text-sm font-medium text-text-secondary mb-1">No interviews recorded yet</p>
+            <p class="text-xs text-text-muted mb-4">Log each round as it happens</p>
+            <button @click="addingInterview = true"
+              class="flex items-center gap-2 px-4 py-2 bg-accent text-white text-sm font-medium rounded-lg hover:bg-accent/90 transition-colors">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              Add First Round
+            </button>
+          </div>
+
+          <!-- Add interview form -->
+          <Transition enter-active-class="transition-all duration-200 ease-out" enter-from-class="opacity-0 -translate-y-2" enter-to-class="opacity-100 translate-y-0">
+            <div v-if="addingInterview" class="bg-surface-raised border border-accent/40 rounded-xl p-5 space-y-4">
+              <p class="text-sm font-semibold text-text-primary">Log Interview Round</p>
+
+              <!-- Date + Type row -->
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-1.5">Date</label>
+                  <input v-model="newInterview.date" type="date"
+                    class="w-full bg-surface-overlay border border-border rounded-lg px-3 py-2 text-sm text-text-primary outline-none focus:border-accent transition-colors"/>
+                </div>
+                <div>
+                  <label class="block text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-1.5">Type</label>
+                  <div class="flex flex-wrap gap-1.5">
+                    <button v-for="t in INTERVIEW_TYPES" :key="t"
+                      @click="newInterview.type = t"
+                      :class="['px-2.5 py-1 text-xs font-medium rounded-full border transition-colors',
+                        newInterview.type === t
+                          ? TYPE_STYLE[t]?.badge ?? 'bg-slate-500/15 text-slate-400 border-slate-500/30'
+                          : 'bg-surface-overlay text-text-muted border-border hover:border-accent/40']">
+                      {{ t }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Notes -->
+              <div>
+                <label class="block text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-1.5">Notes</label>
+                <input v-model="newInterview.notes" type="text"
+                  placeholder="Interviewer name, topics covered, impressions..."
+                  class="w-full bg-surface-overlay border border-border rounded-lg px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted outline-none focus:border-accent transition-colors"/>
+              </div>
+
+              <!-- Outcome -->
+              <div>
+                <label class="block text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-1.5">Outcome</label>
+                <div class="flex gap-2">
+                  <button v-for="o in INTERVIEW_OUTCOMES" :key="o"
+                    @click="newInterview.outcome = o"
+                    :class="['flex-1 py-2 text-sm font-semibold rounded-lg transition-all',
+                      newInterview.outcome === o
+                        ? OUTCOME_STYLE[o]?.selected
+                        : OUTCOME_STYLE[o]?.unselected]">
+                    {{ o === 'Pass' ? '✓ Pass' : o === 'Fail' ? '✗ Fail' : '⏳ Pending' }}
+                  </button>
+                </div>
+              </div>
+
+              <!-- Error + Save -->
+              <div class="flex items-center justify-between gap-3 pt-1">
+                <p v-if="ivError" class="text-xs text-red-400">{{ ivError }}</p>
+                <div v-else/>
+                <div class="flex gap-2">
+                  <button @click="addingInterview = false; ivError = ''"
+                    class="px-4 py-2 text-xs text-text-muted hover:text-text-primary bg-surface-overlay rounded-lg transition-colors">
+                    Cancel
+                  </button>
+                  <button @click="saveInterview" :disabled="ivSaving"
+                    class="flex items-center gap-2 px-4 py-2 text-xs font-semibold bg-accent text-white rounded-lg hover:bg-accent/90 disabled:opacity-50 transition-colors">
+                    <svg v-if="ivSaving" class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                    {{ ivSaving ? 'Saving…' : 'Save Round' }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </Transition>
+
         </div>
 
         <!-- ── PIPELINE ── -->
