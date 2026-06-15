@@ -427,3 +427,11 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# Frontend
+frontend/jobvault-ui/dist/
+frontend/jobvault-ui/.env.local
+frontend/jobvault-ui/.env.*.local
+
+# Docker secrets
+.env.prod
