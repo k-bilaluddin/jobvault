@@ -7,7 +7,8 @@ using Microsoft.Extensions.Logging;
 namespace JobVault.Application.Services;
 
 /// <summary>
-/// Handles webhook payloads by orchestrating the processing of job applications.
+/// LEGACY: remove after async ingestion is confirmed stable in production.
+/// Handles GitHub push webhook payloads. Superseded by ApplicationIngestionService + Worker pipeline.
 /// </summary>
 public class WebhookHandler : IWebhookHandler
 {

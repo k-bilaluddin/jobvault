@@ -2,6 +2,7 @@ namespace JobVault.Contracts.Events;
 
 public class JobApplicationEvent
 {
+    public string? ApplicationId { get; set; }
     public string CompanyName { get; set; } = string.Empty;
     public string JobTitle { get; set; } = string.Empty;
     public int MatchScore { get; set; }

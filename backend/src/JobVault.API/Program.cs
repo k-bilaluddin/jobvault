@@ -5,6 +5,7 @@ using JobVault.Infrastructure.Messaging.RabbitMQ;
 using JobVault.Infrastructure.Notifications;
 using JobVault.Infrastructure.Notifications.Telegram;
 using JobVault.Infrastructure.Persistence.MongoDB;
+using JobVault.Infrastructure.Processing;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,6 +36,7 @@ builder.Services.AddSingleton<IRabbitMqPublisher, RabbitMqPublisher>();
 builder.Services.AddSingleton<ITelegramNotificationService, TelegramNotificationService>();
 builder.Services.AddScoped<IWebhookHandler, WebhookHandler>();
 builder.Services.AddScoped<IFileIngestService, FileIngestService>();
+builder.Services.AddScoped<IApplicationIngestionService, ApplicationIngestionService>();
 
 // Notification services
 builder.Services.AddSingleton<INotificationHub, NotificationHub>();

@@ -19,6 +19,7 @@ public class RabbitMqPublisher : IRabbitMqPublisher
     private readonly string _jobApplicationCreatedQueueName;
     private readonly string _jobApplicationUpdatedQueueName;
     private readonly string _sseNotificationsQueueName;
+    private readonly string _jobApplicationReceivedQueueName;
     private bool _disposed;
 
     public RabbitMqPublisher(IConfiguration configuration, ILogger<RabbitMqPublisher> logger)
@@ -33,6 +34,7 @@ public class RabbitMqPublisher : IRabbitMqPublisher
         _jobApplicationCreatedQueueName = _configuration["RabbitMq:JobApplicationCreatedQueueName"] ?? "job.applications.created";
         _jobApplicationUpdatedQueueName = _configuration["RabbitMq:JobApplicationUpdatedQueueName"] ?? "job.applications.updated";
         _sseNotificationsQueueName = _configuration["RabbitMq:SseNotificationsQueueName"] ?? "job.applications.notifications";
+        _jobApplicationReceivedQueueName = _configuration["RabbitMq:JobApplicationReceivedQueueName"] ?? "job.applications.received";
 
         if (string.IsNullOrWhiteSpace(connectionString))
         {
@@ -106,6 +108,19 @@ public class RabbitMqPublisher : IRabbitMqPublisher
                 exchange: _exchangeName,
                 routingKey: "job.application.updated").GetAwaiter().GetResult();
 
+            // Queue for async ingestion — consumed by Worker's ApplicationIngestionConsumer
+            _channel.QueueDeclareAsync(
+                queue: _jobApplicationReceivedQueueName,
+                durable: true,
+                exclusive: false,
+                autoDelete: false,
+                arguments: queueArgs).GetAwaiter().GetResult();
+
+            _channel.QueueBindAsync(
+                queue: _jobApplicationReceivedQueueName,
+                exchange: _exchangeName,
+                routingKey: "job.application.received").GetAwaiter().GetResult();
+
             _logger.LogInformation("RabbitMQ publisher initialized successfully");
         }
         catch (Exception ex)
@@ -128,6 +143,7 @@ public class RabbitMqPublisher : IRabbitMqPublisher
             {
                 "created" => "job.application.created",
                 "updated" => "job.application.updated",
+                "received" => "job.application.received",
                 _ => "job.application.unknown"
             };
 
@@ -148,15 +164,18 @@ public class RabbitMqPublisher : IRabbitMqPublisher
                 basicProperties: properties,
                 body: body);
 
-            // Publish a second copy with routing key "notification.new" so the SSE
-            // notifications queue (bound to "notification.#") receives every event
-            // independently of the Telegram queues
-            await _channel.BasicPublishAsync(
-                exchange: _exchangeName,
-                routingKey: "notification.new",
-                mandatory: false,
-                basicProperties: properties,
-                body: body);
+            // Fan-out to SSE queue for created/updated events only.
+            // "received" events are consumed only by the Worker's ingestion consumer
+            // and should not surface as in-app notifications until the Worker completes.
+            if (routingKey != "job.application.received")
+            {
+                await _channel.BasicPublishAsync(
+                    exchange: _exchangeName,
+                    routingKey: "notification.new",
+                    mandatory: false,
+                    basicProperties: properties,
+                    body: body);
+            }
 
             _logger.LogInformation(
                 "Published {EventType} event for {CompanyName} to RabbitMQ",

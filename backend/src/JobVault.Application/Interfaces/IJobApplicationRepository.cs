@@ -9,9 +9,22 @@ namespace JobVault.Application.Interfaces;
 public interface IJobApplicationRepository
 {
     /// <summary>
-    /// Inserts or updates a job application in the repository.
+    /// Inserts or updates a job application. Returns the MongoDB ObjectId in UpsertResult.Id.
     /// </summary>
-    /// <param name="application">The job application to upsert.</param>
-    /// <returns>The result of the upsert operation.</returns>
     Task<UpsertResult> UpsertApplicationAsync(JobApplication application);
+
+    /// <summary>
+    /// Fetches a job application by its MongoDB ObjectId string.
+    /// </summary>
+    Task<JobApplication?> GetByIdAsync(string id, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Updates status and optional fields on an existing document. Clears blob fields on terminal states.
+    /// </summary>
+    Task<bool> UpdateStatusAsync(
+        string id,
+        string status,
+        string? commitUrl = null,
+        string? errorDetails = null,
+        CancellationToken cancellationToken = default);
 }
