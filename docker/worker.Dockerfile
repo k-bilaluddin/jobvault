@@ -4,7 +4,7 @@
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
-# Copy solution and project files first (layer caching)
+# Copy solution and project files first
 COPY backend/src/JobVault.API/JobVault.sln ./
 
 COPY backend/src/JobVault.API/JobVault.API.csproj                         JobVault.API/
@@ -19,12 +19,12 @@ COPY backend/src/JobVault.API/nuget.config ./nuget.config
 
 RUN dotnet restore JobVault.Worker/JobVault.Worker.csproj
 
-# Copy all source
-COPY backend/src/JobVault.Worker/        JobVault.Worker/
-COPY backend/src/JobVault.Application/   JobVault.Application/
-COPY backend/src/JobVault.Domain/        JobVault.Domain/
+# Copy source
+COPY backend/src/JobVault.Worker/         JobVault.Worker/
+COPY backend/src/JobVault.Application/    JobVault.Application/
+COPY backend/src/JobVault.Domain/         JobVault.Domain/
 COPY backend/src/JobVault.Infrastructure/ JobVault.Infrastructure/
-COPY backend/src/JobVault.Contracts/     JobVault.Contracts/
+COPY backend/src/JobVault.Contracts/      JobVault.Contracts/
 
 RUN dotnet publish JobVault.Worker/JobVault.Worker.csproj \
     -c Release \
@@ -36,16 +36,26 @@ RUN dotnet publish JobVault.Worker/JobVault.Worker.csproj \
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
 WORKDIR /app
 
-# LibreOffice for docx → PDF conversion (must run as root before user switch)
+# LibreOffice + font tooling for DOCX → PDF conversion
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libreoffice-writer \
+    fontconfig \
     && rm -rf /var/lib/apt/lists/*
 
-# Non-root user for security
-RUN adduser --disabled-password --gecos "" appuser
-USER appuser
+# Copy Calibri fonts from build context
+COPY docker/fonts/*.ttf /usr/share/fonts/truetype/microsoft/
 
+# Refresh font cache so LibreOffice can detect Calibri
+RUN fc-cache -f -v
+
+# Create non-root user
+RUN adduser --disabled-password --gecos "" appuser
+
+# Copy published application
 COPY --from=build /out .
+
+# Switch to non-root user
+USER appuser
 
 ENV DOTNET_ENVIRONMENT=Production
 
