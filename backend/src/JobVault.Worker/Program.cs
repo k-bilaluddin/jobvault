@@ -5,7 +5,6 @@ using JobVault.Infrastructure.Notifications;
 using JobVault.Infrastructure.Notifications.Telegram;
 using JobVault.Infrastructure.Persistence.MongoDB;
 using JobVault.Infrastructure.Processing;
-using JobVault.Worker.Consumers;
 
 namespace JobVault.Worker;
 

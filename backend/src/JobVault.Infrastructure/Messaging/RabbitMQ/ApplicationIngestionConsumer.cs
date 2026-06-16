@@ -9,7 +9,7 @@ using RabbitMQ.Client.Events;
 using System.Text;
 using System.Text.Json;
 
-namespace JobVault.Worker.Consumers;
+namespace JobVault.Infrastructure.Messaging.RabbitMQ;
 
 public class ApplicationIngestionConsumer : BackgroundService
 {
