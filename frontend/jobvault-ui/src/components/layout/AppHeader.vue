@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 import { useTheme } from '@/composables/useTheme'
+import { usePWA } from '@/composables/usePWA'
 
 defineProps<{ title: string }>()
 
 const { isDark, toggle } = useTheme()
 const router = useRouter()
+const { canInstall, install } = usePWA()
 
 function logout() {
   localStorage.removeItem('jv_auth')
@@ -18,11 +20,19 @@ function logout() {
     <h1 class="text-base font-semibold text-text-primary">{{ title }}</h1>
 
     <div class="flex items-center gap-3">
-      <!-- Connected indicator -->
       <div class="flex items-center gap-1.5 text-xs text-text-muted">
         <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"/>
         <span class="text-text-secondary font-medium">Connected</span>
       </div>
+
+      <!-- PWA Install -->
+      <button v-if="canInstall" @click="install"
+        class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-accent/15 text-accent border border-accent/30 rounded-lg hover:bg-accent/25 transition-colors">
+        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+        </svg>
+        Install App
+      </button>
 
       <!-- Notifications -->
       <button class="relative p-2 rounded-lg hover:bg-surface-overlay text-text-muted hover:text-text-primary transition-colors">
@@ -32,10 +42,8 @@ function logout() {
         <span class="absolute top-1 right-1 w-4 h-4 bg-accent text-white text-[9px] font-bold rounded-full flex items-center justify-center">5</span>
       </button>
 
-      <!-- Theme toggle -->
-      <button @click="toggle"
-        class="p-2 rounded-lg hover:bg-surface-overlay text-text-muted hover:text-text-primary transition-colors"
-        :title="isDark ? 'Switch to light mode' : 'Switch to dark mode'">
+      <!-- Theme -->
+      <button @click="toggle" class="p-2 rounded-lg hover:bg-surface-overlay text-text-muted hover:text-text-primary transition-colors">
         <svg v-if="isDark" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
         </svg>
@@ -45,9 +53,7 @@ function logout() {
       </button>
 
       <!-- Logout -->
-      <button @click="logout"
-        title="Sign out"
-        class="p-2 rounded-lg hover:bg-red-500/10 text-text-muted hover:text-red-400 transition-colors">
+      <button @click="logout" class="p-2 rounded-lg hover:bg-red-500/10 text-text-muted hover:text-red-400 transition-colors">
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
         </svg>

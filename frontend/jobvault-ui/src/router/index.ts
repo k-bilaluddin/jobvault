@@ -12,6 +12,7 @@ const router = createRouter({
     { path: '/pipeline',       name: 'pipeline',     component: () => import('@/views/PipelineView.vue') },
     { path: '/interviews',     name: 'interviews',   component: () => import('@/views/InterviewsView.vue') },
     { path: '/skills-gap',     name: 'skills-gap',   component: () => import('@/views/SkillsGapView.vue') },
+    { path: '/historical',     name: 'historical',   component: () => import('@/views/HistoricalView.vue') },
     { path: '/:pathMatch(.*)*', redirect: '/dashboard' },
   ],
 })
