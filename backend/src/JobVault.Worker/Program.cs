@@ -1,5 +1,6 @@
 using JobVault.Application.Interfaces;
 using JobVault.Infrastructure.Messaging.RabbitMQ;
+using JobVault.Infrastructure.Notifications;
 using JobVault.Infrastructure.Notifications.Telegram;
 
 namespace JobVault.Worker;
@@ -11,6 +12,7 @@ public class Program
         var builder = Host.CreateApplicationBuilder(args);
 
         builder.Services.AddScoped<ITelegramNotificationService, TelegramNotificationService>();
+        builder.Services.AddSingleton<INotificationHub, NotificationHub>();
         builder.Services.AddHostedService<RabbitMqConsumer>();
 
         var host = builder.Build();

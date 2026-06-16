@@ -12,8 +12,14 @@ namespace JobVault.Infrastructure.Messaging.RabbitMQ;
 
 public class RabbitMqConsumer : BackgroundService
 {
+    private static readonly JsonSerializerOptions _jsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
+
     private readonly IConfiguration _configuration;
     private readonly IServiceProvider _serviceProvider;
+    private readonly INotificationHub _notificationHub;
     private readonly ILogger<RabbitMqConsumer> _logger;
     private IConnection? _connection;
     private IChannel? _channel;
@@ -21,10 +27,12 @@ public class RabbitMqConsumer : BackgroundService
     public RabbitMqConsumer(
         IConfiguration configuration,
         IServiceProvider serviceProvider,
+        INotificationHub notificationHub,
         ILogger<RabbitMqConsumer> logger)
     {
         _configuration = configuration;
         _serviceProvider = serviceProvider;
+        _notificationHub = notificationHub;
         _logger = logger;
     }
 
@@ -75,18 +83,24 @@ public class RabbitMqConsumer : BackgroundService
             {
                 var body = ea.Body.ToArray();
                 var message = System.Text.Encoding.UTF8.GetString(body);
-                var jobEvent = JsonSerializer.Deserialize<JobApplicationEvent>(message);
+                var jobEvent = JsonSerializer.Deserialize<JobApplicationEvent>(message, _jsonOptions);
 
-                if (jobEvent != null)
-                {
-                    await ProcessJobEventAsync(jobEvent);
-                    await _channel.BasicAckAsync(deliveryTag: ea.DeliveryTag, multiple: false);
-                }
-                else
+                if (jobEvent == null)
                 {
                     _logger.LogWarning("Failed to deserialize message, rejecting");
                     await _channel.BasicNackAsync(deliveryTag: ea.DeliveryTag, multiple: false, requeue: false);
+                    return;
                 }
+
+                if (string.IsNullOrEmpty(jobEvent.EventType) && string.IsNullOrEmpty(jobEvent.CompanyName))
+                {
+                    _logger.LogWarning("Deserialized JobApplicationEvent has empty EventType and CompanyName — possible JSON field name mismatch. Raw: {Message}", message);
+                    await _channel.BasicNackAsync(deliveryTag: ea.DeliveryTag, multiple: false, requeue: false);
+                    return;
+                }
+
+                await ProcessJobEventAsync(jobEvent);
+                await _channel.BasicAckAsync(deliveryTag: ea.DeliveryTag, multiple: false);
             }
             catch (Exception ex)
             {
@@ -113,6 +127,9 @@ public class RabbitMqConsumer : BackgroundService
             jobEvent.EventType, jobEvent.CompanyName);
 
         await telegramService.SendNotificationAsync(jobEvent);
+
+        var notification = SseNotificationConsumer.BuildNotification(jobEvent);
+        await _notificationHub.BroadcastAsync(notification);
     }
 
     public override async Task StopAsync(CancellationToken cancellationToken)

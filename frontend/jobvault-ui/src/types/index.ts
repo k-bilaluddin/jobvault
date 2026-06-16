@@ -63,6 +63,20 @@ export interface Company {
   source: string
 }
 
+// ─── In-app notification ──────────────────────────────────────
+export type NotificationType = 'new_application' | 'stage_changed' | 'score_computed' | 'sync_completed'
+
+export interface AppNotification {
+  id: string
+  type: NotificationType
+  title: string
+  body: string
+  companyName: string | null
+  companySlug: string | null
+  occurredAt: string  // ISO 8601 UTC
+  read: boolean
+}
+
 // ─── Dashboard stats (computed from Company[]) ────────────────
 export interface DashboardStats {
   total: number

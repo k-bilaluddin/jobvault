@@ -2,6 +2,7 @@ using JobVault.Application.Interfaces;
 using JobVault.Application.Services;
 using JobVault.Infrastructure.GitHub;
 using JobVault.Infrastructure.Messaging.RabbitMQ;
+using JobVault.Infrastructure.Notifications;
 using JobVault.Infrastructure.Notifications.Telegram;
 using JobVault.Infrastructure.Persistence.MongoDB;
 
@@ -15,6 +16,17 @@ builder.Services.AddSwaggerGen();
 // Register HTTP client factory
 builder.Services.AddHttpClient();
 
+// CORS — required for EventSource (SSE) from the Vue frontend
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
+
 // Register application services
 builder.Services.AddSingleton<IJobApplicationRepository, MongoDbService>();
 builder.Services.AddSingleton<IGitHubFileService, GitHubFileService>();
@@ -23,6 +35,11 @@ builder.Services.AddSingleton<IRabbitMqPublisher, RabbitMqPublisher>();
 builder.Services.AddSingleton<ITelegramNotificationService, TelegramNotificationService>();
 builder.Services.AddScoped<IWebhookHandler, WebhookHandler>();
 builder.Services.AddScoped<IFileIngestService, FileIngestService>();
+
+// Notification services
+builder.Services.AddSingleton<INotificationHub, NotificationHub>();
+builder.Services.AddSingleton<INotificationRepository, NotificationRepository>();
+builder.Services.AddHostedService<SseNotificationConsumer>();
 
 var app = builder.Build();
 
@@ -34,6 +51,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseCors();
 app.UseAuthorization();
 app.MapControllers();
 

@@ -1,10 +1,18 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import AppSidebar from '@/components/layout/AppSidebar.vue'
+import { useNotifications } from '@/composables/useNotifications'
 
 const route = useRoute()
 const isPublic = computed(() => route.meta.public === true)
+
+const { connect } = useNotifications()
+
+// Start SSE connection once the user is on an authenticated page
+watch(isPublic, (publicPage) => {
+  if (!publicPage) connect()
+}, { immediate: true })
 </script>
 
 <template>
