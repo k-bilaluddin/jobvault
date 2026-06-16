@@ -18,6 +18,7 @@ public class RabbitMqPublisher : IRabbitMqPublisher
     private readonly string _deadLetterQueueName;
     private readonly string _jobApplicationCreatedQueueName;
     private readonly string _jobApplicationUpdatedQueueName;
+    private readonly string _sseNotificationsQueueName;
     private bool _disposed;
 
     public RabbitMqPublisher(IConfiguration configuration, ILogger<RabbitMqPublisher> logger)
@@ -31,6 +32,7 @@ public class RabbitMqPublisher : IRabbitMqPublisher
         _deadLetterQueueName = _configuration["RabbitMq:DeadLetterQueueName"] ?? "job.applications.dlq";
         _jobApplicationCreatedQueueName = _configuration["RabbitMq:JobApplicationCreatedQueueName"] ?? "job.applications.created";
         _jobApplicationUpdatedQueueName = _configuration["RabbitMq:JobApplicationUpdatedQueueName"] ?? "job.applications.updated";
+        _sseNotificationsQueueName = _configuration["RabbitMq:SseNotificationsQueueName"] ?? "job.applications.notifications";
 
         if (string.IsNullOrWhiteSpace(connectionString))
         {
@@ -142,6 +144,16 @@ public class RabbitMqPublisher : IRabbitMqPublisher
             await _channel.BasicPublishAsync(
                 exchange: _exchangeName,
                 routingKey: routingKey,
+                mandatory: false,
+                basicProperties: properties,
+                body: body);
+
+            // Publish a second copy with routing key "notification.new" so the SSE
+            // notifications queue (bound to "notification.#") receives every event
+            // independently of the Telegram queues
+            await _channel.BasicPublishAsync(
+                exchange: _exchangeName,
+                routingKey: "notification.new",
                 mandatory: false,
                 basicProperties: properties,
                 body: body);
