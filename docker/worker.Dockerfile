@@ -36,6 +36,11 @@ RUN dotnet publish JobVault.Worker/JobVault.Worker.csproj \
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
 WORKDIR /app
 
+# LibreOffice for docx → PDF conversion (must run as root before user switch)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libreoffice-writer \
+    && rm -rf /var/lib/apt/lists/*
+
 # Non-root user for security
 RUN adduser --disabled-password --gecos "" appuser
 USER appuser

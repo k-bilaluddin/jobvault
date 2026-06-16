@@ -16,14 +16,21 @@ public class UpsertResult
     public bool IsNewDocument { get; init; }
 
     /// <summary>
+    /// Gets the MongoDB ObjectId of the upserted document (stringified).
+    /// </summary>
+    public string? Id { get; init; }
+
+    /// <summary>
     /// Creates a successful upsert result.
     /// </summary>
     /// <param name="isNewDocument">Whether a new document was created.</param>
+    /// <param name="id">The MongoDB ObjectId of the document.</param>
     /// <returns>A successful result.</returns>
-    public static UpsertResult Success(bool isNewDocument) => new() 
-    { 
-        IsSuccess = true, 
-        IsNewDocument = isNewDocument 
+    public static UpsertResult Success(bool isNewDocument, string? id = null) => new()
+    {
+        IsSuccess = true,
+        IsNewDocument = isNewDocument,
+        Id = id
     };
 
     /// <summary>

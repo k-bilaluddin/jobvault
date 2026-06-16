@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace JobVault.API.Controllers;
 
+// LEGACY: remove after async ingestion is confirmed stable in production.
+// Superseded by POST /api/ingest/applications + Worker pipeline.
 [ApiController]
 [Route("api/[controller]")]
 public class WebhookController : ControllerBase

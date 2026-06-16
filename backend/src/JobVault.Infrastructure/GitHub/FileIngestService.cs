@@ -41,7 +41,7 @@ public class FileIngestService : IFileIngestService
 
             var owner = _configuration["GitHub:Owner"] ?? "k-bilaluddin";
             var repo = _configuration["GitHub:Repository"] ?? "job-applications-vault";
-            var branch = _configuration["GitHub:Branch"] ?? "main";
+            var branch = _configuration["GitHub:Branch"] ?? "master";
 
             var uploadedFiles = new List<string>();
             var client = _httpClientFactory.CreateClient();
