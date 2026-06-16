@@ -1,0 +1,71 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Dark theme (default) ─────────────────────────────────── */
+:root {
+  --color-surface: #0d0f18;
+  --color-surface-raised: #151823;
+  --color-surface-overlay: #1c2030;
+  --color-border: #252840;
+  --color-border-subtle: #1e2236;
+  --color-text-primary: #e8eaf2;
+  --color-text-secondary: #a0a8c0;
+  --color-text-muted: #5a6180;
+  --color-accent: #6366f1;
+  --color-accent-soft: rgba(99, 102, 241, 0.15);
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+  --color-info: #3b82f6;
+}
+
+/* ─── Light theme ───────────────────────────────────────────── */
+:root.light {
+  --color-surface: #f0f2f8;
+  --color-surface-raised: #ffffff;
+  --color-surface-overlay: #e8ebf5;
+  --color-border: #d1d8e8;
+  --color-border-subtle: #e2e7f2;
+  --color-text-primary: #0d0f18;
+  --color-text-secondary: #3d4563;
+  --color-text-muted: #7a84a8;
+  --color-accent: #6366f1;
+  --color-accent-soft: rgba(99, 102, 241, 0.10);
+  --color-success: #16a34a;
+  --color-warning: #d97706;
+  --color-danger: #dc2626;
+  --color-info: #2563eb;
+}
+
+/* ─── Base ──────────────────────────────────────────────────── */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #app {
+  height: 100%;
+}
+
+body {
+  background-color: var(--color-surface);
+  color: var(--color-text-primary);
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* ─── Scrollbar ─────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-text-muted); }
+
+/* ─── Transitions ───────────────────────────────────────────── */
+.theme-transition * {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease !important;
+}
