@@ -138,6 +138,13 @@ public class ApplicationIngestionConsumer : BackgroundService
                 await processor.ProcessAsync(applicationId, cancellationToken);
                 return true;
             }
+            catch (InvalidOperationException ex)
+            {
+                // Permanent failure (e.g. 4xx from generation service, bad payload) — no point retrying.
+                lastException = ex;
+                _logger.LogError(ex, "Permanent failure for applicationId={Id}; skipping retries", applicationId);
+                break;
+            }
             catch (Exception ex)
             {
                 lastException = ex;
@@ -159,10 +166,12 @@ public class ApplicationIngestionConsumer : BackgroundService
         {
             using var scope = _serviceProvider.CreateScope();
             var processor = scope.ServiceProvider.GetRequiredService<IApplicationProcessorService>();
+            // CancellationToken.None — stoppingToken may already be cancelled on shutdown;
+            // this write must complete regardless so the application isn't left in "Processing".
             await processor.MarkFailedAsync(
                 applicationId,
                 $"Processing failed after {MaxRetries} attempts: {lastException?.Message}",
-                cancellationToken);
+                CancellationToken.None);
         }
         catch (Exception ex)
         {

@@ -1,0 +1,264 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1560" height="1020" viewBox="0 0 1560 1020">
+<defs>
+  <style>
+    text { font-family: "Segoe UI", Arial, sans-serif; }
+    .title  { font-size:22px; font-weight:700; fill:#1e293b; }
+    .sub    { font-size:13px; fill:#64748b; }
+    .lane   { font-size:12px; font-weight:700; fill:#475569; letter-spacing:.6px; }
+    .bh     { font-size:13px; font-weight:700; fill:#1e293b; }
+    .bt     { font-size:11.5px; fill:#475569; }
+    .lbl    { font-size:10.5px; fill:#334155; }
+    .lbl2   { font-size:10.5px; fill:#94a3b8; }
+    .edge   { fill:none; stroke:#475569; stroke-width:1.8; marker-end:url(#arr); }
+    .edgeB  { fill:none; stroke:#3b82f6; stroke-width:1.8; marker-end:url(#arrB); }
+    .edgeG  { fill:none; stroke:#16a34a; stroke-width:1.8; marker-end:url(#arrG); }
+    .edgeP  { fill:none; stroke:#a855f7; stroke-width:1.8; marker-end:url(#arrP); }
+    .edgeD  { fill:none; stroke:#94a3b8; stroke-width:1.5; stroke-dasharray:5,3; marker-end:url(#arrD); }
+    .edgeR  { fill:none; stroke:#ef4444; stroke-width:1.5; stroke-dasharray:5,3; marker-end:url(#arrR); }
+  </style>
+
+  <marker id="arr"  markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#475569"/></marker>
+  <marker id="arrB" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#3b82f6"/></marker>
+  <marker id="arrG" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#16a34a"/></marker>
+  <marker id="arrP" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#a855f7"/></marker>
+  <marker id="arrD" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#94a3b8"/></marker>
+  <marker id="arrR" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#ef4444"/></marker>
+
+  <filter id="sh"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#00000018"/></filter>
+</defs>
+
+<!-- Background -->
+<rect width="1560" height="1020" fill="#f1f5f9"/>
+
+<!-- Header band -->
+<rect x="0" y="0" width="1560" height="68" fill="#1e293b"/>
+<text x="28" y="36" class="title" fill="#f8fafc">JobVault</text>
+<text x="28" y="56" class="sub" fill="#94a3b8">Event-driven job application automation — ingestion · async processing · document generation · vault · real-time notifications</text>
+
+<!-- Swimlane Columns -->
+<rect x="16"   y="78"  width="170" height="926" rx="10" fill="#eef2ff" stroke="#c7d2fe" stroke-width="1.2"/>
+<text x="101"  y="98"  class="lane" text-anchor="middle" fill="#4338ca">AI / INPUT</text>
+
+<rect x="198"  y="78"  width="200" height="926" rx="10" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1.2"/>
+<text x="298"  y="98"  class="lane" text-anchor="middle" fill="#1d4ed8">API LAYER</text>
+
+<rect x="410"  y="78"  width="192" height="926" rx="10" fill="#fff7ed" stroke="#fed7aa" stroke-width="1.2"/>
+<text x="506"  y="98"  class="lane" text-anchor="middle" fill="#c2410c">MESSAGING</text>
+
+<rect x="614"  y="78"  width="310" height="926" rx="10" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1.2"/>
+<text x="769"  y="98"  class="lane" text-anchor="middle" fill="#15803d">PROCESSING — WORKER</text>
+
+<rect x="936"  y="78"  width="238" height="926" rx="10" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.2"/>
+<text x="1055" y="98"  class="lane" text-anchor="middle" fill="#334155">STORAGE &amp; EXTERNAL</text>
+
+<rect x="1186" y="78"  width="360" height="926" rx="10" fill="#faf5ff" stroke="#e9d5ff" stroke-width="1.2"/>
+<text x="1366" y="98"  class="lane" text-anchor="middle" fill="#7e22ce">PRESENTATION &amp; NOTIFICATIONS</text>
+
+<!-- ── AI / INPUT ── -->
+<rect x="30" y="120" width="142" height="78" rx="8" fill="#fff" stroke="#6366f1" stroke-width="1.6" filter="url(#sh)"/>
+<rect x="30" y="120" width="142" height="22" rx="8" fill="#6366f1"/>
+<rect x="30" y="134" width="142" height="8" fill="#6366f1"/>
+<text x="101" y="137" class="bh" fill="#fff" text-anchor="middle">You</text>
+<text x="44"  y="158" class="bt">Paste job URL</text>
+<text x="44"  y="174" class="bt">Manual decision</text>
+
+<rect x="30" y="240" width="142" height="96" rx="8" fill="#fff" stroke="#6366f1" stroke-width="1.6" filter="url(#sh)"/>
+<rect x="30" y="240" width="142" height="22" rx="8" fill="#6366f1"/>
+<rect x="30" y="254" width="142" height="8" fill="#6366f1"/>
+<text x="101" y="257" class="bh" fill="#fff" text-anchor="middle">Claude AI</text>
+<text x="44"  y="278" class="bt">Evaluates role fit</text>
+<text x="44"  y="294" class="bt">Scores match</text>
+<text x="44"  y="310" class="bt">Builds payload</text>
+
+<!-- ── API LAYER ── -->
+<rect x="212" y="185" width="172" height="140" rx="8" fill="#fff" stroke="#3b82f6" stroke-width="1.6" filter="url(#sh)"/>
+<rect x="212" y="185" width="172" height="22" rx="8" fill="#3b82f6"/>
+<rect x="212" y="199" width="172" height="8" fill="#3b82f6"/>
+<text x="298" y="202" class="bh" fill="#fff" text-anchor="middle">JobVault API</text>
+<text x="226" y="222" class="bt">ASP.NET Core / .NET 9</text>
+<text x="226" y="238" class="bt">Validate payload</text>
+<text x="226" y="254" class="bt">Persist → MongoDB</text>
+<text x="226" y="270" class="bt">Publish → RabbitMQ</text>
+<text x="226" y="286" class="bt">↳ 202 Accepted</text>
+
+<!-- ── MESSAGING ── -->
+<rect x="424" y="185" width="164" height="130" rx="8" fill="#fff" stroke="#f97316" stroke-width="1.6" filter="url(#sh)"/>
+<rect x="424" y="185" width="164" height="22" rx="8" fill="#f97316"/>
+<rect x="424" y="199" width="164" height="8" fill="#f97316"/>
+<text x="506" y="202" class="bh" fill="#fff" text-anchor="middle">RabbitMQ</text>
+<text x="438" y="222" class="bt">Topic exchange</text>
+<text x="438" y="238" class="bt">job.applications</text>
+<text x="438" y="254" class="bt">3 routing keys</text>
+<text x="438" y="270" class="bt">DLX + retry</text>
+<text x="438" y="286" class="bt">CloudAMQP</text>
+
+<rect x="424" y="848" width="164" height="88" rx="8" fill="#fff" stroke="#ef4444" stroke-width="1.6" filter="url(#sh)"/>
+<rect x="424" y="848" width="164" height="22" rx="8" fill="#ef4444"/>
+<rect x="424" y="862" width="164" height="8" fill="#ef4444"/>
+<text x="506" y="865" class="bh" fill="#fff" text-anchor="middle">Dead Letter Queue</text>
+<text x="438" y="886" class="bt">Failed after 3 retries</text>
+<text x="438" y="902" class="bt">NACK → DLX route</text>
+<text x="438" y="918" class="bt" fill="#ef4444">DLQ UI — roadmap</text>
+
+<!-- ── PROCESSING / WORKER ── -->
+<rect x="628" y="120" width="282" height="100" rx="8" fill="#fff" stroke="#22c55e" stroke-width="1.6" filter="url(#sh)"/>
+<rect x="628" y="120" width="282" height="22" rx="8" fill="#22c55e"/>
+<rect x="628" y="134" width="282" height="8" fill="#22c55e"/>
+<text x="769" y="137" class="bh" fill="#fff" text-anchor="middle">Ingestion Consumer</text>
+<text x="642" y="158" class="bt">Binding: application.received</text>
+<text x="642" y="174" class="bt">Fetch app → ProcessAsync</text>
+<text x="642" y="190" class="bt">Retry 3× exp. backoff · fast-fail 4xx</text>
+
+<rect x="628" y="258" width="282" height="90" rx="8" fill="#fff" stroke="#22c55e" stroke-width="1.6" filter="url(#sh)"/>
+<rect x="628" y="258" width="282" height="22" rx="8" fill="#22c55e"/>
+<rect x="628" y="272" width="282" height="8" fill="#22c55e"/>
+<text x="769" y="275" class="bh" fill="#fff" text-anchor="middle">Generation Service</text>
+<text x="642" y="296" class="bt">Node.js / TypeScript (HTTP)</text>
+<text x="642" y="312" class="bt">CV docx + Cover Letter docx</text>
+<text x="642" y="328" class="bt">Task.WhenAll — parallel calls</text>
+
+<rect x="628" y="386" width="282" height="78" rx="8" fill="#fff" stroke="#22c55e" stroke-width="1.6" filter="url(#sh)"/>
+<rect x="628" y="386" width="282" height="22" rx="8" fill="#22c55e"/>
+<rect x="628" y="400" width="282" height="8" fill="#22c55e"/>
+<text x="769" y="403" class="bh" fill="#fff" text-anchor="middle">LibreOffice (headless)</text>
+<text x="642" y="422" class="bt">DOCX → PDF conversion</text>
+<text x="642" y="438" class="bt">Calibri fonts bundled in image</text>
+
+<rect x="628" y="540" width="282" height="88" rx="8" fill="#fff" stroke="#16a34a" stroke-width="1.6" filter="url(#sh)"/>
+<rect x="628" y="540" width="282" height="22" rx="8" fill="#16a34a"/>
+<rect x="628" y="554" width="282" height="8" fill="#16a34a"/>
+<text x="769" y="557" class="bh" fill="#fff" text-anchor="middle">RabbitMQ Consumer</text>
+<text x="642" y="578" class="bt">Binding: created / updated queue</text>
+<text x="642" y="594" class="bt">Sends Telegram push notification</text>
+<text x="642" y="610" class="bt">Retry on transient failures</text>
+
+<rect x="628" y="668" width="282" height="88" rx="8" fill="#fff" stroke="#16a34a" stroke-width="1.6" filter="url(#sh)"/>
+<rect x="628" y="668" width="282" height="22" rx="8" fill="#16a34a"/>
+<rect x="628" y="682" width="282" height="8" fill="#16a34a"/>
+<text x="769" y="685" class="bh" fill="#fff" text-anchor="middle">SSE Notification Consumer</text>
+<text x="642" y="706" class="bt">Binding: notification.#</text>
+<text x="642" y="722" class="bt">Save to MongoDB notifications</text>
+<text x="642" y="738" class="bt">Broadcast via NotificationHub</text>
+
+<!-- ── STORAGE & EXTERNAL ── -->
+<rect x="950" y="185" width="210" height="90" rx="8" fill="#fff" stroke="#10b981" stroke-width="1.6" filter="url(#sh)"/>
+<rect x="950" y="185" width="210" height="22" rx="8" fill="#10b981"/>
+<rect x="950" y="199" width="210" height="8" fill="#10b981"/>
+<text x="1055" y="202" class="bh" fill="#fff" text-anchor="middle">MongoDB Atlas</text>
+<text x="964" y="222" class="bt">Applications collection</text>
+<text x="964" y="238" class="bt">Status: Processing → Ready</text>
+<text x="964" y="254" class="bt">Unsets payload on complete</text>
+
+<rect x="950" y="418" width="210" height="90" rx="8" fill="#fff" stroke="#1e293b" stroke-width="1.6" filter="url(#sh)"/>
+<rect x="950" y="418" width="210" height="22" rx="8" fill="#1e293b"/>
+<rect x="950" y="432" width="210" height="8" fill="#1e293b"/>
+<text x="1055" y="435" class="bh" fill="#fff" text-anchor="middle">GitHub Vault</text>
+<text x="964" y="455" class="bt">Private repository</text>
+<text x="964" y="471" class="bt">Atomic 6-file commit</text>
+<text x="964" y="487" class="bt">DOCX · PDF · MD reports</text>
+
+<rect x="950" y="668" width="210" height="88" rx="8" fill="#fff" stroke="#10b981" stroke-width="1.6" filter="url(#sh)"/>
+<rect x="950" y="668" width="210" height="22" rx="8" fill="#10b981"/>
+<rect x="950" y="682" width="210" height="8" fill="#10b981"/>
+<text x="1055" y="685" class="bh" fill="#fff" text-anchor="middle">Notifications DB</text>
+<text x="964" y="705" class="bt">MongoDB collection</text>
+<text x="964" y="721" class="bt">Unread count + recent events</text>
+
+<!-- ── PRESENTATION ── -->
+<rect x="1200" y="185" width="330" height="78" rx="8" fill="#fff" stroke="#a855f7" stroke-width="1.6" filter="url(#sh)"/>
+<rect x="1200" y="185" width="330" height="22" rx="8" fill="#a855f7"/>
+<rect x="1200" y="199" width="330" height="8" fill="#a855f7"/>
+<text x="1365" y="202" class="bh" fill="#fff" text-anchor="middle">Telegram Bot</text>
+<text x="1214" y="222" class="bt">Bot API push — application Ready / Failed</text>
+<text x="1214" y="238" class="bt">Delivery: instant on event fan-out</text>
+
+<rect x="1200" y="500" width="330" height="78" rx="8" fill="#fff" stroke="#a855f7" stroke-width="1.6" filter="url(#sh)"/>
+<rect x="1200" y="500" width="330" height="22" rx="8" fill="#a855f7"/>
+<rect x="1200" y="514" width="330" height="8" fill="#a855f7"/>
+<text x="1365" y="517" class="bh" fill="#fff" text-anchor="middle">NotificationHub (SSE)</text>
+<text x="1214" y="537" class="bt">In-process broadcast to open SSE streams</text>
+<text x="1214" y="553" class="bt">Auto-reconnect with backoff</text>
+
+<rect x="1200" y="668" width="330" height="108" rx="8" fill="#fff" stroke="#a855f7" stroke-width="1.6" filter="url(#sh)"/>
+<rect x="1200" y="668" width="330" height="22" rx="8" fill="#a855f7"/>
+<rect x="1200" y="682" width="330" height="8" fill="#a855f7"/>
+<text x="1365" y="685" class="bh" fill="#fff" text-anchor="middle">Vue 3 UI</text>
+<text x="1214" y="705" class="bt">Dashboard · Pipeline board · Applications</text>
+<text x="1214" y="721" class="bt">Interviews · Skills gap · Bell + unread count</text>
+<text x="1214" y="737" class="bt">SSE real-time · PWA · Dark mode</text>
+<text x="1214" y="753" class="bt">jobvault.kbilaluddin.dev</text>
+
+<!-- ══════════════════ ARROWS ══════════════════ -->
+<!-- You → Claude AI -->
+<path d="M101,198 L101,240" class="edge"/>
+<text x="105" y="222" class="lbl">Job URL</text>
+
+<!-- Claude AI → API -->
+<path d="M172,285 L212,255" class="edgeB"/>
+<text x="176" y="260" class="lbl" fill="#3b82f6">POST /ingest</text>
+
+<!-- API → RabbitMQ -->
+<path d="M384,255 L424,255" class="edgeB"/>
+<text x="387" y="248" class="lbl" fill="#3b82f6">publish received</text>
+
+<!-- API → MongoDB (persist) -->
+<path d="M298,185 C298,140 1055,140 1055,185" class="edgeD"/>
+<text x="570" y="134" class="lbl2">persist application</text>
+
+<!-- RabbitMQ → Ingestion Consumer -->
+<path d="M588,220 L628,170" class="edgeG"/>
+<text x="593" y="190" class="lbl" fill="#16a34a">received</text>
+
+<!-- Ingestion Consumer → Generation Service -->
+<path d="M769,220 L769,258" class="edgeG"/>
+<text x="773" y="242" class="lbl" fill="#16a34a">call HTTP</text>
+
+<!-- Generation Service → LibreOffice -->
+<path d="M769,348 L769,386" class="edgeG"/>
+<text x="773" y="370" class="lbl" fill="#16a34a">DOCX bytes</text>
+
+<!-- LibreOffice → GitHub Vault -->
+<path d="M910,435 L950,463" class="edge"/>
+<text x="907" y="445" class="lbl">commit 6 files</text>
+
+<!-- GitHub Vault → MongoDB status -->
+<path d="M1055,418 L1055,275" class="edgeD"/>
+<text x="1059" y="340" class="lbl2">status → Ready</text>
+
+<!-- Publish created event back to RabbitMQ -->
+<path d="M628,430 C560,500 490,460 506,315" class="edgeD"/>
+<text x="488" y="435" class="lbl2">publish created</text>
+
+<!-- RabbitMQ → RabbitMQ Consumer -->
+<path d="M588,290 L628,565" class="edgeG"/>
+<text x="592" y="420" class="lbl" fill="#16a34a">created/updated</text>
+
+<!-- RabbitMQ → SSE Notification Consumer -->
+<path d="M506,315 C490,440 560,600 628,700" class="edgeG"/>
+<text x="508" y="530" class="lbl" fill="#16a34a">notification.#</text>
+
+<!-- RabbitMQ Consumer → Telegram -->
+<path d="M910,570 C1050,380 1140,290 1200,245" class="edgeP"/>
+<text x="1016" y="370" class="lbl" fill="#a855f7">Telegram alert</text>
+
+<!-- SSE Notification Consumer → Notifications DB -->
+<path d="M910,712 L950,712" class="edgeG"/>
+<text x="912" y="705" class="lbl" fill="#16a34a">save notif</text>
+
+<!-- SSE Notification Consumer → NotificationHub -->
+<path d="M910,700 C1060,640 1140,580 1200,539" class="edgeP"/>
+<text x="1038" y="608" class="lbl" fill="#a855f7">broadcast</text>
+
+<!-- NotificationHub → Vue 3 UI -->
+<path d="M1365,578 L1365,668" class="edgeP"/>
+<text x="1369" y="626" class="lbl" fill="#a855f7">SSE stream</text>
+
+<!-- Notifications DB → Vue 3 (polling) -->
+<path d="M1160,712 L1200,712" class="edgeD"/>
+<text x="1162" y="705" class="lbl2">GET /notifications</text>
+
+<!-- RabbitMQ → DLQ -->
+<path d="M506,315 L506,848" class="edgeR"/>
+<text x="510" y="645" class="lbl" fill="#ef4444">NACK → DLQ</text>
+
+</svg>

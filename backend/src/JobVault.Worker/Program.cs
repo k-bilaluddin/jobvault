@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using JobVault.Application.Interfaces;
 using JobVault.Infrastructure.Generation;
 using JobVault.Infrastructure.GitHub;
@@ -13,6 +14,9 @@ public class Program
 {
     public static void Main(string[] args)
     {
+        // Required for TracePropagationHandler to inject valid W3C traceparent headers.
+        Activity.DefaultIdFormat = ActivityIdFormat.W3C;
+
         var builder = Host.CreateApplicationBuilder(args);
 
         // HTTP client factory — required by FileIngestService and GitHubFileService

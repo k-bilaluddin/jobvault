@@ -39,8 +39,15 @@ public sealed class DocumentGenerationClient : IDocumentGenerationClient
         if (!response.IsSuccessStatusCode)
         {
             var body = await response.Content.ReadAsStringAsync(cancellationToken);
-            throw new HttpRequestException(
-                $"Generation service returned {(int)response.StatusCode} for {path}: {body}");
+            var message = $"Generation service returned {(int)response.StatusCode} for {path}: {body}";
+
+            // 4xx = bad payload — retrying won't help; throw InvalidOperationException so the
+            // consumer skips the retry loop and dead-letters immediately.
+            // 5xx / network errors = transient; throw HttpRequestException so retries fire.
+            if ((int)response.StatusCode is >= 400 and < 500)
+                throw new InvalidOperationException(message);
+
+            throw new HttpRequestException(message);
         }
 
         var bytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);

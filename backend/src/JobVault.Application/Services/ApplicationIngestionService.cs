@@ -118,6 +118,16 @@ public class ApplicationIngestionService : IApplicationIngestionService
             return "compatibilityReportMarkdown is required";
         if (string.IsNullOrWhiteSpace(request.TailoringNotesMarkdown))
             return "tailoringNotesMarkdown is required";
+
+        var validRoleIds = new HashSet<string> { "calvergy", "senior_baris", "developer_baris", "junior_baris" };
+        foreach (var role in request.Roles)
+        {
+            if (string.IsNullOrWhiteSpace(role.Id))
+                return "each role must have a non-empty id";
+            if (!validRoleIds.Contains(role.Id))
+                return $"invalid role id '{role.Id}': must be one of {string.Join(", ", validRoleIds)}";
+        }
+
         return null;
     }
 }

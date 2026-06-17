@@ -40,7 +40,10 @@ public class ApplicationProcessorService : IApplicationProcessorService
         var application = await _repository.GetByIdAsync(applicationId, cancellationToken);
         if (application == null)
         {
-            _logger.LogError("Application not found: {Id}", applicationId);
+            _logger.LogError("Application not found: {Id} — updating status to Failed", applicationId);
+            await _repository.UpdateStatusAsync(applicationId, "Failed",
+                errorDetails: "Application record not found during processing",
+                cancellationToken: cancellationToken);
             return;
         }
 
@@ -55,10 +58,13 @@ public class ApplicationProcessorService : IApplicationProcessorService
         var cvBaseName = _configuration["GitHub:CvFileName"] ?? "KhawajaBilal_Uddin_CV";
         var coverLetterBaseName = _configuration["GitHub:CoverLetterFileName"] ?? "KhawajaBilal_Uddin_CoverLetter";
 
-        // Generate CV and cover letter docx — exceptions propagate so the consumer can retry.
-        // Only permanent state transitions (missing data, PDF failure, GitHub failure) call FailAsync here.
-        var cvDocxBytes = await _generationClient.GenerateCvAsync(application, cancellationToken);
-        var coverLetterDocxBytes = await _generationClient.GenerateCoverLetterAsync(application, cancellationToken);
+        // Generate CV and cover letter in parallel — both are independent HTTP calls.
+        // Exceptions propagate so the consumer can retry (transient) or fast-fail (4xx permanent).
+        var cvTask = _generationClient.GenerateCvAsync(application, cancellationToken);
+        var clTask = _generationClient.GenerateCoverLetterAsync(application, cancellationToken);
+        await Task.WhenAll(cvTask, clTask);
+        var cvDocxBytes = await cvTask;
+        var coverLetterDocxBytes = await clTask;
 
         // Convert CV and cover letter docx → PDF — exceptions propagate for consumer retry.
         var cvPdfBytes = await ConvertDocxToPdfAsync(cvDocxBytes, cvBaseName, cancellationToken)
