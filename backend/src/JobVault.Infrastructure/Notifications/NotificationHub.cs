@@ -53,16 +53,4 @@ public class NotificationHub : INotificationHub
 
         _logger.LogInformation("Broadcast notification to {Count} SSE clients", snapshot.Count);
     }
-
-    private sealed class Subscription(Action onDispose) : IDisposable
-    {
-        private bool _disposed;
-
-        public void Dispose()
-        {
-            if (_disposed) return;
-            _disposed = true;
-            onDispose();
-        }
-    }
 }

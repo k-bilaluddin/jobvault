@@ -11,6 +11,7 @@ namespace JobVault.Infrastructure.Processing;
 public class ApplicationProcessorService : IApplicationProcessorService
 {
     private readonly IJobApplicationRepository _repository;
+    private readonly IDocumentGenerationClient _generationClient;
     private readonly IFileIngestService _fileIngestService;
     private readonly IRabbitMqPublisher _publisher;
     private readonly IConfiguration _configuration;
@@ -18,12 +19,14 @@ public class ApplicationProcessorService : IApplicationProcessorService
 
     public ApplicationProcessorService(
         IJobApplicationRepository repository,
+        IDocumentGenerationClient generationClient,
         IFileIngestService fileIngestService,
         IRabbitMqPublisher publisher,
         IConfiguration configuration,
         ILogger<ApplicationProcessorService> logger)
     {
         _repository = repository;
+        _generationClient = generationClient;
         _fileIngestService = fileIngestService;
         _publisher = publisher;
         _configuration = configuration;
@@ -37,69 +40,38 @@ public class ApplicationProcessorService : IApplicationProcessorService
         var application = await _repository.GetByIdAsync(applicationId, cancellationToken);
         if (application == null)
         {
-            _logger.LogError("Application not found: {Id}", applicationId);
+            _logger.LogError("Application not found: {Id} — updating status to Failed", applicationId);
+            await _repository.UpdateStatusAsync(applicationId, "Failed",
+                errorDetails: "Application record not found during processing",
+                cancellationToken: cancellationToken);
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(application.CvDocxBase64) ||
-            string.IsNullOrWhiteSpace(application.CoverLetterDocxBase64) ||
+        if (string.IsNullOrWhiteSpace(application.Headline) ||
             string.IsNullOrWhiteSpace(application.CompatibilityReportMarkdown) ||
             string.IsNullOrWhiteSpace(application.TailoringNotesMarkdown))
         {
-            await FailAsync(applicationId, application, "One or more required document fields are missing from the stored application", cancellationToken);
+            await FailAsync(applicationId, application, "One or more required fields are missing from the stored application", cancellationToken);
             return;
         }
 
         var cvBaseName = _configuration["GitHub:CvFileName"] ?? "KhawajaBilal_Uddin_CV";
         var coverLetterBaseName = _configuration["GitHub:CoverLetterFileName"] ?? "KhawajaBilal_Uddin_CoverLetter";
 
-        byte[] cvDocxBytes, coverLetterDocxBytes;
-        try
-        {
-            cvDocxBytes = Convert.FromBase64String(application.CvDocxBase64);
-            coverLetterDocxBytes = Convert.FromBase64String(application.CoverLetterDocxBase64);
-        }
-        catch (Exception ex)
-        {
-            await FailAsync(applicationId, application, $"Failed to decode base64 document data: {ex.Message}", cancellationToken);
-            return;
-        }
+        // Generate CV and cover letter in parallel — both are independent HTTP calls.
+        // Exceptions propagate so the consumer can retry (transient) or fast-fail (4xx permanent).
+        var cvTask = _generationClient.GenerateCvAsync(application, cancellationToken);
+        var clTask = _generationClient.GenerateCoverLetterAsync(application, cancellationToken);
+        await Task.WhenAll(cvTask, clTask);
+        var cvDocxBytes = await cvTask;
+        var coverLetterDocxBytes = await clTask;
 
-        // Convert CV docx → PDF
-        byte[]? cvPdfBytes;
-        try
-        {
-            cvPdfBytes = await ConvertDocxToPdfAsync(cvDocxBytes, cvBaseName, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            await FailAsync(applicationId, application, $"CV PDF conversion failed: {ex.Message}", cancellationToken);
-            return;
-        }
+        // Convert CV and cover letter docx → PDF — exceptions propagate for consumer retry.
+        var cvPdfBytes = await ConvertDocxToPdfAsync(cvDocxBytes, cvBaseName, cancellationToken)
+            ?? throw new InvalidOperationException($"LibreOffice produced no output for {cvBaseName}");
 
-        if (cvPdfBytes == null)
-        {
-            await FailAsync(applicationId, application, "CV PDF conversion produced no output", cancellationToken);
-            return;
-        }
-
-        // Convert cover letter docx → PDF
-        byte[]? coverLetterPdfBytes;
-        try
-        {
-            coverLetterPdfBytes = await ConvertDocxToPdfAsync(coverLetterDocxBytes, coverLetterBaseName, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            await FailAsync(applicationId, application, $"Cover letter PDF conversion failed: {ex.Message}", cancellationToken);
-            return;
-        }
-
-        if (coverLetterPdfBytes == null)
-        {
-            await FailAsync(applicationId, application, "Cover letter PDF conversion produced no output", cancellationToken);
-            return;
-        }
+        var coverLetterPdfBytes = await ConvertDocxToPdfAsync(coverLetterDocxBytes, coverLetterBaseName, cancellationToken)
+            ?? throw new InvalidOperationException($"LibreOffice produced no output for {coverLetterBaseName}");
 
         // Build the 6-file set for GitHub commit
         var compatibilityReportBytes = System.Text.Encoding.UTF8.GetBytes(application.CompatibilityReportMarkdown);
@@ -115,31 +87,17 @@ public class ApplicationProcessorService : IApplicationProcessorService
             MakeFile("tailoring-notes.md", tailoringNotesBytes),
         };
 
-        FileIngestResult ingestResult;
-        try
-        {
-            ingestResult = await _fileIngestService.IngestAsync(application.CompanyName, files, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            await FailAsync(applicationId, application, $"GitHub commit failed: {ex.Message}", cancellationToken);
-            return;
-        }
-
+        // GitHub commit — propagate failures for consumer retry.
+        var ingestResult = await _fileIngestService.IngestAsync(application.CompanyName, files, cancellationToken);
         if (!ingestResult.IsSuccess)
-        {
-            await FailAsync(applicationId, application, ingestResult.ErrorMessage ?? "GitHub commit returned failure", cancellationToken);
-            return;
-        }
+            throw new InvalidOperationException(ingestResult.ErrorMessage ?? "GitHub commit returned failure");
 
-        // Update MongoDB to Ready to Apply
         await _repository.UpdateStatusAsync(
             applicationId,
             status: "Ready to Apply",
             commitUrl: ingestResult.CommitUrl,
             cancellationToken: cancellationToken);
 
-        // Publish updated event — triggers existing Telegram + SSE consumers
         try
         {
             var jobEvent = new JobApplicationEvent
@@ -165,6 +123,18 @@ public class ApplicationProcessorService : IApplicationProcessorService
         _logger.LogInformation(
             "Successfully processed {CompanyName}: committed {Count} files, commitUrl={Url}",
             application.CompanyName, files.Count, ingestResult.CommitUrl);
+    }
+
+    public async Task MarkFailedAsync(string applicationId, string reason, CancellationToken cancellationToken = default)
+    {
+        var application = await _repository.GetByIdAsync(applicationId, cancellationToken);
+        if (application == null)
+        {
+            _logger.LogWarning("MarkFailedAsync: application not found: {Id}", applicationId);
+            return;
+        }
+
+        await FailAsync(applicationId, application, reason, cancellationToken);
     }
 
     private async Task FailAsync(
@@ -217,11 +187,10 @@ public class ApplicationProcessorService : IApplicationProcessorService
 
             // Configurable path — override in appsettings.Development.json for local Windows:
             // "LibreOffice": { "ExecutablePath": "C:\\Program Files\\LibreOffice\\program\\soffice.exe" }
-            // Defaults to the Linux/Docker binary name used in production.
             var libreOfficePath = _configuration["LibreOffice:ExecutablePath"] ?? "libreoffice";
 
-            using var process = new Process();
-            process.StartInfo = new ProcessStartInfo
+            using var process = new System.Diagnostics.Process();
+            process.StartInfo = new System.Diagnostics.ProcessStartInfo
             {
                 FileName = libreOfficePath,
                 Arguments = $"--headless --convert-to pdf --outdir \"{tempDir}\" \"{docxPath}\"",
@@ -252,7 +221,7 @@ public class ApplicationProcessorService : IApplicationProcessorService
             _logger.LogInformation("Converted {Name}.docx → PDF ({Bytes} bytes)", baseName, new FileInfo(pdfPath).Length);
             return await File.ReadAllBytesAsync(pdfPath, cancellationToken);
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             _logger.LogError(ex, "Exception during DOCX to PDF conversion for {Name}", baseName);
             return null;

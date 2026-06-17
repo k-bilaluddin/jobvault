@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using JobVault.Application.Interfaces;
+using JobVault.Infrastructure.Generation;
 using JobVault.Infrastructure.GitHub;
 using JobVault.Infrastructure.Messaging.RabbitMQ;
 using JobVault.Infrastructure.Notifications;
@@ -12,10 +14,23 @@ public class Program
 {
     public static void Main(string[] args)
     {
+        // Required for TracePropagationHandler to inject valid W3C traceparent headers.
+        Activity.DefaultIdFormat = ActivityIdFormat.W3C;
+
         var builder = Host.CreateApplicationBuilder(args);
 
         // HTTP client factory — required by FileIngestService and GitHubFileService
         builder.Services.AddHttpClient();
+
+        // Document generation service — typed client with W3C trace propagation
+        builder.Services.AddTransient<TracePropagationHandler>();
+        builder.Services.AddHttpClient<IDocumentGenerationClient, DocumentGenerationClient>(client =>
+        {
+            var baseUrl = builder.Configuration["DocumentGeneration:BaseUrl"]
+                          ?? "http://jobvault-generation-service:3000";
+            client.BaseAddress = new Uri(baseUrl);
+        })
+        .AddHttpMessageHandler<TracePropagationHandler>();
 
         // Persistence
         builder.Services.AddSingleton<IJobApplicationRepository, MongoDbService>();

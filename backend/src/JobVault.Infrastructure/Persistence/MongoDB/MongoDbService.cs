@@ -1,6 +1,7 @@
 using JobVault.Application.Common;
 using JobVault.Application.Interfaces;
 using JobVault.Domain.Entities;
+using JobVault.Domain.ValueObjects;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using MongoDB.Bson;
@@ -80,8 +81,24 @@ public class MongoDbService : IJobApplicationRepository
                 ["status"] = application.Status ?? string.Empty,
                 ["createdAt"] = application.CreatedAt,
                 ["updatedAt"] = application.UpdatedAt,
-                ["cvDocxBase64"] = application.CvDocxBase64 != null ? (BsonValue)application.CvDocxBase64 : BsonNull.Value,
-                ["coverLetterDocxBase64"] = application.CoverLetterDocxBase64 != null ? (BsonValue)application.CoverLetterDocxBase64 : BsonNull.Value,
+                ["jdSource"] = application.JdSource != null ? (BsonValue)application.JdSource : BsonNull.Value,
+                ["headline"] = application.Headline != null ? (BsonValue)application.Headline : BsonNull.Value,
+                ["summary"] = application.Summary != null ? (BsonValue)application.Summary : BsonNull.Value,
+                ["skills"] = new BsonArray(application.Skills.Select(s => new BsonDocument
+                {
+                    ["label"] = s.Label,
+                    ["value"] = s.Value,
+                })),
+                ["roles"] = new BsonArray(application.Roles.Select(r => new BsonDocument
+                {
+                    ["id"] = r.Id,
+                    ["bullets"] = new BsonArray(r.Bullets.Select(b => (BsonValue)b)),
+                })),
+                ["recipient"] = application.Recipient != null ? (BsonValue)application.Recipient : BsonNull.Value,
+                ["coverLetterParagraphs"] = new BsonArray(application.CoverLetterParagraphs.Select(p => (BsonValue)p)),
+                ["strengths"] = new BsonArray(application.Strengths.Select(s => (BsonValue)s)),
+                ["gaps"] = new BsonArray(application.Gaps.Select(g => (BsonValue)g)),
+                ["tailoringNotes"] = application.TailoringNotes != null ? (BsonValue)application.TailoringNotes : BsonNull.Value,
                 ["compatibilityReportMarkdown"] = application.CompatibilityReportMarkdown != null ? (BsonValue)application.CompatibilityReportMarkdown : BsonNull.Value,
                 ["tailoringNotesMarkdown"] = application.TailoringNotesMarkdown != null ? (BsonValue)application.TailoringNotesMarkdown : BsonNull.Value,
                 ["commitUrl"] = application.CommitUrl != null ? (BsonValue)application.CommitUrl : BsonNull.Value,
@@ -157,12 +174,20 @@ public class MongoDbService : IJobApplicationRepository
             if (errorDetails != null)
                 updateDef = updateDef.Set("errorDetails", errorDetails);
 
-            // Clear blobs from MongoDB once processing is done (success or failure)
+            // Clear generation payload from MongoDB once processing is done (success or failure)
             if (status == "Ready to Apply" || status == "Failed")
             {
                 updateDef = updateDef
-                    .Unset("cvDocxBase64")
-                    .Unset("coverLetterDocxBase64")
+                    .Unset("jdSource")
+                    .Unset("headline")
+                    .Unset("summary")
+                    .Unset("skills")
+                    .Unset("roles")
+                    .Unset("recipient")
+                    .Unset("coverLetterParagraphs")
+                    .Unset("strengths")
+                    .Unset("gaps")
+                    .Unset("tailoringNotes")
                     .Unset("compatibilityReportMarkdown")
                     .Unset("tailoringNotesMarkdown");
             }
@@ -205,8 +230,36 @@ public class MongoDbService : IJobApplicationRepository
             Status = doc.GetValue("status", BsonNull.Value).AsString ?? string.Empty,
             CreatedAt = doc.TryGetValue("createdAt", out var ca) ? ca.ToUniversalTime() : default,
             UpdatedAt = doc.TryGetValue("updatedAt", out var ua) ? ua.ToUniversalTime() : default,
-            CvDocxBase64 = NullableString(doc, "cvDocxBase64"),
-            CoverLetterDocxBase64 = NullableString(doc, "coverLetterDocxBase64"),
+            JdSource = NullableString(doc, "jdSource"),
+            Headline = NullableString(doc, "headline"),
+            Summary = NullableString(doc, "summary"),
+            Skills = doc.TryGetValue("skills", out var skillsVal) && skillsVal is BsonArray skillsArr
+                ? skillsArr.Select(s => new SkillRow
+                {
+                    Label = s.AsBsonDocument.GetValue("label", "").AsString,
+                    Value = s.AsBsonDocument.GetValue("value", "").AsString,
+                }).ToList()
+                : [],
+            Roles = doc.TryGetValue("roles", out var rolesVal) && rolesVal is BsonArray rolesArr
+                ? rolesArr.Select(r => new RolePayload
+                {
+                    Id = r.AsBsonDocument.GetValue("id", "").AsString,
+                    Bullets = r.AsBsonDocument.TryGetValue("bullets", out var bulletsVal) && bulletsVal is BsonArray bulletsArr
+                        ? bulletsArr.Select(b => b.AsString).ToList()
+                        : [],
+                }).ToList()
+                : [],
+            Recipient = NullableString(doc, "recipient"),
+            CoverLetterParagraphs = doc.TryGetValue("coverLetterParagraphs", out var clpVal) && clpVal is BsonArray clpArr
+                ? clpArr.Select(p => p.AsString).ToList()
+                : [],
+            Strengths = doc.TryGetValue("strengths", out var strVal) && strVal is BsonArray strArr
+                ? strArr.Select(s => s.AsString).ToList()
+                : [],
+            Gaps = doc.TryGetValue("gaps", out var gapsVal) && gapsVal is BsonArray gapsArr
+                ? gapsArr.Select(g => g.AsString).ToList()
+                : [],
+            TailoringNotes = NullableString(doc, "tailoringNotes"),
             CompatibilityReportMarkdown = NullableString(doc, "compatibilityReportMarkdown"),
             TailoringNotesMarkdown = NullableString(doc, "tailoringNotesMarkdown"),
             CommitUrl = NullableString(doc, "commitUrl"),

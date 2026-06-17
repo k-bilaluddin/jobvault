@@ -48,10 +48,18 @@ public class ApplicationIngestionService : IApplicationIngestionService
                 MatchScore = request.MatchScore,
                 Recommendation = request.Recommendation,
                 Status = "Processing",
-                CvDocxBase64 = request.CvDocxBase64,
-                CoverLetterDocxBase64 = request.CoverLetterDocxBase64,
+                JdSource = request.JdSource,
+                Headline = request.Headline,
+                Summary = request.Summary,
+                Skills = request.Skills,
+                Roles = request.Roles,
+                Recipient = request.Recipient,
+                CoverLetterParagraphs = request.CoverLetterParagraphs,
+                Strengths = request.Strengths,
+                Gaps = request.Gaps,
+                TailoringNotes = request.TailoringNotes,
                 CompatibilityReportMarkdown = request.CompatibilityReportMarkdown,
-                TailoringNotesMarkdown = request.TailoringNotesMarkdown
+                TailoringNotesMarkdown = request.TailoringNotesMarkdown,
             };
 
             var upsertResult = await _repository.UpsertApplicationAsync(application);
@@ -104,24 +112,22 @@ public class ApplicationIngestionService : IApplicationIngestionService
             return "recommendation is required";
         if (request.MatchScore < 0 || request.MatchScore > 100)
             return "matchScore must be between 0 and 100";
-        if (string.IsNullOrWhiteSpace(request.CvDocxBase64))
-            return "cvDocxBase64 is required";
-        if (!IsValidBase64(request.CvDocxBase64))
-            return "cvDocxBase64 is not valid base64";
-        if (string.IsNullOrWhiteSpace(request.CoverLetterDocxBase64))
-            return "coverLetterDocxBase64 is required";
-        if (!IsValidBase64(request.CoverLetterDocxBase64))
-            return "coverLetterDocxBase64 is not valid base64";
+        if (string.IsNullOrWhiteSpace(request.Headline))
+            return "headline is required";
         if (string.IsNullOrWhiteSpace(request.CompatibilityReportMarkdown))
             return "compatibilityReportMarkdown is required";
         if (string.IsNullOrWhiteSpace(request.TailoringNotesMarkdown))
             return "tailoringNotesMarkdown is required";
-        return null;
-    }
 
-    private static bool IsValidBase64(string value)
-    {
-        try { Convert.FromBase64String(value); return true; }
-        catch { return false; }
+        var validRoleIds = new HashSet<string> { "calvergy", "senior_baris", "developer_baris", "junior_baris" };
+        foreach (var role in request.Roles)
+        {
+            if (string.IsNullOrWhiteSpace(role.Id))
+                return "each role must have a non-empty id";
+            if (!validRoleIds.Contains(role.Id))
+                return $"invalid role id '{role.Id}': must be one of {string.Join(", ", validRoleIds)}";
+        }
+
+        return null;
     }
 }

@@ -22,3 +22,12 @@ services:
     restart: unless-stopped
     depends_on:
       - api
+    networks:
+      - default
+      - jobvault-internal
+
+networks:
+  # Must be created once before first `docker-compose up`:
+  #   docker network create jobvault-internal
+  jobvault-internal:
+    external: true
