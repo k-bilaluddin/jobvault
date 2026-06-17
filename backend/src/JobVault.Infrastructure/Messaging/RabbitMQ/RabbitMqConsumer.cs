@@ -62,10 +62,31 @@ public class RabbitMqConsumer : BackgroundService
         _connection = await factory.CreateConnectionAsync();
         _channel = await _connection.CreateChannelAsync();
 
-        var queueName = _configuration["RabbitMq:JobApplicationCreatedQueueName"] ?? "job.applications.created";
         await _channel.BasicQosAsync(prefetchSize: 0, prefetchCount: 1, global: false);
 
-        _logger.LogInformation("RabbitMQ consumer initialized on queue: {QueueName}", queueName);
+        var exchangeName   = _configuration["RabbitMq:ExchangeName"]                   ?? "job.applications";
+        var dlxName        = _configuration["RabbitMq:DeadLetterExchangeName"]         ?? "job.applications.dead";
+        var dlqName        = _configuration["RabbitMq:DeadLetterQueueName"]            ?? "job.applications.dlq";
+        var createdQueue   = _configuration["RabbitMq:JobApplicationCreatedQueueName"] ?? "job.applications.created";
+        var updatedQueue   = _configuration["RabbitMq:JobApplicationUpdatedQueueName"] ?? "job.applications.updated";
+
+        // Dead-letter exchange + queue
+        await _channel.ExchangeDeclareAsync(exchange: dlxName, type: ExchangeType.Direct, durable: true, autoDelete: false);
+        await _channel.QueueDeclareAsync(queue: dlqName, durable: true, exclusive: false, autoDelete: false);
+        await _channel.QueueBindAsync(queue: dlqName, exchange: dlxName, routingKey: "");
+
+        // Main topic exchange
+        await _channel.ExchangeDeclareAsync(exchange: exchangeName, type: ExchangeType.Topic, durable: true, autoDelete: false);
+
+        // Created / updated queues with DLX
+        var queueArgs = new Dictionary<string, object?> { { "x-dead-letter-exchange", dlxName } };
+        await _channel.QueueDeclareAsync(queue: createdQueue, durable: true, exclusive: false, autoDelete: false, arguments: queueArgs);
+        await _channel.QueueBindAsync(queue: createdQueue, exchange: exchangeName, routingKey: "job.application.created");
+
+        await _channel.QueueDeclareAsync(queue: updatedQueue, durable: true, exclusive: false, autoDelete: false, arguments: queueArgs);
+        await _channel.QueueBindAsync(queue: updatedQueue, exchange: exchangeName, routingKey: "job.application.updated");
+
+        _logger.LogInformation("RabbitMQ consumer initialized on queues: {Created}, {Updated}", createdQueue, updatedQueue);
     }
 
     private async Task ConsumeMessagesAsync(CancellationToken stoppingToken)

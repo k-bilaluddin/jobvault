@@ -60,7 +60,24 @@ public class ApplicationIngestionConsumer : BackgroundService
 
         await _channel.BasicQosAsync(prefetchSize: 0, prefetchCount: 1, global: false);
 
-        var queueName = _configuration["RabbitMq:JobApplicationReceivedQueueName"] ?? "job.applications.received";
+        var exchangeName    = _configuration["RabbitMq:ExchangeName"]                    ?? "job.applications";
+        var dlxName         = _configuration["RabbitMq:DeadLetterExchangeName"]          ?? "job.applications.dead";
+        var dlqName         = _configuration["RabbitMq:DeadLetterQueueName"]             ?? "job.applications.dlq";
+        var queueName       = _configuration["RabbitMq:JobApplicationReceivedQueueName"] ?? "job.applications.received";
+
+        // Dead-letter exchange + queue
+        await _channel.ExchangeDeclareAsync(exchange: dlxName, type: ExchangeType.Direct, durable: true, autoDelete: false);
+        await _channel.QueueDeclareAsync(queue: dlqName, durable: true, exclusive: false, autoDelete: false);
+        await _channel.QueueBindAsync(queue: dlqName, exchange: dlxName, routingKey: "");
+
+        // Main topic exchange
+        await _channel.ExchangeDeclareAsync(exchange: exchangeName, type: ExchangeType.Topic, durable: true, autoDelete: false);
+
+        // Received queue with DLX
+        var queueArgs = new Dictionary<string, object?> { { "x-dead-letter-exchange", dlxName } };
+        await _channel.QueueDeclareAsync(queue: queueName, durable: true, exclusive: false, autoDelete: false, arguments: queueArgs);
+        await _channel.QueueBindAsync(queue: queueName, exchange: exchangeName, routingKey: "job.application.received");
+
         _logger.LogInformation("ApplicationIngestionConsumer initialized on queue: {Queue}", queueName);
     }
 
@@ -110,6 +127,8 @@ public class ApplicationIngestionConsumer : BackgroundService
 
     private async Task<bool> ProcessWithRetryAsync(string applicationId, CancellationToken cancellationToken)
     {
+        Exception? lastException = null;
+
         for (var attempt = 1; attempt <= MaxRetries; attempt++)
         {
             try
@@ -121,6 +140,7 @@ public class ApplicationIngestionConsumer : BackgroundService
             }
             catch (Exception ex)
             {
+                lastException = ex;
                 _logger.LogError(ex, "Processing attempt {Attempt}/{Max} failed for applicationId={Id}",
                     attempt, MaxRetries, applicationId);
 
@@ -133,7 +153,22 @@ public class ApplicationIngestionConsumer : BackgroundService
             }
         }
 
+        // All retries exhausted — mark the application as permanently Failed before dead-lettering
         _logger.LogError("All {Max} attempts exhausted for applicationId={Id}; dead-lettering", MaxRetries, applicationId);
+        try
+        {
+            using var scope = _serviceProvider.CreateScope();
+            var processor = scope.ServiceProvider.GetRequiredService<IApplicationProcessorService>();
+            await processor.MarkFailedAsync(
+                applicationId,
+                $"Processing failed after {MaxRetries} attempts: {lastException?.Message}",
+                cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to mark applicationId={Id} as Failed after exhausting retries", applicationId);
+        }
+
         return false;
     }
 

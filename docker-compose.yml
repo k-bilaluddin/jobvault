@@ -22,3 +22,10 @@ services:
     restart: unless-stopped
     depends_on:
       - api
+    networks:
+      - default
+      - jobvault-internal
+
+networks:
+  jobvault-internal:
+    external: true

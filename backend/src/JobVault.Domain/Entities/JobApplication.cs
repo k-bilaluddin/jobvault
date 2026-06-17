@@ -1,3 +1,5 @@
+using JobVault.Domain.ValueObjects;
+
 namespace JobVault.Domain.Entities;
 
 public class JobApplication
@@ -19,9 +21,19 @@ public class JobApplication
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 
-    // Async ingestion pipeline — populated by API, consumed and cleared by Worker
-    public string? CvDocxBase64 { get; set; }
-    public string? CoverLetterDocxBase64 { get; set; }
+    // Generation payload — populated by API, consumed by Worker to call the generation service
+    public string? JdSource { get; set; }
+    public string? Headline { get; set; }
+    public string? Summary { get; set; }
+    public List<SkillRow> Skills { get; set; } = [];
+    public List<RolePayload> Roles { get; set; } = [];
+    public string? Recipient { get; set; }
+    public List<string> CoverLetterParagraphs { get; set; } = [];
+    public List<string> Strengths { get; set; } = [];
+    public List<string> Gaps { get; set; } = [];
+    public string? TailoringNotes { get; set; }
+
+    // Full markdown reports committed as-is to GitHub
     public string? CompatibilityReportMarkdown { get; set; }
     public string? TailoringNotesMarkdown { get; set; }
 

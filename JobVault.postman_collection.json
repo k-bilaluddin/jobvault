@@ -1,0 +1,510 @@
+{
+  "info": {
+    "name": "JobVault API",
+    "_postman_id": "jobvault-api-collection",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Full test suite for the JobVault API — covers happy path, validation failures, and edge cases."
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000", "type": "string" },
+    { "key": "applicationId", "value": "", "type": "string" },
+    { "key": "notificationId", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Ingest — Async Pipeline",
+      "item": [
+        {
+          "name": "01 Happy Path — full payload",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 202 Accepted', () => pm.response.to.have.status(202));",
+                  "pm.test('Returns applicationId', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.applicationId).to.be.a('string').and.not.empty;",
+                  "  pm.collectionVariables.set('applicationId', body.applicationId);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/ingest/applications",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"companyName\": \"Acme Corp\",\n  \"jobTitle\": \"Senior Full Stack Developer\",\n  \"location\": \"Berlin, Germany\",\n  \"jobUrl\": \"https://acme.com/careers/senior-fullstack\",\n  \"workMode\": \"Hybrid\",\n  \"employmentType\": \"Full-time\",\n  \"salaryMin\": 80000,\n  \"salaryMax\": 100000,\n  \"currency\": \"EUR\",\n  \"salaryPeriod\": \"Annual\",\n  \"matchScore\": 87,\n  \"recommendation\": \"Strong Apply\",\n  \"jdSource\": \"LinkedIn\",\n  \"headline\": \"Full Stack Developer | React.js | TypeScript | Node.js\",\n  \"summary\": \"Results-driven full stack developer with 6+ years building scalable web applications across fintech and SaaS domains. Strong command of React, TypeScript, Node.js, and cloud-native architectures.\",\n  \"skills\": [\n    { \"label\": \"Frontend\", \"value\": \"React.js, TypeScript, Next.js, Tailwind CSS\" },\n    { \"label\": \"Backend\",  \"value\": \"Node.js, .NET 9, REST, RabbitMQ\" },\n    { \"label\": \"Cloud\",    \"value\": \"Azure, Docker, GitHub Actions\" },\n    { \"label\": \"Database\", \"value\": \"MongoDB, PostgreSQL, Redis\" }\n  ],\n  \"roles\": [\n    {\n      \"id\": \"senior_baris\",\n      \"bullets\": [\n        \"Led migration of monolithic .NET API to microservices, reducing p99 latency by **40%**\",\n        \"Delivered end-to-end React dashboard consumed by 5,000 daily active users\",\n        \"Mentored two junior engineers through bi-weekly code reviews and pairing sessions\"\n      ]\n    },\n    {\n      \"id\": \"developer_baris\",\n      \"bullets\": [\n        \"Built real-time notification system using SignalR and Azure Service Bus\",\n        \"Implemented CI/CD pipeline cutting release cycle from 2 weeks to 1 day\"\n      ]\n    }\n  ],\n  \"recipient\": \"Hiring Manager\",\n  \"coverLetterParagraphs\": [\n    \"I am excited to apply for the Senior Full Stack Developer role at Acme Corp. Your focus on developer tooling and platform engineering aligns closely with my background in building scalable, event-driven systems.\",\n    \"In my most recent role I led the architectural migration of a high-traffic .NET API to a microservices model, cutting p99 latency by 40% while maintaining 99.9% uptime. I believe this experience maps directly to the challenges described in your job posting.\",\n    \"I would welcome the opportunity to discuss how my skills can contribute to Acme Corp's growth. Thank you for your consideration.\"\n  ],\n  \"compatibilityScore\": 87,\n  \"strengths\": [\n    \"Deep TypeScript and React expertise matching the JD exactly\",\n    \"Proven microservices delivery at scale\",\n    \"German work authorisation — no sponsorship required\"\n  ],\n  \"gaps\": [\n    \"No direct Kubernetes experience listed — worth addressing briefly\"\n  ],\n  \"tailoringNotes\": \"Emphasise the event-driven architecture work and the platform team experience. Mirror the JD's language around 'developer experience'.\",\n  \"compatibilityReportMarkdown\": \"# Compatibility Report\\n\\n**Score: 87 / 100**\\n\\n## Strengths\\n- TypeScript + React match\\n- Microservices delivery\\n\\n## Gaps\\n- Kubernetes not evidenced\\n\",\n  \"tailoringNotesMarkdown\": \"# Tailoring Notes\\n\\nMirror JD language around *developer experience*. Lead with the microservices migration story in both CV and cover letter.\\n\"\n}"
+            }
+          }
+        },
+        {
+          "name": "02 Happy Path — minimal required fields only",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 202 Accepted', () => pm.response.to.have.status(202));",
+                  "pm.test('Returns applicationId', () => {",
+                  "  pm.expect(pm.response.json().applicationId).to.be.a('string').and.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/ingest/applications",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"companyName\": \"Minimal Co\",\n  \"jobTitle\": \"Backend Developer\",\n  \"matchScore\": 72,\n  \"recommendation\": \"Apply\",\n  \"headline\": \"Backend Developer | .NET | C#\",\n  \"summary\": \"Experienced .NET developer.\",\n  \"skills\": [],\n  \"roles\": [],\n  \"coverLetterParagraphs\": [],\n  \"strengths\": [],\n  \"gaps\": [],\n  \"compatibilityReportMarkdown\": \"# Report\\n\\nBasic report.\",\n  \"tailoringNotesMarkdown\": \"# Notes\\n\\nStandard tailoring.\"\n}"
+            }
+          }
+        },
+        {
+          "name": "03 Validation — missing companyName",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Error mentions companyName', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(JSON.stringify(body).toLowerCase()).to.include('companyname');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/ingest/applications",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jobTitle\": \"Developer\",\n  \"matchScore\": 80,\n  \"recommendation\": \"Apply\",\n  \"headline\": \"Developer\",\n  \"compatibilityReportMarkdown\": \"# Report\",\n  \"tailoringNotesMarkdown\": \"# Notes\"\n}"
+            }
+          }
+        },
+        {
+          "name": "04 Validation — missing headline",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Error mentions headline', () => {",
+                  "  pm.expect(JSON.stringify(pm.response.json()).toLowerCase()).to.include('headline');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/ingest/applications",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"companyName\": \"Acme Corp\",\n  \"jobTitle\": \"Developer\",\n  \"matchScore\": 80,\n  \"recommendation\": \"Apply\",\n  \"compatibilityReportMarkdown\": \"# Report\",\n  \"tailoringNotesMarkdown\": \"# Notes\"\n}"
+            }
+          }
+        },
+        {
+          "name": "05 Validation — missing compatibilityReportMarkdown",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Error mentions compatibilityReportMarkdown', () => {",
+                  "  pm.expect(JSON.stringify(pm.response.json()).toLowerCase()).to.include('compatibility');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/ingest/applications",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"companyName\": \"Acme Corp\",\n  \"jobTitle\": \"Developer\",\n  \"matchScore\": 80,\n  \"recommendation\": \"Apply\",\n  \"headline\": \"Developer | .NET\",\n  \"tailoringNotesMarkdown\": \"# Notes\"\n}"
+            }
+          }
+        },
+        {
+          "name": "06 Validation — matchScore out of range (> 100)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Error mentions matchScore', () => {",
+                  "  pm.expect(JSON.stringify(pm.response.json()).toLowerCase()).to.include('matchscore');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/ingest/applications",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"companyName\": \"Acme Corp\",\n  \"jobTitle\": \"Developer\",\n  \"matchScore\": 150,\n  \"recommendation\": \"Apply\",\n  \"headline\": \"Developer | .NET\",\n  \"compatibilityReportMarkdown\": \"# Report\",\n  \"tailoringNotesMarkdown\": \"# Notes\"\n}"
+            }
+          }
+        },
+        {
+          "name": "07 Validation — matchScore out of range (negative)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/ingest/applications",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"companyName\": \"Acme Corp\",\n  \"jobTitle\": \"Developer\",\n  \"matchScore\": -5,\n  \"recommendation\": \"Apply\",\n  \"headline\": \"Developer | .NET\",\n  \"compatibilityReportMarkdown\": \"# Report\",\n  \"tailoringNotesMarkdown\": \"# Notes\"\n}"
+            }
+          }
+        },
+        {
+          "name": "08 Validation — empty body",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/ingest/applications",
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            }
+          }
+        },
+        {
+          "name": "09 Validation — malformed JSON",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/ingest/applications",
+            "body": {
+              "mode": "raw",
+              "raw": "{ this is not json }"
+            }
+          }
+        },
+        {
+          "name": "10 Idempotency — same companyName upserts, not duplicates",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 202 Accepted', () => pm.response.to.have.status(202));",
+                  "pm.test('Same applicationId returned (upsert)', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.applicationId).to.equal(pm.collectionVariables.get('applicationId'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/ingest/applications",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"companyName\": \"Acme Corp\",\n  \"jobTitle\": \"Senior Full Stack Developer\",\n  \"matchScore\": 87,\n  \"recommendation\": \"Strong Apply\",\n  \"headline\": \"Full Stack Developer | React.js | TypeScript | Node.js\",\n  \"summary\": \"Updated summary on re-ingest.\",\n  \"skills\": [],\n  \"roles\": [],\n  \"coverLetterParagraphs\": [],\n  \"strengths\": [],\n  \"gaps\": [],\n  \"compatibilityReportMarkdown\": \"# Report\\n\\nUpdated.\",\n  \"tailoringNotesMarkdown\": \"# Notes\\n\\nUpdated.\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Generation Service — direct smoke tests",
+      "item": [
+        {
+          "name": "11 Generation service health check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('status is ok', () => {",
+                  "  pm.expect(pm.response.json().status).to.equal('ok');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:3000/health"
+          }
+        },
+        {
+          "name": "12 Generate CV — returns docx binary",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Content-Type is docx', () => {",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('wordprocessingml');",
+                  "});",
+                  "pm.test('Response has byte content', () => {",
+                  "  pm.expect(pm.response.responseSize).to.be.above(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "http://localhost:3000/api/generate-cv",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"company\": \"Acme Corp\",\n  \"role\": \"Senior Full Stack Developer\",\n  \"jdSource\": \"LinkedIn\",\n  \"headline\": \"Full Stack Developer | React.js | TypeScript | Node.js\",\n  \"summary\": \"Results-driven full stack developer with 6+ years building scalable web applications.\",\n  \"skills\": [\n    { \"label\": \"Frontend\", \"value\": \"React.js, TypeScript, Next.js\" },\n    { \"label\": \"Backend\",  \"value\": \"Node.js, .NET 9, REST\" }\n  ],\n  \"roles\": [\n    {\n      \"id\": \"senior_baris\",\n      \"bullets\": [\n        \"Led migration of monolithic .NET API to microservices, reducing p99 latency by **40%**\",\n        \"Delivered end-to-end React dashboard for 5,000 daily active users\"\n      ]\n    }\n  ],\n  \"recipient\": \"Hiring Manager\",\n  \"coverLetterParagraphs\": [],\n  \"compatibilityScore\": 87,\n  \"strengths\": [\"TypeScript + React match\"],\n  \"gaps\": [\"No Kubernetes experience listed\"],\n  \"tailoringNotes\": \"Emphasise event-driven work.\"\n}"
+            }
+          }
+        },
+        {
+          "name": "13 Generate Cover Letter — returns docx binary",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Content-Type is docx', () => {",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('wordprocessingml');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "http://localhost:3000/api/generate-cover-letter",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"company\": \"Acme Corp\",\n  \"role\": \"Senior Full Stack Developer\",\n  \"jdSource\": \"LinkedIn\",\n  \"headline\": \"Full Stack Developer | React.js | TypeScript | Node.js\",\n  \"summary\": \"\",\n  \"skills\": [],\n  \"roles\": [],\n  \"recipient\": \"Hiring Manager\",\n  \"coverLetterParagraphs\": [\n    \"I am excited to apply for the Senior Full Stack Developer role at Acme Corp.\",\n    \"In my most recent role I led the architectural migration of a high-traffic .NET API to microservices, cutting p99 latency by 40%.\",\n    \"Thank you for your consideration.\"\n  ],\n  \"compatibilityScore\": 87,\n  \"strengths\": [\"TypeScript + React match\"],\n  \"gaps\": [],\n  \"tailoringNotes\": \"Mirror JD language around developer experience.\"\n}"
+            }
+          }
+        },
+        {
+          "name": "14 Generate CV — invalid roleId (expect error)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 4xx or 5xx', () => {",
+                  "  pm.expect(pm.response.code).to.be.at.least(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "http://localhost:3000/api/generate-cv",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"company\": \"Acme Corp\",\n  \"role\": \"Developer\",\n  \"headline\": \"Developer\",\n  \"summary\": \"Summary.\",\n  \"skills\": [],\n  \"roles\": [\n    { \"id\": \"invalid_role_id\", \"bullets\": [\"bullet one\"] }\n  ],\n  \"coverLetterParagraphs\": [],\n  \"compatibilityScore\": 70,\n  \"strengths\": [],\n  \"gaps\": []\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "15 Get recent notifications",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Response is array', () => {",
+                  "  pm.expect(pm.response.json()).to.be.an('array');",
+                  "});",
+                  "pm.test('Capture first notification id if present', () => {",
+                  "  const arr = pm.response.json();",
+                  "  if (arr.length > 0) pm.collectionVariables.set('notificationId', arr[0].id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/notifications"
+          }
+        },
+        {
+          "name": "16 Mark all notifications read",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/notifications/read-all"
+          }
+        },
+        {
+          "name": "17 Mark single notification read",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 or 404', () => {",
+                  "  pm.expect([200, 404]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/notifications/{{notificationId}}/read"
+          }
+        },
+        {
+          "name": "18 Mark single notification read — invalid UUID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/notifications/not-a-uuid/read"
+          }
+        },
+        {
+          "name": "19 SSE stream — open connection (manual test)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "text/event-stream" }],
+            "url": "{{baseUrl}}/api/notifications/stream",
+            "description": "Long-lived SSE connection. Postman will show the stream in real time. Disconnect manually. Expect '': connected' comment frame within 1 s, then ': ping' every 15 s."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Legacy Endpoints",
+      "item": [
+        {
+          "name": "20 Legacy ingest — multipart upload (file required)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 or 400', () => {",
+                  "  pm.expect([200, 400]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/ingest",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "companyName", "value": "Acme Corp", "type": "text" }
+              ]
+            },
+            "description": "No file attached — expects 400 'At least one file must be uploaded'."
+          }
+        },
+        {
+          "name": "21 Legacy ingest — missing companyName",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/ingest",
+            "body": {
+              "mode": "formdata",
+              "formdata": []
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
