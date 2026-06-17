@@ -197,6 +197,14 @@ jobs:
             throw "Required .env file was not created."
           }
 
+      - name: Ensure jobvault-internal network exists
+        shell: pwsh
+        run: |
+          docker network inspect jobvault-internal 2>&1 | Out-Null
+          if ($LASTEXITCODE -ne 0) {
+            docker network create jobvault-internal
+          }
+
       - name: Deploy with Docker Compose
         shell: pwsh
         working-directory: ${{ github.workspace }}
