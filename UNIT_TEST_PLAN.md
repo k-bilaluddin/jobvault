@@ -10,7 +10,7 @@ This plan introduces unit testing across the JobVault codebase — a .NET 9 back
 
 | Area | Status |
 |------|--------|
-| Architecture tests (NetArchTest) | 8 tests, running in CI |
+| Architecture tests (NetArchTest) | 10 tests, running in CI |
 | Backend unit tests (`JobVault.UnitTests`) | Empty — `.gitkeep` only |
 | Backend integration tests (`JobVault.IntegrationTests`) | Empty — `.gitkeep` only |
 | Frontend tests | No test framework configured |
@@ -53,52 +53,86 @@ backend/tests/JobVault.UnitTests/
 │       ├── FileIngestResultTests.cs
 │       └── WebhookResultTests.cs
 ├── Infrastructure/
-│   ├── Notifications/
-│   │   ├── TelegramNotificationServiceTests.cs
-│   │   └── NotificationHubTests.cs
-│   └── Messaging/
-│       └── SseNotificationConsumerTests.cs
+│   ├── Generation/
+│   │   └── DocumentGenerationClientTests.cs
+│   ├── Processing/
+│   │   └── ApplicationProcessorServiceTests.cs
+│   ├── Messaging/
+│   │   ├── ApplicationIngestionConsumerTests.cs
+│   │   └── SseNotificationConsumerTests.cs
+│   └── Notifications/
+│       ├── TelegramNotificationServiceTests.cs
+│       └── NotificationHubTests.cs
 ├── API/
-│   ├── Controllers/
-│   │   ├── VaultControllerTests.cs
-│   │   ├── NotificationsControllerTests.cs
-│   │   └── WebhookControllerTests.cs
+│   └── Controllers/
+│       ├── VaultControllerTests.cs
+│       ├── NotificationsControllerTests.cs
+│       └── WebhookControllerTests.cs
 └── Domain/
-    └── Entities/
-        ├── JobApplicationTests.cs
-        └── AppNotificationTests.cs
+    ├── Entities/
+    │   ├── JobApplicationTests.cs
+    │   └── AppNotificationTests.cs
+    └── ValueObjects/
+        ├── RolePayloadTests.cs
+        └── SkillRowTests.cs
 ```
 
 ---
 
 ### 1.3 Application Layer Tests
 
-#### `ApplicationIngestionServiceTests` (~20 tests)
+#### `ApplicationIngestionServiceTests` (~24 tests)
 
 The core business service. Depends on `IJobApplicationRepository`, `IRabbitMqPublisher`, `ILogger` — all mockable.
 
+**Validation — required fields:**
+
 | Test Case | Asserts |
 |-----------|---------|
-| `IngestAsync_ValidRequest_ReturnsSuccessWithId` | `IsSuccess == true`, `ApplicationId` matches repo return |
 | `IngestAsync_MissingCompanyName_ReturnsFailure` | Error: "companyName is required" |
 | `IngestAsync_MissingJobTitle_ReturnsFailure` | Error: "jobTitle is required" |
 | `IngestAsync_MissingRecommendation_ReturnsFailure` | Error: "recommendation is required" |
+| `IngestAsync_MissingHeadline_ReturnsFailure` | Error: "headline is required" |
+| `IngestAsync_MissingCompatibilityReport_ReturnsFailure` | Error: "compatibilityReportMarkdown is required" |
+| `IngestAsync_MissingTailoringNotes_ReturnsFailure` | Error: "tailoringNotesMarkdown is required" |
+
+**Validation — MatchScore boundaries:**
+
+| Test Case | Asserts |
+|-----------|---------|
 | `IngestAsync_MatchScoreBelowZero_ReturnsFailure` | Error: "matchScore must be between 0 and 100" |
 | `IngestAsync_MatchScoreAbove100_ReturnsFailure` | Error: "matchScore must be between 0 and 100" |
 | `IngestAsync_MatchScoreAtBoundary0_Succeeds` | Boundary: 0 is valid |
 | `IngestAsync_MatchScoreAtBoundary100_Succeeds` | Boundary: 100 is valid |
-| `IngestAsync_MissingCvBase64_ReturnsFailure` | Error: "cvDocxBase64 is required" |
-| `IngestAsync_InvalidCvBase64_ReturnsFailure` | Error: "cvDocxBase64 is not valid base64" |
-| `IngestAsync_MissingCoverLetterBase64_ReturnsFailure` | Error: "coverLetterDocxBase64 is required" |
-| `IngestAsync_InvalidCoverLetterBase64_ReturnsFailure` | Error: "coverLetterDocxBase64 is not valid base64" |
-| `IngestAsync_MissingCompatibilityReport_ReturnsFailure` | Error: "compatibilityReportMarkdown is required" |
-| `IngestAsync_MissingTailoringNotes_ReturnsFailure` | Error: "tailoringNotesMarkdown is required" |
+
+**Validation — Role ID enforcement:**
+
+| Test Case | Asserts |
+|-----------|---------|
+| `IngestAsync_ValidRoleId_Calvergy_Succeeds` | "calvergy" accepted |
+| `IngestAsync_ValidRoleId_SeniorBaris_Succeeds` | "senior_baris" accepted |
+| `IngestAsync_InvalidRoleId_ReturnsFailure` | Error: "invalid role id 'unknown'" |
+| `IngestAsync_EmptyRoleId_ReturnsFailure` | Error: "each role must have a non-empty id" |
+| `IngestAsync_EmptyRolesList_Succeeds` | No roles is valid (list is optional) |
+
+**Happy path & persistence:**
+
+| Test Case | Asserts |
+|-----------|---------|
+| `IngestAsync_ValidRequest_ReturnsSuccessWithId` | `IsSuccess == true`, `ApplicationId` matches repo return |
+| `IngestAsync_SetsStatusToProcessing` | `JobApplication.Status == "Processing"` on repository call |
+| `IngestAsync_MapsGenerationPayloadToEntity` | `Headline`, `Skills`, `Roles`, `CoverLetterParagraphs` etc. mapped |
+| `IngestAsync_DefaultsCurrencyToEUR` | When `Currency` is null |
+| `IngestAsync_DefaultsSalaryPeriodToAnnual` | When `SalaryPeriod` is null |
+
+**Error handling:**
+
+| Test Case | Asserts |
+|-----------|---------|
 | `IngestAsync_RepositoryUpsertFails_ReturnsFailure` | Error: "Failed to persist application" |
 | `IngestAsync_RepositoryReturnsNullId_ReturnsFailure` | `UpsertResult.Id == null` case |
 | `IngestAsync_RabbitMqPublishFails_StillReturnsSuccess` | Publisher throws, result is still success (202 pattern) |
-| `IngestAsync_SetsStatusToProcessing` | `JobApplication.Status == "Processing"` on repository call |
-| `IngestAsync_DefaultsCurrencyToEUR` | When `Currency` is null |
-| `IngestAsync_DefaultsSalaryPeriodToAnnual` | When `SalaryPeriod` is null |
+| `IngestAsync_UnexpectedException_ReturnsFailure` | Catches and wraps unexpected errors |
 
 #### `MarkdownParserServiceTests` (~8 tests)
 
@@ -162,47 +196,118 @@ Simple factory-method validation — fast to write, prevents regressions.
 
 ---
 
-### 1.5 API Controller Tests
+### 1.5 Infrastructure Layer Tests
 
-Controllers are thin — test request/response mapping and HTTP status codes.
+#### `DocumentGenerationClientTests` (~10 tests)
 
-#### `VaultControllerTests` (~8 tests)
+Depends on `HttpClient` (mockable via `HttpMessageHandler`) and `ILogger`. Tests the HTTP call logic and error classification.
 
-| Test Case | Asserts |
-|-----------|---------|
-| `IngestApplication_Success_Returns202Accepted` | `AcceptedResult` with `ApplicationId` |
-| `IngestApplication_ValidationFails_Returns400` | `BadRequestObjectResult` |
-| `IngestApplication_ServiceThrows_Returns500` | `ObjectResult` with 500 status |
-| `Ingest_MissingCompanyName_Returns400` | Legacy endpoint validation |
-| `Ingest_NoFiles_Returns400` | Empty form submission |
-| `Ingest_ValidForm_Returns200WithResponse` | `OkObjectResult` with `IngestResponse` |
-| `Ingest_ServiceFails_Returns500` | Service returns failure |
-| `Ingest_ValidRequest_CallsServiceWithCorrectArgs` | Verify mapped `IngestedFile` objects |
-
-#### `NotificationsControllerTests` (~5 tests)
+**Payload construction:**
 
 | Test Case | Asserts |
 |-----------|---------|
-| `GetNotifications_ReturnsOkWithList` | 200 with notification array |
-| `GetNotifications_RepositoryThrows_Returns500` | Error handling |
-| `MarkAllRead_ReturnsOk` | 200 OK |
-| `MarkRead_ValidGuid_ReturnsOk` | 200 OK |
-| `StreamNotifications_SetsSseHeaders` | Content-Type, Cache-Control, Connection headers |
+| `GenerateCvAsync_BuildsCorrectPayload` | Payload `Company`, `Role`, `Headline`, `Skills`, `Roles`, `CompatibilityScore` mapped from entity |
+| `GenerateCvAsync_NullOptionalFields_OmittedInJson` | `JsonIgnoreCondition.WhenWritingNull` honoured (JdSource, Recipient) |
+| `BuildPayload_MapsMatchScoreToCompatibilityScore` | `app.MatchScore` → `payload.CompatibilityScore` |
 
-#### `WebhookControllerTests` (~4 tests)
+**HTTP response handling:**
 
 | Test Case | Asserts |
 |-----------|---------|
-| `HandleWebhook_Success_Returns200` | `OkObjectResult` with `WebhookResponse` |
-| `HandleWebhook_Failure_Returns400` | `BadRequestObjectResult` |
-| `HandleWebhook_Exception_Returns500` | Error handling |
-| `HandleWebhook_CallsHandlerWithPayload` | Verify correct payload passed |
+| `GenerateCvAsync_Success_ReturnsByteArray` | 200 response → bytes returned |
+| `GenerateCvAsync_4xxResponse_ThrowsInvalidOperationException` | 400/422 → permanent failure (no retry) |
+| `GenerateCvAsync_5xxResponse_ThrowsHttpRequestException` | 500/503 → transient failure (retry) |
+| `GenerateCoverLetterAsync_PostsToCorrectEndpoint` | URL is `/api/generate-cover-letter` |
+| `GenerateCvAsync_PostsToCorrectEndpoint` | URL is `/api/generate-cv` |
+| `GenerateCvAsync_4xxResponseBody_IncludedInExceptionMessage` | Error message contains the response body |
+| `GenerateCvAsync_EmptyResponse_ReturnsEmptyByteArray` | 200 with empty body → `byte[0]` |
 
----
+#### `ApplicationProcessorServiceTests` (~18 tests)
 
-### 1.6 Infrastructure Tests (Isolated Logic Only)
+Depends on `IJobApplicationRepository`, `IDocumentGenerationClient`, `IFileIngestService`, `IRabbitMqPublisher`, `IConfiguration`, `ILogger` — all mockable.
 
-These test infrastructure classes in isolation with mocked external dependencies (no real MongoDB/RabbitMQ).
+**Validation & early exits:**
+
+| Test Case | Asserts |
+|-----------|---------|
+| `ProcessAsync_ApplicationNotFound_UpdatesStatusToFailed` | Calls `UpdateStatusAsync("Failed", ...)` |
+| `ProcessAsync_MissingHeadline_CallsFailAsync` | Error: "One or more required fields are missing" |
+| `ProcessAsync_MissingCompatibilityReport_CallsFailAsync` | Same validation |
+| `ProcessAsync_MissingTailoringNotes_CallsFailAsync` | Same validation |
+
+**Document generation & conversion:**
+
+| Test Case | Asserts |
+|-----------|---------|
+| `ProcessAsync_CallsGenerateCvAndCoverLetterInParallel` | Both generation tasks started before await |
+| `ProcessAsync_GenerationReturnsBytes_PassedToConversion` | DOCX bytes flow through the pipeline |
+| `ProcessAsync_ConversionReturnsNull_ThrowsInvalidOperationException` | "LibreOffice produced no output" |
+
+**GitHub commit:**
+
+| Test Case | Asserts |
+|-----------|---------|
+| `ProcessAsync_Builds6FileSet` | CV.docx, CV.pdf, CoverLetter.docx, CoverLetter.pdf, compatibility-report.md, tailoring-notes.md |
+| `ProcessAsync_UsesConfiguredFileNames` | Reads `GitHub:CvFileName` and `GitHub:CoverLetterFileName` from config |
+| `ProcessAsync_FileIngestFails_ThrowsInvalidOperationException` | `ingestResult.IsSuccess == false` → throws |
+
+**State transitions:**
+
+| Test Case | Asserts |
+|-----------|---------|
+| `ProcessAsync_Success_UpdatesStatusToReadyToApply` | `UpdateStatusAsync("Ready to Apply", commitUrl: ...)` |
+| `ProcessAsync_Success_PublishesCreatedEvent` | `EventType == "created"`, `Status == "Ready to Apply"` |
+| `ProcessAsync_PublishFails_StillSucceeds` | Publisher exception is caught, processing is not rolled back |
+
+**MarkFailedAsync:**
+
+| Test Case | Asserts |
+|-----------|---------|
+| `MarkFailedAsync_ApplicationNotFound_ReturnsQuietly` | No exception, warning logged |
+| `MarkFailedAsync_ApplicationFound_UpdatesStatusToFailed` | `UpdateStatusAsync("Failed", errorDetails: reason)` |
+| `MarkFailedAsync_PublishesUpdatedEvent` | `EventType == "updated"`, `Status == "Failed"` |
+| `MarkFailedAsync_PublishFails_StillUpdatesStatus` | Publisher exception doesn't block status update |
+
+#### `ApplicationIngestionConsumerTests` (~12 tests)
+
+Tests `ProcessWithRetryAsync` logic. Mock `IServiceProvider` to return mock `IApplicationProcessorService`.
+
+**Retry behaviour:**
+
+| Test Case | Asserts |
+|-----------|---------|
+| `ProcessWithRetry_Success_ReturnsTrue` | First attempt succeeds → `true` |
+| `ProcessWithRetry_TransientFailureThenSuccess_RetriesAndReturnsTrue` | Attempt 1 throws `Exception`, attempt 2 succeeds |
+| `ProcessWithRetry_AllRetriesExhausted_ReturnsFalse` | 3 failures → `false` |
+| `ProcessWithRetry_AllRetriesExhausted_CallsMarkFailed` | `MarkFailedAsync` called with retry count in message |
+
+**Permanent vs transient error classification:**
+
+| Test Case | Asserts |
+|-----------|---------|
+| `ProcessWithRetry_InvalidOperationException_SkipsRetries` | Only 1 attempt, then `MarkFailed` |
+| `ProcessWithRetry_HttpRequestException_Retries` | All 3 attempts tried |
+
+**Exponential backoff:**
+
+| Test Case | Asserts |
+|-----------|---------|
+| `ProcessWithRetry_BackoffDelays_AreExponential` | Delays: 2s, 4s (2^attempt) |
+
+**Message handling:**
+
+| Test Case | Asserts |
+|-----------|---------|
+| `Consume_DeserializationFails_NacksWithoutRequeue` | Malformed JSON → dead-letter |
+| `Consume_MissingApplicationId_NacksWithoutRequeue` | Null ApplicationId → dead-letter |
+| `Consume_SuccessfulProcess_AcksMessage` | `BasicAckAsync` called |
+| `Consume_FailedProcess_NacksWithoutRequeue` | `BasicNackAsync(requeue: false)` |
+
+**Shutdown safety:**
+
+| Test Case | Asserts |
+|-----------|---------|
+| `ProcessWithRetry_MarkFailed_UsesCancellationTokenNone` | Ensures write completes even during shutdown |
 
 #### `NotificationHubTests` (~6 tests)
 
@@ -243,16 +348,56 @@ Static methods `BuildNotification` and `SlugifyCompanyName` — pure functions, 
 
 ---
 
-### 1.7 Domain Entity Tests
+### 1.6 API Controller Tests
 
-#### `JobApplicationTests` (~4 tests)
+Controllers are thin — test request/response mapping and HTTP status codes.
+
+#### `VaultControllerTests` (~8 tests)
+
+| Test Case | Asserts |
+|-----------|---------|
+| `IngestApplication_Success_Returns202Accepted` | `AcceptedResult` with `ApplicationId` |
+| `IngestApplication_ValidationFails_Returns400` | `BadRequestObjectResult` |
+| `IngestApplication_ServiceThrows_Returns500` | `ObjectResult` with 500 status |
+| `Ingest_MissingCompanyName_Returns400` | Legacy endpoint validation |
+| `Ingest_NoFiles_Returns400` | Empty form submission |
+| `Ingest_ValidForm_Returns200WithResponse` | `OkObjectResult` with `IngestResponse` |
+| `Ingest_ServiceFails_Returns500` | Service returns failure |
+| `Ingest_ValidRequest_CallsServiceWithCorrectArgs` | Verify mapped `IngestedFile` objects |
+
+#### `NotificationsControllerTests` (~5 tests)
+
+| Test Case | Asserts |
+|-----------|---------|
+| `GetNotifications_ReturnsOkWithList` | 200 with notification array |
+| `GetNotifications_RepositoryThrows_Returns500` | Error handling |
+| `MarkAllRead_ReturnsOk` | 200 OK |
+| `MarkRead_ValidGuid_ReturnsOk` | 200 OK |
+| `StreamNotifications_SetsSseHeaders` | Content-Type, Cache-Control, Connection headers |
+
+#### `WebhookControllerTests` (~4 tests)
+
+| Test Case | Asserts |
+|-----------|---------|
+| `HandleWebhook_Success_Returns200` | `OkObjectResult` with `WebhookResponse` |
+| `HandleWebhook_Failure_Returns400` | `BadRequestObjectResult` |
+| `HandleWebhook_Exception_Returns500` | Error handling |
+| `HandleWebhook_CallsHandlerWithPayload` | Verify correct payload passed |
+
+---
+
+### 1.7 Domain Tests
+
+#### `JobApplicationTests` (~6 tests)
 
 | Test Case | Asserts |
 |-----------|---------|
 | `NewJobApplication_HasDefaultTimestamps` | `CreatedAt`/`UpdatedAt` defaults |
 | `NewJobApplication_StatusDefaultsToNull` | No implicit status |
-| `Properties_CanBeSetAndRead` | Roundtrip all 17 properties |
+| `Properties_CanBeSetAndRead` | Roundtrip all properties including new generation payload fields |
 | `MatchScore_AcceptsFullRange` | 0, 50, 100 all valid |
+| `CollectionProperties_DefaultToEmptyLists` | `Skills`, `Roles`, `CoverLetterParagraphs`, `Strengths`, `Gaps` default to `[]` |
+| `GenerationPayloadProperties_DefaultToNull` | `JdSource`, `Headline`, `Summary`, `Recipient`, `TailoringNotes` default to null |
 
 #### `AppNotificationTests` (~3 tests)
 
@@ -261,6 +406,22 @@ Static methods `BuildNotification` and `SlugifyCompanyName` — pure functions, 
 | `NewNotification_ReadDefaultsToFalse` | `Read == false` |
 | `NewNotification_IdIsGuid` | Valid `Guid` |
 | `Properties_CanBeSetAndRead` | Roundtrip all properties |
+
+#### `RolePayloadTests` (~3 tests)
+
+| Test Case | Asserts |
+|-----------|---------|
+| `NewRolePayload_IdDefaultsToEmpty` | `Id == string.Empty` |
+| `NewRolePayload_BulletsDefaultsToEmptyList` | `Bullets.Count == 0` |
+| `Properties_CanBeSetAndRead` | Roundtrip `Id` and `Bullets` |
+
+#### `SkillRowTests` (~3 tests)
+
+| Test Case | Asserts |
+|-----------|---------|
+| `NewSkillRow_LabelDefaultsToEmpty` | `Label == string.Empty` |
+| `NewSkillRow_ValueDefaultsToEmpty` | `Value == string.Empty` |
+| `Properties_CanBeSetAndRead` | Roundtrip `Label` and `Value` |
 
 ---
 
@@ -420,21 +581,24 @@ Add a step to `.github/workflows/ci-cd-with-webhook.yml`:
 | 1 | Create `JobVault.UnitTests.csproj`, register in `.sln` | — | Small |
 | 2 | Result object tests (Application/Common) | ~14 | Small |
 | 3 | `MarkdownParserServiceTests` | ~8 | Small |
-| 4 | `ApplicationIngestionServiceTests` | ~20 | Medium |
+| 4 | `ApplicationIngestionServiceTests` | ~24 | Medium |
 | 5 | `WebhookHandlerTests` | ~10 | Medium |
-| 6 | `SseNotificationConsumerTests` (static methods) | ~8 | Small |
-| 7 | `NotificationHubTests` | ~6 | Small |
-| 8 | Controller tests (Vault, Notifications, Webhook) | ~17 | Medium |
-| 9 | `TelegramNotificationServiceTests` | ~6 | Medium |
-| 10 | Domain entity tests | ~7 | Small |
-| 11 | Frontend setup (Vitest + config) | — | Small |
-| 12 | `score.test.ts` | ~18 | Small |
-| 13 | `useCompanies.test.ts` | ~12 | Medium |
-| 14 | `useNotifications.test.ts` | ~10 | Medium |
-| 15 | `useTheme.test.ts` | ~6 | Small |
-| 16 | CI integration | — | Small |
+| 6 | `DocumentGenerationClientTests` | ~10 | Medium |
+| 7 | `ApplicationProcessorServiceTests` | ~18 | Large |
+| 8 | `ApplicationIngestionConsumerTests` | ~12 | Medium |
+| 9 | `SseNotificationConsumerTests` (static methods) | ~8 | Small |
+| 10 | `NotificationHubTests` | ~6 | Small |
+| 11 | Controller tests (Vault, Notifications, Webhook) | ~17 | Medium |
+| 12 | `TelegramNotificationServiceTests` | ~6 | Medium |
+| 13 | Domain + ValueObject tests | ~15 | Small |
+| 14 | Frontend setup (Vitest + config) | — | Small |
+| 15 | `score.test.ts` | ~18 | Small |
+| 16 | `useCompanies.test.ts` | ~12 | Medium |
+| 17 | `useNotifications.test.ts` | ~10 | Medium |
+| 18 | `useTheme.test.ts` | ~6 | Small |
+| 19 | CI integration | — | Small |
 
-**Total: ~142 unit tests**
+**Total: ~194 unit tests**
 
 ---
 
