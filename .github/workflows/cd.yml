@@ -1,57 +1,28 @@
-name: CI/CD Pipeline
+name: CD Pipeline
 
 on:
-  push:
-    branches: [master]
-  pull_request:
+  workflow_run:
+    workflows: ["CI Tests"]
+    types: [completed]
     branches: [master]
 
 env:
   REGISTRY: ghcr.io
   API_IMAGE: ghcr.io/k-bilaluddin/jobvault-api
   WORKER_IMAGE: ghcr.io/k-bilaluddin/jobvault-worker
-  
+
 permissions:
   contents: read
   packages: write
 
 jobs:
   # ================================
-  # Job 1: Test
-  # ================================
-  test:
-    name: Run Architecture Tests
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup .NET 9
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: "9.0.x"
-
-      - name: Restore dependencies
-        working-directory: backend/src/JobVault.API
-        run: dotnet restore JobVault.sln
-
-      - name: Build
-        working-directory: backend/src/JobVault.API
-        run: dotnet build JobVault.sln -c Release --no-restore
-
-      - name: Run tests
-        working-directory: backend/src/JobVault.API
-        run: dotnet test JobVault.sln --no-build -c Release --verbosity normal
-
-  # ================================
-  # Job 2: Build & Push API Image
+  # Build & Push API Image
   # ================================
   build-api:
     name: Build & Push API
     runs-on: ubuntu-latest
-    needs: test
-    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    if: github.event.workflow_run.conclusion == 'success'
 
     permissions:
       contents: read
@@ -92,13 +63,12 @@ jobs:
           cache-to: type=gha,mode=max
 
   # ================================
-  # Job 3: Build & Push Worker Image
+  # Build & Push Worker Image
   # ================================
   build-worker:
     name: Build & Push Worker
     runs-on: ubuntu-latest
-    needs: test
-    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    if: github.event.workflow_run.conclusion == 'success'
 
     permissions:
       contents: read
@@ -139,13 +109,12 @@ jobs:
           cache-to: type=gha,mode=max
 
   # ================================
-  # Job 4: Deploy on Self-Hosted Runner
+  # Deploy on Self-Hosted Runner
   # ================================
   deploy:
     name: Deploy
     runs-on: [self-hosted, Windows]
     needs: [build-api, build-worker]
-    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
 
     steps:
       - name: Checkout
