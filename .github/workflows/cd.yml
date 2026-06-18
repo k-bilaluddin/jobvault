@@ -1,9 +1,9 @@
-name: CI/CD Pipeline
+name: CD Pipeline
 
 on:
-  push:
-    branches: [master]
-  pull_request:
+  workflow_run:
+    workflows: ["CI Tests"]
+    types: [completed]
     branches: [master]
 
 env:
@@ -17,131 +17,12 @@ permissions:
 
 jobs:
   # ================================
-  # Detect which paths changed
-  # ================================
-  changes:
-    name: Detect Changes
-    runs-on: ubuntu-latest
-    outputs:
-      backend: ${{ steps.filter.outputs.backend }}
-      frontend: ${{ steps.filter.outputs.frontend }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Check paths
-        uses: dorny/paths-filter@v3
-        id: filter
-        with:
-          filters: |
-            backend:
-              - 'backend/**'
-              - '.github/workflows/**'
-            frontend:
-              - 'frontend/**'
-              - '.github/workflows/**'
-
-  # ================================
-  # Job 1a: Backend Unit Tests
-  # ================================
-  backend-unit-tests:
-    name: Run Backend Unit Tests
-    runs-on: ubuntu-latest
-    needs: changes
-    if: needs.changes.outputs.backend == 'true'
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup .NET 9
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: "9.0.x"
-
-      - name: Restore dependencies
-        working-directory: backend/src/JobVault.API
-        run: dotnet restore JobVault.sln
-
-      - name: Build
-        working-directory: backend/src/JobVault.API
-        run: dotnet build JobVault.sln -c Release --no-restore
-
-      - name: Run unit tests
-        working-directory: backend/src/JobVault.API
-        run: dotnet test ../../tests/JobVault.UnitTests/JobVault.UnitTests.csproj --no-build -c Release --verbosity normal
-
-  # ================================
-  # Job 1b: Architecture Tests
-  # ================================
-  architecture-tests:
-    name: Run Architecture Tests
-    runs-on: ubuntu-latest
-    needs: changes
-    if: needs.changes.outputs.backend == 'true'
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup .NET 9
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: "9.0.x"
-
-      - name: Restore dependencies
-        working-directory: backend/src/JobVault.API
-        run: dotnet restore JobVault.sln
-
-      - name: Build
-        working-directory: backend/src/JobVault.API
-        run: dotnet build JobVault.sln -c Release --no-restore
-
-      - name: Run architecture tests
-        working-directory: backend/src/JobVault.API
-        run: dotnet test ../../tests/JobVault.ArchitectureTests/JobVault.ArchitectureTests.csproj --no-build -c Release --verbosity normal
-
-  # ================================
-  # Job 1c: Frontend Tests
-  # ================================
-  frontend-tests:
-    name: Run Frontend Tests
-    runs-on: ubuntu-latest
-    needs: changes
-    if: needs.changes.outputs.frontend == 'true'
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: "npm"
-          cache-dependency-path: frontend/jobvault-ui/package-lock.json
-
-      - name: Install dependencies
-        working-directory: frontend/jobvault-ui
-        run: npm ci
-
-      - name: Run tests
-        working-directory: frontend/jobvault-ui
-        run: npm test
-
-  # ================================
-  # Job 2: Build & Push API Image
+  # Build & Push API Image
   # ================================
   build-api:
     name: Build & Push API
     runs-on: ubuntu-latest
-    needs: [backend-unit-tests, architecture-tests, frontend-tests]
-    if: |
-      always() &&
-      !failure() &&
-      !cancelled() &&
-      github.ref == 'refs/heads/master' &&
-      github.event_name == 'push'
+    if: github.event.workflow_run.conclusion == 'success'
 
     permissions:
       contents: read
@@ -182,18 +63,12 @@ jobs:
           cache-to: type=gha,mode=max
 
   # ================================
-  # Job 3: Build & Push Worker Image
+  # Build & Push Worker Image
   # ================================
   build-worker:
     name: Build & Push Worker
     runs-on: ubuntu-latest
-    needs: [backend-unit-tests, architecture-tests, frontend-tests]
-    if: |
-      always() &&
-      !failure() &&
-      !cancelled() &&
-      github.ref == 'refs/heads/master' &&
-      github.event_name == 'push'
+    if: github.event.workflow_run.conclusion == 'success'
 
     permissions:
       contents: read
@@ -234,13 +109,12 @@ jobs:
           cache-to: type=gha,mode=max
 
   # ================================
-  # Job 4: Deploy on Self-Hosted Runner
+  # Deploy on Self-Hosted Runner
   # ================================
   deploy:
     name: Deploy
     runs-on: [self-hosted, Windows]
     needs: [build-api, build-worker]
-    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
 
     steps:
       - name: Checkout
