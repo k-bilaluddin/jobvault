@@ -9,7 +9,7 @@ import type { ApplicationStage } from '@/types'
 const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:5100'
 
 const route = useRoute()
-const { companies, search: sidebarSearch, refresh } = useCompanies()
+const { companies, filtered, search: sidebarSearch, refresh } = useCompanies()
 
 // ── Follow-up dues ────────────────────────────────────────────
 const today = new Date().toISOString().split('T')[0]
@@ -27,9 +27,11 @@ const navItems = [
   { name: 'Historical',   to: '/historical',   icon: 'clock'     },
 ]
 
+// Uses filtered (search-aware) list so sidebar search works
 const activeCompanies = computed(() =>
-  companies.value
+  filtered.value
     .filter(c => !['Not Interested','Archived'].includes(c.stage))
+    .sort((a, b) => (b.synced_at || '').localeCompare(a.synced_at || ''))
     .slice(0, 12)
 )
 
@@ -38,28 +40,60 @@ function isActive(path: string) {
 }
 
 // ── Sync from GitHub ──────────────────────────────────────────
-const syncing   = ref(false)
-const syncMsg   = ref('')
-const syncError = ref(false)
+const syncing      = ref(false)
+const syncMsg      = ref('')
+const syncError    = ref(false)
+const syncProgress = ref(0)
+const showToast    = ref(false)
+const toastMsg     = ref('')
+const toastError   = ref(false)
+
+let _progressTimer: ReturnType<typeof setInterval> | null = null
+
+function startProgress() {
+  syncProgress.value = 0
+  _progressTimer = setInterval(() => {
+    if (syncProgress.value < 88) syncProgress.value += Math.random() * 6
+  }, 300)
+}
+
+function finishProgress(ok: boolean) {
+  if (_progressTimer) { clearInterval(_progressTimer); _progressTimer = null }
+  syncProgress.value = ok ? 100 : 0
+}
+
+function showSyncToast(message: string, error: boolean) {
+  toastMsg.value   = message
+  toastError.value = error
+  showToast.value  = true
+  setTimeout(() => { showToast.value = false }, 4000)
+}
 
 async function syncVault() {
   if (syncing.value) return
-  syncing.value = true
-  syncMsg.value = ''
+  syncing.value  = true
+  syncMsg.value  = ''
   syncError.value = false
+  startProgress()
   try {
     const res  = await fetch(`${API_BASE}/api/sync-vault`, { method: 'POST' })
     const data = await res.json()
-    syncMsg.value   = data.message ?? (data.ok ? 'Synced ✓' : 'Failed')
-    syncError.value = !data.ok
-    if (data.ok) {
-      // Reload companies after sync
-      setTimeout(() => refresh(), 800)
-      setTimeout(() => { syncMsg.value = '' }, 3000)
+    const ok   = !!data.ok
+    finishProgress(ok)
+    syncError.value = !ok
+    if (ok) {
+      await refresh()
+      showSyncToast(data.message ?? 'Applications synced with vault', false)
+      setTimeout(() => { syncProgress.value = 0 }, 1200)
+    } else {
+      syncMsg.value = data.message ?? 'Sync failed'
+      setTimeout(() => { syncMsg.value = ''; syncProgress.value = 0 }, 3000)
     }
   } catch {
+    finishProgress(false)
     syncMsg.value   = 'Flask not reachable'
     syncError.value = true
+    setTimeout(() => { syncMsg.value = ''; syncProgress.value = 0 }, 3000)
   } finally {
     syncing.value = false
   }
@@ -145,7 +179,13 @@ async function syncVault() {
 
     <!-- Sync button -->
     <div class="px-3 py-3 border-t border-border space-y-1.5">
-      <!-- Sync message -->
+      <!-- Progress bar -->
+      <div v-if="syncing || syncProgress > 0" class="h-1 rounded-full bg-surface-overlay overflow-hidden">
+        <div class="h-full rounded-full transition-all duration-300"
+          :class="syncError ? 'bg-red-500' : 'bg-accent'"
+          :style="{ width: syncProgress + '%' }"/>
+      </div>
+      <!-- Error message -->
       <p v-if="syncMsg" class="text-[10px] text-center px-2"
         :class="syncError ? 'text-red-400' : 'text-emerald-400'">
         {{ syncMsg }}
@@ -162,4 +202,26 @@ async function syncVault() {
       </button>
     </div>
   </aside>
+
+  <!-- Toast notification (fixed, bottom-right) -->
+  <Transition name="toast">
+    <div v-if="showToast"
+      class="fixed bottom-5 right-5 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg border text-sm font-medium max-w-xs"
+      :class="toastError
+        ? 'bg-red-950 border-red-700 text-red-200'
+        : 'bg-emerald-950 border-emerald-700 text-emerald-200'">
+      <svg v-if="!toastError" class="w-4 h-4 flex-shrink-0 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+      </svg>
+      <svg v-else class="w-4 h-4 flex-shrink-0 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+      {{ toastMsg }}
+    </div>
+  </Transition>
 </template>
+
+<style scoped>
+.toast-enter-active, .toast-leave-active { transition: all 0.3s ease; }
+.toast-enter-from, .toast-leave-to { opacity: 0; transform: translateY(8px); }
+</style>

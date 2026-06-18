@@ -22,8 +22,8 @@ const stageCounts = computed(() => {
 })
 
 // ── Sort ─────────────────────────────────────────────────────
-type SortKey = 'name' | 'applied_date' | 'stage' | 'match_pct' | 'salary'
-const sortKey = ref<SortKey>('applied_date')
+type SortKey = 'name' | 'synced_at' | 'applied_date' | 'stage' | 'match_pct' | 'salary'
+const sortKey = ref<SortKey>('synced_at')
 const sortDir = ref<'asc' | 'desc'>('desc')
 
 function toggleSort(key: SortKey) {
@@ -39,18 +39,23 @@ function salaryNum(c: Company): number {
 }
 
 const sorted = computed(() => {
-  return [...filtered.value].sort((a, b) => {
+  // Attach original index so ties preserve API insertion order (newest last → reverse index = newest first)
+  const indexed = filtered.value.map((c, i) => ({ c, i }))
+  return indexed.sort((x, y) => {
+    const a = x.c, b = y.c
     let va: string | number = ''
     let vb: string | number = ''
     if (sortKey.value === 'name')         { va = a.name.toLowerCase();   vb = b.name.toLowerCase()   }
+    if (sortKey.value === 'synced_at')    { va = a.synced_at || '';      vb = b.synced_at || ''      }
     if (sortKey.value === 'applied_date') { va = a.applied_date || '';   vb = b.applied_date || ''   }
     if (sortKey.value === 'stage')        { va = a.stage;                vb = b.stage                }
     if (sortKey.value === 'match_pct')    { va = a.match_pct ?? -1;      vb = b.match_pct ?? -1      }
     if (sortKey.value === 'salary')       { va = salaryNum(a);           vb = salaryNum(b)           }
     if (va < vb) return sortDir.value === 'asc' ? -1 : 1
     if (va > vb) return sortDir.value === 'asc' ? 1 : -1
-    return 0
-  })
+    // Tiebreaker: higher index (later in API response) comes first
+    return y.i - x.i
+  }).map(x => x.c)
 })
 
 function sortIcon(key: SortKey) {
@@ -199,7 +204,7 @@ const QUICK_STAGES: ApplicationStage[] = ['Ready to Apply', 'Applied', 'Intervie
 
         <div v-else>
           <!-- Header -->
-          <div class="grid grid-cols-[2.5rem_1fr_7rem_9rem_7rem_6rem_7rem_2rem] gap-3 px-3 pb-2 text-[10px] font-semibold text-text-muted uppercase tracking-wider select-none">
+          <div class="grid grid-cols-[2.5rem_1fr_7rem_9rem_6rem_6rem_6rem_7rem_2rem] gap-3 px-3 pb-2 text-[10px] font-semibold text-text-muted uppercase tracking-wider select-none">
             <div/>
             <button class="text-left flex items-center gap-1 hover:text-text-primary transition-colors" @click="toggleSort('name')">
               Company / Role <span class="opacity-40 font-mono">{{ sortIcon('name') }}</span>
@@ -209,6 +214,9 @@ const QUICK_STAGES: ApplicationStage[] = ['Ready to Apply', 'Applied', 'Intervie
             </button>
             <button class="text-left flex items-center gap-1 hover:text-text-primary transition-colors" @click="toggleSort('stage')">
               Stage <span class="opacity-40 font-mono">{{ sortIcon('stage') }}</span>
+            </button>
+            <button class="text-left flex items-center gap-1 hover:text-text-primary transition-colors" @click="toggleSort('synced_at')">
+              Received <span class="opacity-40 font-mono">{{ sortIcon('synced_at') }}</span>
             </button>
             <button class="text-left flex items-center gap-1 hover:text-text-primary transition-colors" @click="toggleSort('applied_date')">
               Applied <span class="opacity-40 font-mono">{{ sortIcon('applied_date') }}</span>
@@ -226,7 +234,7 @@ const QUICK_STAGES: ApplicationStage[] = ['Ready to Apply', 'Applied', 'Intervie
             <div v-if="isFollowUpDue(c)" class="absolute left-0 top-1 bottom-1 w-0.5 rounded-full bg-amber-400 z-10"/>
 
             <div @click="router.push(`/company/${encodeURIComponent(c.name)}`)"
-              class="grid grid-cols-[2.5rem_1fr_7rem_9rem_7rem_6rem_7rem_2rem] gap-3 items-center px-3 py-2.5 rounded-lg border border-transparent cursor-pointer transition-all group"
+              class="grid grid-cols-[2.5rem_1fr_7rem_9rem_6rem_6rem_6rem_7rem_2rem] gap-3 items-center px-3 py-2.5 rounded-lg border border-transparent cursor-pointer transition-all group"
               :class="[
                 stageUpdating === c.name ? 'opacity-50 pointer-events-none' : '',
                 isFollowUpDue(c)
@@ -263,6 +271,9 @@ const QUICK_STAGES: ApplicationStage[] = ['Ready to Apply', 'Applied', 'Intervie
                 <span :class="['w-1.5 h-1.5 rounded-full flex-shrink-0', STAGE_COLORS[c.stage as ApplicationStage]?.dot]"/>
                 <span :class="['text-xs font-medium truncate', STAGE_COLORS[c.stage as ApplicationStage]?.text]">{{ c.stage }}</span>
               </div>
+
+              <!-- Received (synced_at) -->
+              <span class="text-xs text-text-muted font-mono">{{ c.synced_at ? c.synced_at.slice(0,10) : '—' }}</span>
 
               <!-- Applied date -->
               <span class="text-xs text-text-muted font-mono">{{ c.applied_date || '—' }}</span>
