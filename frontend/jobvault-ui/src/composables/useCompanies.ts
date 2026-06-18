@@ -32,6 +32,11 @@ async function loadCompanies() {
   }
 }
 
+export async function forceRefreshCompanies() {
+  _loaded.value = false
+  await loadCompanies()
+}
+
 export function useCompanies() {
   const search = ref('')
   const filterStage = ref<ApplicationStage | 'All'>('All')
@@ -123,6 +128,6 @@ export function useCompanies() {
     pipelineCounts,
     scoreDistribution,
     withInterviews,
-    refresh: loadCompanies,
+    refresh: forceRefreshCompanies,
   }
 }

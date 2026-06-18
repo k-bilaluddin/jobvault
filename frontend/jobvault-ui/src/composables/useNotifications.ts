@@ -1,5 +1,6 @@
 import { ref, computed, onMounted } from 'vue'
 import type { AppNotification } from '@/types'
+import { forceRefreshCompanies } from '@/composables/useCompanies'
 
 const API_BASE = import.meta.env.VITE_NOTIFICATION_API_BASE ?? 'https://api.kbilaluddin.dev'
 
@@ -18,6 +19,10 @@ function handleSseMessage(event: MessageEvent) {
     const notification: AppNotification = JSON.parse(event.data)
     // Prepend so newest is first
     _notifications.value = [notification, ..._notifications.value]
+    // Auto-refresh companies when a new application or sync completes
+    if (notification.type === 'new_application' || notification.type === 'sync_completed') {
+      forceRefreshCompanies()
+    }
   } catch {
     // Malformed SSE message — ignore
   }

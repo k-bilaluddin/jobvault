@@ -39,7 +39,10 @@ function salaryNum(c: Company): number {
 }
 
 const sorted = computed(() => {
-  return [...filtered.value].sort((a, b) => {
+  // Attach original index so ties preserve API insertion order (newest last → reverse index = newest first)
+  const indexed = filtered.value.map((c, i) => ({ c, i }))
+  return indexed.sort((x, y) => {
+    const a = x.c, b = y.c
     let va: string | number = ''
     let vb: string | number = ''
     if (sortKey.value === 'name')         { va = a.name.toLowerCase();   vb = b.name.toLowerCase()   }
@@ -49,8 +52,9 @@ const sorted = computed(() => {
     if (sortKey.value === 'salary')       { va = salaryNum(a);           vb = salaryNum(b)           }
     if (va < vb) return sortDir.value === 'asc' ? -1 : 1
     if (va > vb) return sortDir.value === 'asc' ? 1 : -1
-    return 0
-  })
+    // Tiebreaker: higher index (later in API response) comes first
+    return y.i - x.i
+  }).map(x => x.c)
 })
 
 function sortIcon(key: SortKey) {
