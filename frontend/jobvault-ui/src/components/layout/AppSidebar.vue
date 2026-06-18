@@ -31,7 +31,7 @@ const navItems = [
 const activeCompanies = computed(() =>
   filtered.value
     .filter(c => !['Not Interested','Archived'].includes(c.stage))
-    .sort((a, b) => (b.applied_date || '').localeCompare(a.applied_date || ''))
+    .sort((a, b) => (b.synced_at || '').localeCompare(a.synced_at || ''))
     .slice(0, 12)
 )
 
