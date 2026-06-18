@@ -2,6 +2,7 @@ using JobVault.API.Controllers;
 using JobVault.API.Models.Requests;
 using JobVault.Application.Common;
 using JobVault.Application.Interfaces;
+using JobVault.Application.Models;
 using JobVault.Contracts.Requests;
 using JobVault.Contracts.Responses;
 using Microsoft.AspNetCore.Http;
@@ -138,7 +139,7 @@ public class VaultControllerTests
         };
 
         _fileIngestService
-            .IngestAsync("Acme", Arg.Any<IReadOnlyCollection<Application.Models.IngestedFile>>(), Arg.Any<CancellationToken>())
+            .IngestAsync("Acme", Arg.Any<IReadOnlyCollection<IngestedFile>>(), Arg.Any<CancellationToken>())
             .Returns(FileIngestResult.Failure("GitHub error"));
 
         // Act
@@ -165,7 +166,7 @@ public class VaultControllerTests
         };
 
         _fileIngestService
-            .IngestAsync("Acme", Arg.Any<IReadOnlyCollection<Application.Models.IngestedFile>>(), Arg.Any<CancellationToken>())
+            .IngestAsync("Acme", Arg.Any<IReadOnlyCollection<IngestedFile>>(), Arg.Any<CancellationToken>())
             .ThrowsAsync(new Exception("Boom"));
 
         // Act
