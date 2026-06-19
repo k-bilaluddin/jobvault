@@ -1,6 +1,7 @@
 import { ref, computed, onMounted } from 'vue'
 import type { AppNotification } from '@/types'
 import { forceRefreshCompanies } from '@/composables/useCompanies'
+import { api } from '@/api'
 
 const API_BASE = import.meta.env.VITE_NOTIFICATION_API_BASE ?? 'https://api.kbilaluddin.dev'
 
@@ -42,7 +43,8 @@ function connect() {
     _eventSource = null
   }
 
-  const source = new EventSource(`${API_BASE}/api/notifications/stream`)
+  const token = localStorage.getItem('jv_token') ?? ''
+  const source = new EventSource(`${API_BASE}/api/notifications/stream?token=${encodeURIComponent(token)}`)
   _eventSource = source
 
   source.onopen = () => {
@@ -65,9 +67,8 @@ async function loadNotifications() {
   _loading.value = true
   _error.value = null
   try {
-    const res = await window.fetch(`${API_BASE}/api/notifications`)
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    _notifications.value = await res.json()
+    const res = await api.get<AppNotification[]>('/api/notifications')
+    _notifications.value = res.data
     _loaded.value = true
   } catch (e: unknown) {
     _error.value = e instanceof Error ? e.message : 'Unknown error'
@@ -83,7 +84,7 @@ export function useNotifications() {
 
   async function markAllRead() {
     try {
-      await window.fetch(`${API_BASE}/api/notifications/read-all`, { method: 'POST' })
+      await api.post('/api/notifications/read-all')
       _notifications.value = _notifications.value.map(n => ({ ...n, read: true }))
     } catch (e: unknown) {
       _error.value = e instanceof Error ? e.message : 'Unknown error'
@@ -92,7 +93,7 @@ export function useNotifications() {
 
   async function markRead(id: string) {
     try {
-      await window.fetch(`${API_BASE}/api/notifications/${id}/read`, { method: 'POST' })
+      await api.post(`/api/notifications/${id}/read`)
       const n = _notifications.value.find(n => n.id === id)
       if (n) n.read = true
     } catch (e: unknown) {

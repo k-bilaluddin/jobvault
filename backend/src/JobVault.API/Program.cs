@@ -1,3 +1,4 @@
+using System.Text;
 using JobVault.Application.Interfaces;
 using JobVault.Application.Services;
 using JobVault.Infrastructure.GitHub;
@@ -6,6 +7,8 @@ using JobVault.Infrastructure.Notifications;
 using JobVault.Infrastructure.Notifications.Telegram;
 using JobVault.Infrastructure.Persistence.MongoDB;
 using JobVault.Infrastructure.Processing;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -38,6 +41,29 @@ builder.Services.AddCors(options =>
     });
 });
 
+// JWT authentication — fail fast if secret is missing or too short
+var jwtSecret = builder.Configuration["Auth:JwtSecret"]
+    ?? throw new InvalidOperationException("Auth:JwtSecret is not configured.");
+
+if (jwtSecret.Length < 32)
+    throw new InvalidOperationException("Auth:JwtSecret must be at least 32 characters.");
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey         = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
+            ValidateIssuer           = false,
+            ValidateAudience         = false,
+            ValidateLifetime         = true,
+            ClockSkew                = TimeSpan.Zero
+        };
+    });
+
+builder.Services.AddAuthorization();
+
 // Register application services
 builder.Services.AddSingleton<IJobApplicationRepository, MongoDbService>();
 builder.Services.AddSingleton<IGitHubFileService, GitHubFileService>();
@@ -64,6 +90,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors();
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 

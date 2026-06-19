@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useTheme } from '@/composables/useTheme'
+import { api } from '@/api'
 
 const router  = useRouter()
 const { isDark, toggle } = useTheme()
@@ -12,26 +13,22 @@ const error    = ref('')
 const loading  = ref(false)
 const showPass = ref(false)
 
-// Hardcoded credentials — swap with real auth later
-const HARDCODED_EMAIL    = 'bilal@jobvault.dev'
-const HARDCODED_PASSWORD = 'jobvault2026'
-
 async function login() {
   error.value   = ''
   loading.value = true
 
-  // Simulate network delay
-  await new Promise(r => setTimeout(r, 600))
-
-  if (email.value === HARDCODED_EMAIL && password.value === HARDCODED_PASSWORD) {
-    // Store session flag — replace with real JWT later
-    localStorage.setItem('jv_auth', 'true')
+  try {
+    const res = await api.post<{ token: string }>('/api/auth/login', {
+      email: email.value,
+      password: password.value,
+    })
+    localStorage.setItem('jv_token', res.data.token)
     router.push('/dashboard')
-  } else {
+  } catch {
     error.value = 'Invalid email or password'
+  } finally {
+    loading.value = false
   }
-
-  loading.value = false
 }
 
 function onKeydown(e: KeyboardEvent) {

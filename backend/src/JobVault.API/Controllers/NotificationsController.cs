@@ -1,18 +1,24 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Text;
+using System.Text.Json;
 using JobVault.API.Logging;
 using JobVault.Application.Interfaces;
 using JobVault.Domain.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Text.Json;
+using Microsoft.IdentityModel.Tokens;
 
 namespace JobVault.API.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/notifications")]
 public class NotificationsController : ControllerBase
 {
     private readonly INotificationHub _notificationHub;
     private readonly INotificationRepository _notificationRepository;
     private readonly ILogger<NotificationsController> _logger;
+    private readonly IConfiguration _configuration;
 
     private static readonly JsonSerializerOptions _jsonOptions = new()
     {
@@ -22,16 +28,26 @@ public class NotificationsController : ControllerBase
     public NotificationsController(
         INotificationHub notificationHub,
         INotificationRepository notificationRepository,
-        ILogger<NotificationsController> logger)
+        ILogger<NotificationsController> logger,
+        IConfiguration configuration)
     {
         _notificationHub = notificationHub;
         _notificationRepository = notificationRepository;
         _logger = logger;
+        _configuration = configuration;
     }
 
+    // EventSource cannot send Authorization headers — accept token via query param for SSE only.
     [HttpGet("stream")]
-    public async Task StreamNotifications(CancellationToken cancellationToken)
+    [AllowAnonymous]
+    public async Task StreamNotifications([FromQuery] string? token, CancellationToken cancellationToken)
     {
+        if (!ValidateSseToken(token))
+        {
+            HttpContext.Response.StatusCode = 401;
+            return;
+        }
+
         using var scope = _logger.BeginScope(new Dictionary<string, object>
         {
             ["TraceId"] = HttpContext.TraceIdentifier
@@ -144,5 +160,30 @@ public class NotificationsController : ControllerBase
     {
         await Response.WriteAsync(text, cancellationToken);
         await Response.Body.FlushAsync(cancellationToken);
+    }
+
+    private bool ValidateSseToken(string? token)
+    {
+        if (string.IsNullOrWhiteSpace(token)) return false;
+        var secret = _configuration["Auth:JwtSecret"];
+        if (string.IsNullOrWhiteSpace(secret)) return false;
+
+        try
+        {
+            new JwtSecurityTokenHandler().ValidateToken(token, new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey         = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret)),
+                ValidateIssuer           = false,
+                ValidateAudience         = false,
+                ValidateLifetime         = true,
+                ClockSkew                = TimeSpan.Zero
+            }, out _);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 }

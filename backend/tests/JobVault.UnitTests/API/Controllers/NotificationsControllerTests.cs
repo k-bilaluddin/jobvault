@@ -3,6 +3,7 @@ using JobVault.Application.Interfaces;
 using JobVault.Domain.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace JobVault.UnitTests.API.Controllers;
@@ -19,7 +20,8 @@ public class NotificationsControllerTests
         _notificationHub = Substitute.For<INotificationHub>();
         _notificationRepository = Substitute.For<INotificationRepository>();
         _logger = Substitute.For<ILogger<NotificationsController>>();
-        _sut = new NotificationsController(_notificationHub, _notificationRepository, _logger)
+        var configuration = Substitute.For<IConfiguration>();
+        _sut = new NotificationsController(_notificationHub, _notificationRepository, _logger, configuration)
         {
             ControllerContext = new ControllerContext
             {

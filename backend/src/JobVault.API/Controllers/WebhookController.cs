@@ -1,6 +1,7 @@
 using JobVault.Application.Interfaces;
 using JobVault.Contracts.External.GitHub;
 using JobVault.Contracts.Responses;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace JobVault.API.Controllers;
@@ -8,6 +9,7 @@ namespace JobVault.API.Controllers;
 // LEGACY: remove after async ingestion is confirmed stable in production.
 // Superseded by POST /api/ingest/applications + Worker pipeline.
 [ApiController]
+[Authorize]
 [Route("api/[controller]")]
 public class WebhookController : ControllerBase
 {
