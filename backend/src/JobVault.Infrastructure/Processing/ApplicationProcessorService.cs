@@ -3,6 +3,7 @@ using JobVault.Application.Common;
 using JobVault.Application.Interfaces;
 using JobVault.Application.Models;
 using JobVault.Contracts.Events;
+using JobVault.Infrastructure.Logging;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -35,7 +36,7 @@ public class ApplicationProcessorService : IApplicationProcessorService
 
     public async Task ProcessAsync(string applicationId, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Starting processing for applicationId={Id}", applicationId);
+        _logger.LogInformation(LogEvents.ProcessingStarted, "Starting processing for applicationId={Id}", applicationId);
 
         var application = await _repository.GetByIdAsync(applicationId, cancellationToken);
         if (application == null)
@@ -121,6 +122,7 @@ public class ApplicationProcessorService : IApplicationProcessorService
         }
 
         _logger.LogInformation(
+            LogEvents.ProcessingSucceeded,
             "Successfully processed {CompanyName}: committed {Count} files, commitUrl={Url}",
             application.CompanyName, files.Count, ingestResult.CommitUrl);
     }
@@ -143,7 +145,7 @@ public class ApplicationProcessorService : IApplicationProcessorService
         string errorMessage,
         CancellationToken cancellationToken)
     {
-        _logger.LogError("Processing failed for {CompanyName} (id={Id}): {Error}",
+        _logger.LogError(LogEvents.ProcessingFailed, "Processing failed for {CompanyName} (id={Id}): {Error}",
             application.CompanyName, applicationId, errorMessage);
 
         await _repository.UpdateStatusAsync(
@@ -228,7 +230,8 @@ public class ApplicationProcessorService : IApplicationProcessorService
         }
         finally
         {
-            try { Directory.Delete(tempDir, recursive: true); } catch { /* best-effort cleanup */ }
+            try { Directory.Delete(tempDir, recursive: true); }
+            catch (Exception ex) { _logger.LogDebug(LogEvents.DirectoryCleanupFailed, ex, "Failed to clean up temp directory {Dir}", tempDir); }
         }
     }
 

@@ -1,5 +1,6 @@
 using JobVault.Application.Interfaces;
 using JobVault.Domain.Entities;
+using JobVault.Infrastructure.Logging;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using MongoDB.Bson;
@@ -66,11 +67,11 @@ public class NotificationRepository : INotificationRepository
             };
 
             await _collection.InsertOneAsync(doc);
-            _logger.LogInformation("Saved notification {Id} of type {Type}", notification.Id, notification.Type);
+            _logger.LogInformation(LogEvents.NotificationSaved, "Saved notification {Id} of type {Type}", notification.Id, notification.Type);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to save notification {Id}", notification.Id);
+            _logger.LogError(LogEvents.NotificationSaveFailed, ex, "Failed to save notification {Id}", notification.Id);
         }
     }
 
@@ -93,18 +94,19 @@ public class NotificationRepository : INotificationRepository
         }
     }
 
-    public async Task MarkAllReadAsync()
+    public async Task<long> MarkAllReadAsync()
     {
         try
         {
             var filter = Builders<BsonDocument>.Filter.Eq("read", false);
             var update = Builders<BsonDocument>.Update.Set("read", true);
-            await _collection.UpdateManyAsync(filter, update);
-            _logger.LogInformation("Marked all notifications as read");
+            var result = await _collection.UpdateManyAsync(filter, update);
+            return result.ModifiedCount;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to mark all notifications as read");
+            _logger.LogError(LogEvents.NotificationReadFailed, ex, "Failed to mark all notifications as read");
+            return 0;
         }
     }
 
@@ -115,11 +117,11 @@ public class NotificationRepository : INotificationRepository
             var filter = Builders<BsonDocument>.Filter.Eq("_id", id.ToString());
             var update = Builders<BsonDocument>.Update.Set("read", true);
             await _collection.UpdateOneAsync(filter, update);
-            _logger.LogInformation("Marked notification {Id} as read", id);
+            _logger.LogInformation(LogEvents.NotificationsRead, "Marked notification {Id} as read", id);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to mark notification {Id} as read", id);
+            _logger.LogError(LogEvents.NotificationReadFailed, ex, "Failed to mark notification {Id} as read", id);
         }
     }
 

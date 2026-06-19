@@ -1,3 +1,4 @@
+using JobVault.API.Logging;
 using JobVault.Application.Interfaces;
 using JobVault.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
@@ -31,6 +32,11 @@ public class NotificationsController : ControllerBase
     [HttpGet("stream")]
     public async Task StreamNotifications(CancellationToken cancellationToken)
     {
+        using var scope = _logger.BeginScope(new Dictionary<string, object>
+        {
+            ["TraceId"] = HttpContext.TraceIdentifier
+        });
+
         Response.Headers.Append("Content-Type", "text/event-stream");
         Response.Headers.Append("Cache-Control", "no-cache");
         Response.Headers.Append("X-Accel-Buffering", "no");
@@ -64,17 +70,22 @@ public class NotificationsController : ControllerBase
         }
         catch (OperationCanceledException)
         {
-            // Client disconnected — normal shutdown path
+            _logger.LogDebug(LogEvents.SseClientCancelled, "SSE stream cancelled for client {TraceId}", HttpContext.TraceIdentifier);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in SSE stream");
+            _logger.LogError(LogEvents.SseStreamError, ex, "Error in SSE stream for client {TraceId}", HttpContext.TraceIdentifier);
         }
     }
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<AppNotification>>> GetNotifications()
     {
+        using var scope = _logger.BeginScope(new Dictionary<string, object>
+        {
+            ["TraceId"] = HttpContext.TraceIdentifier
+        });
+
         try
         {
             var notifications = await _notificationRepository.GetRecentAsync(50);
@@ -90,9 +101,15 @@ public class NotificationsController : ControllerBase
     [HttpPost("read-all")]
     public async Task<ActionResult> MarkAllRead()
     {
+        using var scope = _logger.BeginScope(new Dictionary<string, object>
+        {
+            ["TraceId"] = HttpContext.TraceIdentifier
+        });
+
         try
         {
-            await _notificationRepository.MarkAllReadAsync();
+            var count = await _notificationRepository.MarkAllReadAsync();
+            _logger.LogInformation(LogEvents.NotificationsMarkedRead, "Marked {Count} notifications as read", count);
             return Ok();
         }
         catch (Exception ex)
@@ -105,9 +122,15 @@ public class NotificationsController : ControllerBase
     [HttpPost("{id:guid}/read")]
     public async Task<ActionResult> MarkRead(Guid id)
     {
+        using var scope = _logger.BeginScope(new Dictionary<string, object>
+        {
+            ["TraceId"] = HttpContext.TraceIdentifier
+        });
+
         try
         {
             await _notificationRepository.MarkReadAsync(id);
+            _logger.LogInformation(LogEvents.NotificationMarkedRead, "Marked notification {Id} as read", id);
             return Ok();
         }
         catch (Exception ex)

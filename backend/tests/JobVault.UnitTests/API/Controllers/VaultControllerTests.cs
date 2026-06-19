@@ -23,7 +23,13 @@ public class VaultControllerTests
         _fileIngestService = Substitute.For<IFileIngestService>();
         _applicationIngestionService = Substitute.For<IApplicationIngestionService>();
         _logger = Substitute.For<ILogger<VaultController>>();
-        _sut = new VaultController(_fileIngestService, _applicationIngestionService, _logger);
+        _sut = new VaultController(_fileIngestService, _applicationIngestionService, _logger)
+        {
+            ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext()
+            }
+        };
     }
 
     // ── IngestApplication (async JSON ingestion) ──
