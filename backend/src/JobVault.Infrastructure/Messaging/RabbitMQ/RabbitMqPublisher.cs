@@ -11,8 +11,7 @@ public class RabbitMqPublisher : IRabbitMqPublisher
 {
     private readonly IConfiguration _configuration;
     private readonly ILogger<RabbitMqPublisher> _logger;
-    private readonly IConnection? _connection;
-    private readonly IChannel? _channel;
+    private readonly string? _connectionString;
     private readonly string _exchangeName;
     private readonly string _deadLetterExchangeName;
     private readonly string _deadLetterQueueName;
@@ -20,6 +19,10 @@ public class RabbitMqPublisher : IRabbitMqPublisher
     private readonly string _jobApplicationUpdatedQueueName;
     private readonly string _sseNotificationsQueueName;
     private readonly string _jobApplicationReceivedQueueName;
+
+    // Lazily initialized on first publish; null if RabbitMQ is not configured.
+    private readonly Lazy<Task<IChannel?>> _channelLazy;
+    private IConnection? _connection;
     private bool _disposed;
 
     public RabbitMqPublisher(IConfiguration configuration, ILogger<RabbitMqPublisher> logger)
@@ -27,7 +30,7 @@ public class RabbitMqPublisher : IRabbitMqPublisher
         _configuration = configuration;
         _logger = logger;
 
-        var connectionString = _configuration["RabbitMq:ConnectionString"];
+        _connectionString = _configuration["RabbitMq:ConnectionString"];
         _exchangeName = _configuration["RabbitMq:ExchangeName"] ?? "job.applications";
         _deadLetterExchangeName = _configuration["RabbitMq:DeadLetterExchangeName"] ?? "job.applications.dead";
         _deadLetterQueueName = _configuration["RabbitMq:DeadLetterQueueName"] ?? "job.applications.dlq";
@@ -36,104 +39,105 @@ public class RabbitMqPublisher : IRabbitMqPublisher
         _sseNotificationsQueueName = _configuration["RabbitMq:SseNotificationsQueueName"] ?? "job.applications.notifications";
         _jobApplicationReceivedQueueName = _configuration["RabbitMq:JobApplicationReceivedQueueName"] ?? "job.applications.received";
 
-        if (string.IsNullOrWhiteSpace(connectionString))
+        _channelLazy = new Lazy<Task<IChannel?>>(InitializeChannelAsync, LazyThreadSafetyMode.ExecutionAndPublication);
+    }
+
+    private async Task<IChannel?> InitializeChannelAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_connectionString))
         {
             _logger.LogWarning("RabbitMQ connection string not configured. Publisher will be disabled.");
-            return;
+            return null;
         }
 
         try
         {
-            var factory = new ConnectionFactory
-            {
-                Uri = new Uri(connectionString)
-            };
+            var factory = new ConnectionFactory { Uri = new Uri(_connectionString) };
 
-            _connection = factory.CreateConnectionAsync().GetAwaiter().GetResult();
-            _channel = _connection.CreateChannelAsync().GetAwaiter().GetResult();
+            _connection = await factory.CreateConnectionAsync();
+            var channel = await _connection.CreateChannelAsync();
 
-            // Declare dead letter exchange and queue
-            _channel.ExchangeDeclareAsync(
+            await channel.ExchangeDeclareAsync(
                 exchange: _deadLetterExchangeName,
                 type: ExchangeType.Direct,
                 durable: true,
-                autoDelete: false).GetAwaiter().GetResult();
+                autoDelete: false);
 
-            _channel.QueueDeclareAsync(
+            await channel.QueueDeclareAsync(
                 queue: _deadLetterQueueName,
                 durable: true,
                 exclusive: false,
-                autoDelete: false).GetAwaiter().GetResult();
+                autoDelete: false);
 
-            _channel.QueueBindAsync(
+            await channel.QueueBindAsync(
                 queue: _deadLetterQueueName,
                 exchange: _deadLetterExchangeName,
-                routingKey: "").GetAwaiter().GetResult();
+                routingKey: "");
 
-            // Declare main topic exchange
-            _channel.ExchangeDeclareAsync(
+            await channel.ExchangeDeclareAsync(
                 exchange: _exchangeName,
                 type: ExchangeType.Topic,
                 durable: true,
-                autoDelete: false).GetAwaiter().GetResult();
+                autoDelete: false);
 
-            // Declare queues with DLX configuration
             var queueArgs = new Dictionary<string, object?>
             {
                 { "x-dead-letter-exchange", _deadLetterExchangeName }
             };
 
-            _channel.QueueDeclareAsync(
+            await channel.QueueDeclareAsync(
                 queue: _jobApplicationCreatedQueueName,
                 durable: true,
                 exclusive: false,
                 autoDelete: false,
-                arguments: queueArgs).GetAwaiter().GetResult();
+                arguments: queueArgs);
 
-            _channel.QueueDeclareAsync(
+            await channel.QueueDeclareAsync(
                 queue: _jobApplicationUpdatedQueueName,
                 durable: true,
                 exclusive: false,
                 autoDelete: false,
-                arguments: queueArgs).GetAwaiter().GetResult();
+                arguments: queueArgs);
 
-            // Bind queues to exchange
-            _channel.QueueBindAsync(
+            await channel.QueueBindAsync(
                 queue: _jobApplicationCreatedQueueName,
                 exchange: _exchangeName,
-                routingKey: "job.application.created").GetAwaiter().GetResult();
+                routingKey: "job.application.created");
 
-            _channel.QueueBindAsync(
+            await channel.QueueBindAsync(
                 queue: _jobApplicationUpdatedQueueName,
                 exchange: _exchangeName,
-                routingKey: "job.application.updated").GetAwaiter().GetResult();
+                routingKey: "job.application.updated");
 
-            // Queue for async ingestion — consumed by Worker's ApplicationIngestionConsumer
-            _channel.QueueDeclareAsync(
+            await channel.QueueDeclareAsync(
                 queue: _jobApplicationReceivedQueueName,
                 durable: true,
                 exclusive: false,
                 autoDelete: false,
-                arguments: queueArgs).GetAwaiter().GetResult();
+                arguments: queueArgs);
 
-            _channel.QueueBindAsync(
+            await channel.QueueBindAsync(
                 queue: _jobApplicationReceivedQueueName,
                 exchange: _exchangeName,
-                routingKey: "job.application.received").GetAwaiter().GetResult();
+                routingKey: "job.application.received");
 
             _logger.LogInformation("RabbitMQ publisher initialized successfully");
+            return channel;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to initialize RabbitMQ connection");
+            return null;
         }
     }
 
     public async Task PublishJobApplicationEventAsync(JobApplicationEvent jobEvent)
     {
-        if (_channel == null)
+        var channel = await _channelLazy.Value;
+
+        if (channel == null)
         {
-            _logger.LogWarning("RabbitMQ channel not initialized. Skipping publish.");
+            _logger.LogWarning("RabbitMQ channel not available. Skipping publish.");
             return;
         }
 
@@ -157,7 +161,7 @@ public class RabbitMqPublisher : IRabbitMqPublisher
                 Timestamp = new AmqpTimestamp(DateTimeOffset.UtcNow.ToUnixTimeSeconds())
             };
 
-            await _channel.BasicPublishAsync(
+            await channel.BasicPublishAsync(
                 exchange: _exchangeName,
                 routingKey: routingKey,
                 mandatory: false,
@@ -169,7 +173,7 @@ public class RabbitMqPublisher : IRabbitMqPublisher
             // and should not surface as in-app notifications until the Worker completes.
             if (routingKey != "job.application.received")
             {
-                await _channel.BasicPublishAsync(
+                await channel.BasicPublishAsync(
                     exchange: _exchangeName,
                     routingKey: "notification.new",
                     mandatory: false,
@@ -194,13 +198,13 @@ public class RabbitMqPublisher : IRabbitMqPublisher
     public void Dispose()
     {
         if (_disposed)
-        {
             return;
-        }
 
         try
         {
-            _channel?.Dispose();
+            if (_channelLazy.IsValueCreated && _channelLazy.Value.IsCompletedSuccessfully)
+                _channelLazy.Value.Result?.Dispose();
+
             _connection?.Dispose();
             _logger.LogInformation("RabbitMQ publisher disposed");
         }

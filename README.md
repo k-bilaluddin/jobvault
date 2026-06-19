@@ -123,7 +123,7 @@ jobvault/
 │       └── JobVault.ArchitectureTests/ # Enforces Clean Architecture layer rules
 ├── frontend/
 │   └── jobvault-ui/                    # Vue 3 / TypeScript / Pinia SPA
-├── generation-service/                 # Node.js DOCX generation service
+├── generation-service/ → [jobvault-generation-service](https://github.com/k-bilaluddin/jobvault-generation-service)  # Node.js DOCX generation service (separate repo)
 ├── docker/
 │   ├── api.Dockerfile
 │   ├── worker.Dockerfile
@@ -204,8 +204,8 @@ cd backend/src/JobVault.API && dotnet run
 # Worker
 cd backend/src/JobVault.Worker && dotnet run
 
-# Generation service
-cd generation-service && npm install && npm start
+# Generation service (clone from https://github.com/k-bilaluddin/jobvault-generation-service)
+cd jobvault-generation-service && npm install && npm start
 
 # Frontend
 cd frontend/jobvault-ui && npm install && npm run dev
@@ -231,6 +231,7 @@ cd frontend/jobvault-ui && npm install && npm run dev
 | `GitHub__CoverLetterFileName` | Cover letter file base name |
 | `DocumentGeneration__BaseUrl` | Generation service URL (default: `http://jobvault-generation-service:3000`) |
 | `LibreOffice__ExecutablePath` | LibreOffice binary path (default: `libreoffice`; override for Windows dev) |
+| `CORS_ALLOWED_ORIGINS` | Comma-separated list of allowed CORS origins (required; takes priority over `Cors:AllowedOrigins` config key) |
 
 ---
 

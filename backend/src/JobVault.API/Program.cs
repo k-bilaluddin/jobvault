@@ -17,14 +17,24 @@ builder.Services.AddSwaggerGen();
 // Register HTTP client factory
 builder.Services.AddHttpClient();
 
-// CORS — required for EventSource (SSE) from the Vue frontend
+// CORS — env var CORS_ALLOWED_ORIGINS takes priority, then Cors:AllowedOrigins from config
+var rawOrigins = Environment.GetEnvironmentVariable("CORS_ALLOWED_ORIGINS")
+    ?? builder.Configuration["Cors:AllowedOrigins"];
+
+if (string.IsNullOrWhiteSpace(rawOrigins))
+    throw new InvalidOperationException(
+        "CORS allowed origins must be configured via CORS_ALLOWED_ORIGINS env var or Cors:AllowedOrigins config key.");
+
+var allowedOrigins = rawOrigins.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.WithOrigins(allowedOrigins)
               .AllowAnyMethod()
-              .AllowAnyHeader();
+              .AllowAnyHeader()
+              .AllowCredentials();
     });
 });
 
