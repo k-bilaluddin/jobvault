@@ -1,6 +1,7 @@
 using System.Threading.Channels;
 using JobVault.Application.Interfaces;
 using JobVault.Domain.Entities;
+using JobVault.Infrastructure.Logging;
 using Microsoft.Extensions.Logging;
 
 namespace JobVault.Infrastructure.Notifications;
@@ -23,7 +24,7 @@ public class NotificationHub : INotificationHub
         {
             _clients.Add(channel);
         }
-        _logger.LogInformation("SSE client subscribed. Total clients: {Count}", _clients.Count);
+        _logger.LogDebug(LogEvents.SseSubscribed, "SSE client subscribed. Total clients: {Count}", _clients.Count);
 
         var subscription = new Subscription(() =>
         {
@@ -32,13 +33,13 @@ public class NotificationHub : INotificationHub
                 _clients.Remove(channel);
                 channel.Writer.TryComplete();
             }
-            _logger.LogInformation("SSE client disconnected. Total clients: {Count}", _clients.Count);
+            _logger.LogDebug(LogEvents.SseUnsubscribed, "SSE client disconnected. Total clients: {Count}", _clients.Count);
         });
 
         return (subscription, channel.Reader);
     }
 
-    public async Task BroadcastAsync(AppNotification notification)
+    public Task BroadcastAsync(AppNotification notification)
     {
         List<Channel<AppNotification>> snapshot;
         lock (_lock)
@@ -48,9 +49,11 @@ public class NotificationHub : INotificationHub
 
         foreach (var client in snapshot)
         {
-            await client.Writer.WriteAsync(notification);
+            // TryWrite is safe if the client disconnected between snapshot and broadcast.
+            client.Writer.TryWrite(notification);
         }
 
-        _logger.LogInformation("Broadcast notification to {Count} SSE clients", snapshot.Count);
+        _logger.LogDebug(LogEvents.SseBroadcast, "Broadcast notification to {Count} SSE clients", snapshot.Count);
+        return Task.CompletedTask;
     }
 }

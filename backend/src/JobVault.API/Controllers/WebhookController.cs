@@ -26,6 +26,11 @@ public class WebhookController : ControllerBase
     public async Task<ActionResult<WebhookResponse>> HandleGitHubWebhook(
         [FromBody] GitHubWebhookPayload payload)
     {
+        using var scope = _logger.BeginScope(new Dictionary<string, object>
+        {
+            ["TraceId"] = HttpContext.TraceIdentifier
+        });
+
         try
         {
             _logger.LogInformation("Received GitHub webhook");

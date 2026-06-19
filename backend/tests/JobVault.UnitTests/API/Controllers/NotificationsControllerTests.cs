@@ -1,6 +1,7 @@
 using JobVault.API.Controllers;
 using JobVault.Application.Interfaces;
 using JobVault.Domain.Entities;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
@@ -18,7 +19,13 @@ public class NotificationsControllerTests
         _notificationHub = Substitute.For<INotificationHub>();
         _notificationRepository = Substitute.For<INotificationRepository>();
         _logger = Substitute.For<ILogger<NotificationsController>>();
-        _sut = new NotificationsController(_notificationHub, _notificationRepository, _logger);
+        _sut = new NotificationsController(_notificationHub, _notificationRepository, _logger)
+        {
+            ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext()
+            }
+        };
     }
 
     [Fact]
@@ -59,7 +66,7 @@ public class NotificationsControllerTests
     public async Task MarkAllRead_ReturnsOk()
     {
         // Arrange
-        _notificationRepository.MarkAllReadAsync().Returns(Task.CompletedTask);
+        _notificationRepository.MarkAllReadAsync().Returns(Task.FromResult(3L));
 
         // Act
         var result = await _sut.MarkAllRead();

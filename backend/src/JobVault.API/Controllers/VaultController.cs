@@ -39,6 +39,12 @@ public class VaultController : ControllerBase
         [FromBody] IngestApplicationRequest request,
         CancellationToken cancellationToken)
     {
+        using var scope = _logger.BeginScope(new Dictionary<string, object>
+        {
+            ["TraceId"] = HttpContext.TraceIdentifier,
+            ["CompanyName"] = request.CompanyName ?? string.Empty
+        });
+
         try
         {
             var result = await _applicationIngestionService.IngestAsync(request, cancellationToken);
@@ -65,6 +71,12 @@ public class VaultController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> Ingest([FromForm] IngestRequest request, CancellationToken cancellationToken)
     {
+        using var scope = _logger.BeginScope(new Dictionary<string, object>
+        {
+            ["TraceId"] = HttpContext.TraceIdentifier,
+            ["CompanyName"] = request.CompanyName ?? string.Empty
+        });
+
         try
         {
             if (string.IsNullOrWhiteSpace(request.CompanyName))

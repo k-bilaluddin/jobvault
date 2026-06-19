@@ -3,6 +3,7 @@ using JobVault.Application.Common;
 using JobVault.Application.Interfaces;
 using JobVault.Contracts.External.GitHub;
 using JobVault.Contracts.Responses;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
@@ -18,7 +19,13 @@ public class WebhookControllerTests
     {
         _webhookHandler = Substitute.For<IWebhookHandler>();
         _logger = Substitute.For<ILogger<WebhookController>>();
-        _sut = new WebhookController(_webhookHandler, _logger);
+        _sut = new WebhookController(_webhookHandler, _logger)
+        {
+            ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext()
+            }
+        };
     }
 
     [Fact]
