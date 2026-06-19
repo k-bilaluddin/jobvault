@@ -1,6 +1,7 @@
 import { ref, computed, onMounted } from 'vue'
 import type { Company, ApplicationStage, DashboardStats } from '@/types'
 import { mockCompanies } from '@/mocks/companies'
+import { api } from '@/api'
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK !== 'false'
 const API_BASE = import.meta.env.VITE_API_BASE ?? 'https://api.kbilaluddin.dev'
@@ -20,9 +21,8 @@ async function loadCompanies() {
       await new Promise(r => setTimeout(r, 350))
       _companies.value = mockCompanies
     } else {
-      const res = await window.fetch(`${API_BASE}/api/companies`)
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      _companies.value = await res.json()
+      const res = await api.get<Company[]>('/api/companies')
+      _companies.value = res.data
     }
     _loaded.value = true
   } catch (e: unknown) {

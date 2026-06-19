@@ -18,7 +18,7 @@ const router = createRouter({
 })
 
 router.beforeEach((to, _from, next) => {
-  const isAuth   = localStorage.getItem('jv_auth') === 'true'
+  const isAuth   = !!localStorage.getItem('jv_token')
   const isPublic = to.meta.public === true
   if (!isAuth && !isPublic) next('/login')
   else if (isAuth && to.path === '/login') next('/dashboard')

@@ -3,11 +3,13 @@ using JobVault.Application.Interfaces;
 using JobVault.Application.Models;
 using JobVault.Contracts.Requests;
 using JobVault.Contracts.Responses;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace JobVault.API.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api")]
 public class VaultController : ControllerBase
 {

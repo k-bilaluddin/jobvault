@@ -19,13 +19,26 @@ function makeNotification(overrides: Partial<AppNotification> = {}): AppNotifica
   }
 }
 
+// Mock the axios api instance
+const mockGet  = vi.fn().mockResolvedValue({ data: [] })
+const mockPost = vi.fn().mockResolvedValue({ data: {} })
+
+vi.mock('@/api', () => ({
+  api: {
+    get:  (...args: unknown[]) => mockGet(...args),
+    post: (...args: unknown[]) => mockPost(...args),
+    interceptors: {
+      request:  { use: vi.fn() },
+      response: { use: vi.fn() },
+    },
+  },
+}))
+
 describe('useNotifications', () => {
   beforeEach(() => {
     vi.resetModules()
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve([]),
-    }))
+    mockGet.mockResolvedValue({ data: [] })
+    mockPost.mockResolvedValue({ data: {} })
   })
 
   afterEach(() => {
@@ -92,20 +105,17 @@ describe('useNotifications', () => {
     })
 
     it('calls the read-all endpoint', async () => {
-      const mockFetch = vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve([]) })
-      vi.stubGlobal('fetch', mockFetch)
       const { result } = await loadNotifications()
       await result.markAllRead()
-      const readAllCall = mockFetch.mock.calls.find(
-        (call: unknown[]) => typeof call[0] === 'string' && call[0].includes('/read-all')
+      const call = mockPost.mock.calls.find(
+        (c: unknown[]) => typeof c[0] === 'string' && c[0].includes('/read-all')
       )
-      expect(readAllCall).toBeDefined()
-      expect(readAllCall![1]).toEqual({ method: 'POST' })
+      expect(call).toBeDefined()
     })
 
     it('sets error on fetch failure', async () => {
       const { result } = await loadNotifications()
-      vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Network error')))
+      mockPost.mockRejectedValueOnce(new Error('Network error'))
       await result.markAllRead()
       expect(result.error.value).toBe('Network error')
     })
@@ -125,15 +135,13 @@ describe('useNotifications', () => {
     })
 
     it('calls the correct endpoint', async () => {
-      const mockFetch = vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve([]) })
-      vi.stubGlobal('fetch', mockFetch)
       const { result } = await loadNotifications()
       result.notifications.value = [makeNotification({ id: 'abc' })]
       await result.markRead('abc')
-      const readCall = mockFetch.mock.calls.find(
-        (call: unknown[]) => typeof call[0] === 'string' && call[0].includes('/abc/read')
+      const call = mockPost.mock.calls.find(
+        (c: unknown[]) => typeof c[0] === 'string' && c[0].includes('/abc/read')
       )
-      expect(readCall).toBeDefined()
+      expect(call).toBeDefined()
     })
 
     it('handles missing notification id gracefully', async () => {
