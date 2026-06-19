@@ -12,6 +12,44 @@ using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Map SCREAMING_SNAKE_CASE env vars to .NET config paths (highest priority — overrides appsettings)
+static string? E(string n) => Environment.GetEnvironmentVariable(n);
+builder.Configuration.AddInMemoryCollection(
+    new Dictionary<string, string?>
+    {
+        ["Auth:Email"]                               = E("AUTH_EMAIL"),
+        ["Auth:PasswordHash"]                        = E("AUTH_PASSWORD_HASH"),
+        ["Auth:JwtSecret"]                           = E("AUTH_JWT_SECRET"),
+        ["Auth:TokenExpiryDays"]                     = E("AUTH_TOKEN_EXPIRY_DAYS"),
+        ["Demo:Email"]                               = E("DEMO_EMAIL"),
+        ["Demo:PasswordHash"]                        = E("DEMO_PASSWORD_HASH"),
+        ["Cors:AllowedOrigins"]                      = E("CORS_ALLOWED_ORIGINS"),
+        ["MongoDb:ConnectionString"]                 = E("MONGODB_CONNECTION_STRING"),
+        ["MongoDb:DatabaseName"]                     = E("MONGODB_DATABASE_NAME"),
+        ["MongoDb:JobApplicationsCollectionName"]    = E("MONGODB_JOB_APPLICATIONS_COLLECTION"),
+        ["MongoDb:NotificationsCollectionName"]      = E("MONGODB_NOTIFICATIONS_COLLECTION"),
+        ["RabbitMq:ConnectionString"]                = E("RABBITMQ_CONNECTION_STRING"),
+        ["RabbitMq:ExchangeName"]                    = E("RABBITMQ_EXCHANGE_NAME"),
+        ["RabbitMq:DeadLetterExchangeName"]          = E("RABBITMQ_DEAD_LETTER_EXCHANGE_NAME"),
+        ["RabbitMq:DeadLetterQueueName"]             = E("RABBITMQ_DEAD_LETTER_QUEUE_NAME"),
+        ["RabbitMq:JobApplicationCreatedQueueName"]  = E("RABBITMQ_JOB_APPLICATION_CREATED_QUEUE"),
+        ["RabbitMq:JobApplicationUpdatedQueueName"]  = E("RABBITMQ_JOB_APPLICATION_UPDATED_QUEUE"),
+        ["RabbitMq:JobApplicationReceivedQueueName"] = E("RABBITMQ_JOB_APPLICATION_RECEIVED_QUEUE"),
+        ["RabbitMq:SseNotificationsQueueName"]       = E("RABBITMQ_SSE_NOTIFICATIONS_QUEUE"),
+        ["Telegram:BotToken"]                        = E("TELEGRAM_BOT_TOKEN"),
+        ["Telegram:ChatId"]                          = E("TELEGRAM_CHAT_ID"),
+        ["GitHub:Token"]                             = E("APP_GH_TOKEN"),
+        ["GitHub:Owner"]                             = E("APP_GH_OWNER"),
+        ["GitHub:Repository"]                        = E("APP_GH_REPOSITORY"),
+        ["GitHub:Branch"]                            = E("APP_GH_BRANCH"),
+        ["GitHub:CvFileName"]                        = E("APP_GH_CV_FILE_NAME"),
+        ["GitHub:CoverLetterFileName"]               = E("APP_GH_COVER_LETTER_FILE_NAME"),
+        ["DocumentGeneration:BaseUrl"]               = E("DOCUMENT_GENERATION_BASE_URL"),
+        ["LibreOffice:ExecutablePath"]               = E("LIBREOFFICE_EXECUTABLE_PATH"),
+    }
+    .Where(kv => kv.Value is not null)
+    .ToDictionary(kv => kv.Key, kv => kv.Value));
+
 // Add services to the container
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -20,13 +58,12 @@ builder.Services.AddSwaggerGen();
 // Register HTTP client factory
 builder.Services.AddHttpClient();
 
-// CORS — env var CORS_ALLOWED_ORIGINS takes priority, then Cors:AllowedOrigins from config
-var rawOrigins = Environment.GetEnvironmentVariable("CORS_ALLOWED_ORIGINS")
-    ?? builder.Configuration["Cors:AllowedOrigins"];
+// CORS — set via CORS_ALLOWED_ORIGINS env var or Cors:AllowedOrigins config key
+var rawOrigins = builder.Configuration["Cors:AllowedOrigins"];
 
 if (string.IsNullOrWhiteSpace(rawOrigins))
     throw new InvalidOperationException(
-        "CORS allowed origins must be configured via CORS_ALLOWED_ORIGINS env var or Cors:AllowedOrigins config key.");
+        "CORS allowed origins must be configured via CORS_ALLOWED_ORIGINS env var or Cors:AllowedOrigins config key. See docs/env.md.");
 
 var allowedOrigins = rawOrigins.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 

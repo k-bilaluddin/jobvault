@@ -215,23 +215,28 @@ cd frontend/jobvault-ui && npm install && npm run dev
 
 ## Environment Variables
 
+All variables use `SCREAMING_SNAKE_CASE`. See [docs/env.md](docs/env.md) for the full reference.
+
 | Variable | Description |
 |---|---|
-| `MongoDb__ConnectionString` | MongoDB Atlas connection URI |
-| `MongoDb__DatabaseName` | Database name (e.g. `jobvault`) |
-| `MongoDb__JobApplicationsCollectionName` | Collection name |
-| `RabbitMq__ConnectionString` | CloudAMQP / RabbitMQ AMQP URI |
-| `Telegram__BotToken` | Telegram bot token |
-| `Telegram__ChatId` | Destination Telegram chat ID |
-| `GitHub__Token` | PAT with `repo` scope |
-| `GitHub__Owner` | GitHub username |
-| `GitHub__Repository` | Target vault repository name |
-| `GitHub__Branch` | Branch to commit to (default: `master`) |
-| `GitHub__CvFileName` | CV file base name (without extension) |
-| `GitHub__CoverLetterFileName` | Cover letter file base name |
-| `DocumentGeneration__BaseUrl` | Generation service URL (default: `http://jobvault-generation-service:3000`) |
-| `LibreOffice__ExecutablePath` | LibreOffice binary path (default: `libreoffice`; override for Windows dev) |
-| `CORS_ALLOWED_ORIGINS` | Comma-separated list of allowed CORS origins (required; takes priority over `Cors:AllowedOrigins` config key) |
+| `AUTH_EMAIL` | Owner account email |
+| `AUTH_PASSWORD_HASH` | bcrypt hash of owner password |
+| `AUTH_JWT_SECRET` | JWT signing key (min 32 chars) |
+| `CORS_ALLOWED_ORIGINS` | Comma-separated allowed CORS origins |
+| `MONGODB_CONNECTION_STRING` | MongoDB Atlas connection URI |
+| `MONGODB_DATABASE_NAME` | Database name (e.g. `jobvault`) |
+| `MONGODB_JOB_APPLICATIONS_COLLECTION` | Applications collection name |
+| `RABBITMQ_CONNECTION_STRING` | CloudAMQP / RabbitMQ AMQP URI |
+| `TELEGRAM_BOT_TOKEN` | Telegram bot token |
+| `TELEGRAM_CHAT_ID` | Destination Telegram chat ID |
+| `APP_GH_TOKEN` | PAT with `repo` scope |
+| `APP_GH_OWNER` | GitHub username |
+| `APP_GH_REPOSITORY` | Target vault repository name |
+| `APP_GH_BRANCH` | Branch to commit to (default: `master`) |
+| `APP_GH_CV_FILE_NAME` | CV file base name (without extension) |
+| `APP_GH_COVER_LETTER_FILE_NAME` | Cover letter file base name |
+| `DOCUMENT_GENERATION_BASE_URL` | Generation service URL (default: `http://jobvault-generation-service:3000`) |
+| `LIBREOFFICE_EXECUTABLE_PATH` | LibreOffice binary path (default: `libreoffice`; override for Windows dev) |
 
 ---
 

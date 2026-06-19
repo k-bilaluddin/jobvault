@@ -1,14 +1,8 @@
 # Environment Variables Reference
 
-## Precedence
+## Naming convention
 
-Configuration is resolved in this order (highest to lowest):
-
-1. **Environment variables** (set in docker-compose or shell)
-2. **`appsettings.{Environment}.json`**
-3. **`appsettings.json`** (base defaults, in source)
-
-.NET maps `SCREAMING__SNAKE__CASE` env vars to `Section:Key` config paths automatically (double underscore `__` = `:` separator).
+All environment variables use `SCREAMING_SNAKE_CASE`. At startup, both the API and Worker map these to .NET's internal `Section:Key` config paths via an `AddInMemoryCollection` block in `Program.cs` — no double-underscore names needed.
 
 ---
 
@@ -16,12 +10,12 @@ Configuration is resolved in this order (highest to lowest):
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `Auth__Email` | yes | — | Owner account email |
-| `Auth__PasswordHash` | yes | — | bcrypt hash of owner password. Generate: `cd tools/HashPassword && dotnet run` |
-| `Auth__JwtSecret` | yes | — | Signing key, min 32 chars. Generate: `openssl rand -hex 32` |
-| `Auth__TokenExpiryDays` | no | `7` | JWT validity in days |
-| `Demo__Email` | no | `demo@jobvault.dev` | Demo account email (leave empty to disable) |
-| `Demo__PasswordHash` | no | — | bcrypt hash of demo password |
+| `AUTH_EMAIL` | yes | — | Owner account email |
+| `AUTH_PASSWORD_HASH` | yes | — | bcrypt hash of owner password. Generate: `cd tools/HashPassword && dotnet run` |
+| `AUTH_JWT_SECRET` | yes | — | Signing key, min 32 chars. Generate: `openssl rand -hex 32` |
+| `AUTH_TOKEN_EXPIRY_DAYS` | no | `7` | JWT validity in days |
+| `DEMO_EMAIL` | no | `demo@jobvault.dev` | Demo account email (leave empty to disable) |
+| `DEMO_PASSWORD_HASH` | no | — | bcrypt hash of demo password |
 
 ---
 
@@ -29,7 +23,7 @@ Configuration is resolved in this order (highest to lowest):
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `CORS_ALLOWED_ORIGINS` | yes | — | Comma-separated allowed origins. Takes priority over `Cors:AllowedOrigins` config key. |
+| `CORS_ALLOWED_ORIGINS` | yes | — | Comma-separated allowed origins |
 
 ---
 
@@ -37,10 +31,10 @@ Configuration is resolved in this order (highest to lowest):
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `MongoDb__ConnectionString` | yes | — | Atlas connection URI |
-| `MongoDb__DatabaseName` | no | `jobvault` | Database name |
-| `MongoDb__JobApplicationsCollectionName` | no | `JobApplications` | Applications collection |
-| `MongoDb__NotificationsCollectionName` | no | `notifications` | Notifications collection |
+| `MONGODB_CONNECTION_STRING` | yes | — | Atlas connection URI |
+| `MONGODB_DATABASE_NAME` | no | `jobvault` | Database name |
+| `MONGODB_JOB_APPLICATIONS_COLLECTION` | no | `JobApplications` | Applications collection |
+| `MONGODB_NOTIFICATIONS_COLLECTION` | no | `notifications` | Notifications collection |
 
 ---
 
@@ -48,14 +42,14 @@ Configuration is resolved in this order (highest to lowest):
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `RabbitMq__ConnectionString` | yes | — | CloudAMQP / RabbitMQ AMQP URI |
-| `RabbitMq__ExchangeName` | no | `job.applications` | Topic exchange name |
-| `RabbitMq__DeadLetterExchangeName` | no | `job.applications.dead` | DLX name |
-| `RabbitMq__DeadLetterQueueName` | no | `job.applications.dlq` | Dead-letter queue |
-| `RabbitMq__JobApplicationCreatedQueueName` | no | `job.applications.created` | Created events queue |
-| `RabbitMq__JobApplicationUpdatedQueueName` | no | `job.applications.updated` | Updated events queue |
-| `RabbitMq__JobApplicationReceivedQueueName` | no | `job.applications.received` | Async ingestion queue |
-| `RabbitMq__SseNotificationsQueueName` | no | `job.applications.notifications` | SSE fan-out queue |
+| `RABBITMQ_CONNECTION_STRING` | yes | — | CloudAMQP / RabbitMQ AMQP URI |
+| `RABBITMQ_EXCHANGE_NAME` | no | `job.applications` | Topic exchange name |
+| `RABBITMQ_DEAD_LETTER_EXCHANGE_NAME` | no | `job.applications.dead` | DLX name |
+| `RABBITMQ_DEAD_LETTER_QUEUE_NAME` | no | `job.applications.dlq` | Dead-letter queue |
+| `RABBITMQ_JOB_APPLICATION_CREATED_QUEUE` | no | `job.applications.created` | Created events queue |
+| `RABBITMQ_JOB_APPLICATION_UPDATED_QUEUE` | no | `job.applications.updated` | Updated events queue |
+| `RABBITMQ_JOB_APPLICATION_RECEIVED_QUEUE` | no | `job.applications.received` | Async ingestion queue |
+| `RABBITMQ_SSE_NOTIFICATIONS_QUEUE` | no | `job.applications.notifications` | SSE fan-out queue |
 
 ---
 
@@ -63,21 +57,23 @@ Configuration is resolved in this order (highest to lowest):
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `Telegram__BotToken` | yes | — | Telegram bot token |
-| `Telegram__ChatId` | yes | — | Destination chat ID |
+| `TELEGRAM_BOT_TOKEN` | yes | — | Telegram bot token |
+| `TELEGRAM_CHAT_ID` | yes | — | Destination chat ID |
 
 ---
 
 ## GitHub
 
+`APP_GH_*` prefix avoids collision with GitHub Actions' built-in `GITHUB_TOKEN`.
+
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `GitHub__Token` | yes | — | PAT with `repo` scope |
-| `GitHub__Owner` | no | `k-bilaluddin` | GitHub username |
-| `GitHub__Repository` | no | `job-applications-vault` | Target vault repository |
-| `GitHub__Branch` | no | `master` | Branch to commit to |
-| `GitHub__CvFileName` | no | `KhawajaBilal_Uddin_CV` | CV file base name (no extension) |
-| `GitHub__CoverLetterFileName` | no | `KhawajaBilal_Uddin_CoverLetter` | Cover letter base name |
+| `APP_GH_TOKEN` | yes | — | PAT with `repo` scope |
+| `APP_GH_OWNER` | no | `k-bilaluddin` | GitHub username |
+| `APP_GH_REPOSITORY` | no | `job-applications-vault` | Target vault repository |
+| `APP_GH_BRANCH` | no | `master` | Branch to commit to |
+| `APP_GH_CV_FILE_NAME` | no | `KhawajaBilal_Uddin_CV` | CV file base name (no extension) |
+| `APP_GH_COVER_LETTER_FILE_NAME` | no | `KhawajaBilal_Uddin_CoverLetter` | Cover letter base name |
 
 ---
 
@@ -85,7 +81,7 @@ Configuration is resolved in this order (highest to lowest):
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `DocumentGeneration__BaseUrl` | no | `http://jobvault-generation-service:3000` | Generation service URL |
+| `DOCUMENT_GENERATION_BASE_URL` | no | `http://jobvault-generation-service:3000` | Generation service URL |
 
 ---
 
@@ -93,7 +89,7 @@ Configuration is resolved in this order (highest to lowest):
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `LibreOffice__ExecutablePath` | no | `libreoffice` | Path to soffice binary. Override on Windows dev: `C:\Program Files\LibreOffice\program\soffice.exe` |
+| `LIBREOFFICE_EXECUTABLE_PATH` | no | `libreoffice` | Path to soffice binary. Override on Windows dev: `C:\Program Files\LibreOffice\program\soffice.exe` |
 
 ---
 
@@ -107,9 +103,9 @@ cd tools/HashPassword && dotnet run
 openssl rand -hex 32
 
 # 3. Add to your .env file
-Auth__Email=you@example.com
-Auth__PasswordHash=<paste hash>
-Auth__JwtSecret=<paste secret>
+AUTH_EMAIL=you@example.com
+AUTH_PASSWORD_HASH=<paste hash>
+AUTH_JWT_SECRET=<paste secret>
 
 # 4. Restart the API
 docker compose restart api
