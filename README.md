@@ -66,6 +66,10 @@ The only manual step is deciding which jobs to apply to. Everything after pastin
 
 ![JobVault Architecture](docs/architecture.svg)
 
+### Performance
+
+The API handles 20 concurrent users at **11ms average response time** with **0% error rate** under sustained load (k6 load test, 2,069 requests over 2 minutes).
+
 ### Services
 
 | Service | Technology | Responsibility |
@@ -151,6 +155,22 @@ jobvault/
 
 ---
 
+## Engineering Challenges
+
+**Preventing AI hallucinations**
+Claude doesn't write bullet points from scratch. It selects from a curated `.md` library of real accomplishments grouped by technology and domain. The prompt constrains it to pick, not invent, so every line on the CV maps to actual experience.
+
+**Atomic 6-file GitHub commits**
+Each application produces six files (CV + cover letter in DOCX and PDF, plus two markdown reports). These are committed in a single atomic operation using the Git Trees API, so the vault never contains a partial application.
+
+**DOCX-to-PDF consistency in Linux containers**
+LibreOffice renders fonts differently depending on what's installed. The Worker container bundles native Calibri font files so PDFs match the DOCX output exactly, regardless of the host environment.
+
+**Dead-letter queue with retry/fast-fail distinction**
+Not all failures deserve retries. Transient errors (network timeout, generation service down) retry 3x with exponential backoff. Permanent failures (invalid payload, 4xx responses) skip retries and dead-letter immediately, so the queue doesn't waste time on requests that will never succeed.
+
+---
+
 ## Tech Stack
 
 | Layer | Technology |
@@ -229,28 +249,7 @@ cd frontend/jobvault-ui && npm install && npm run dev
 
 ## Environment Variables
 
-All variables use `SCREAMING_SNAKE_CASE`. See [docs/env.md](docs/env.md) for the full reference.
-
-| Variable | Description |
-|---|---|
-| `AUTH_EMAIL` | Owner account email |
-| `AUTH_PASSWORD_HASH` | bcrypt hash of owner password |
-| `AUTH_JWT_SECRET` | JWT signing key (min 32 chars) |
-| `CORS_ALLOWED_ORIGINS` | Comma-separated allowed CORS origins |
-| `MONGODB_CONNECTION_STRING` | MongoDB Atlas connection URI |
-| `MONGODB_DATABASE_NAME` | Database name (e.g. `jobvault`) |
-| `MONGODB_JOB_APPLICATIONS_COLLECTION` | Applications collection name |
-| `RABBITMQ_CONNECTION_STRING` | CloudAMQP / RabbitMQ AMQP URI |
-| `TELEGRAM_BOT_TOKEN` | Telegram bot token |
-| `TELEGRAM_CHAT_ID` | Destination Telegram chat ID |
-| `APP_GH_TOKEN` | PAT with `repo` scope |
-| `APP_GH_OWNER` | GitHub username |
-| `APP_GH_REPOSITORY` | Target vault repository name |
-| `APP_GH_BRANCH` | Branch to commit to (default: `master`) |
-| `APP_GH_CV_FILE_NAME` | CV file base name (without extension) |
-| `APP_GH_COVER_LETTER_FILE_NAME` | Cover letter file base name |
-| `DOCUMENT_GENERATION_BASE_URL` | Generation service URL (default: `http://jobvault-generation-service:3000`) |
-| `LIBREOFFICE_EXECUTABLE_PATH` | LibreOffice binary path (default: `libreoffice`; override for Windows dev) |
+All variables use `SCREAMING_SNAKE_CASE`. Copy `.env.example` and fill in your values. See [docs/env.md](docs/env.md) for the full reference with descriptions.
 
 ---
 
@@ -319,4 +318,4 @@ cd backend/tests/JobVault.ArchitectureTests && dotnet test
 ## Author
 
 **Khawaja Bilal Uddin** — Senior Full Stack Developer, Frankfurt am Main  
-[kbilaluddin.dev](https://kbilaluddin.dev) · [GitHub](https://github.com/k-bilaluddin)
+[kbilaluddin.dev](https://kbilaluddin.dev) · [GitHub](https://github.com/k-bilaluddin) · [LinkedIn](https://www.linkedin.com/in/kbilaluddin/)
