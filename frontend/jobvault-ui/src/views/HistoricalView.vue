@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:5100'
+const API_BASE = import.meta.env.VITE_FLASK_API_BASE ?? 'http://localhost:5100'
 
 // ── Data ─────────────────────────────────────────────────────
 interface HistEntry { name: string; applied_date: string; stage: string; source: string; current?: boolean }

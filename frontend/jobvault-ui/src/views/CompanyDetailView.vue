@@ -14,7 +14,7 @@ const route  = useRoute()
 const router = useRouter()
 const { getByName, loading } = useCompanies()
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:5100'
+const API_BASE = import.meta.env.VITE_FLASK_API_BASE ?? 'http://localhost:5100'
 
 const companyName = computed(() => decodeURIComponent(route.params.name as string))
 const company     = computed(() => getByName(companyName.value))
