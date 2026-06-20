@@ -149,7 +149,7 @@ jobs:
         run: |
           @"
           AUTH_EMAIL=$env:AUTH_EMAIL
-          AUTH_PASSWORD_HASH=$($env:AUTH_PASSWORD_HASH -replace '\$','$$')
+          AUTH_PASSWORD_HASH=$($env:AUTH_PASSWORD_HASH -replace '\$','$$$$')
           AUTH_JWT_SECRET=$env:AUTH_JWT_SECRET
           CORS_ALLOWED_ORIGINS=$env:CORS_ALLOWED_ORIGINS
           MONGODB_CONNECTION_STRING=$env:MONGODB_CONNECTION_STRING
