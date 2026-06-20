@@ -292,7 +292,9 @@ public class MongoDbService : IJobApplicationRepository
 
         return new JobApplication
         {
-            Id = doc["_id"].AsObjectId.ToString(),
+            Id = doc["_id"].BsonType == BsonType.ObjectId
+                ? doc["_id"].AsObjectId.ToString()
+                : doc["_id"].AsString,
             CompanyName = doc.GetValue("companyName", BsonNull.Value).AsString ?? string.Empty,
             JobTitle = doc.GetValue("jobTitle", BsonNull.Value).AsString ?? string.Empty,
             Location = doc.GetValue("location", BsonNull.Value).AsString ?? string.Empty,
