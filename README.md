@@ -11,40 +11,54 @@
 
 ---
 
-## Motivation
+## The Problem
 
-Job hunting is repetitive work disguised as a decision-making process.
+We all use AI to generate tailored CVs and cover letters now, but the workflow around it is still manual and messy.
 
-Every application follows the same pattern: find a role, read the JD, evaluate fit, rewrite a CV, craft a cover letter, send it, and then lose track of where it went. Multiply that by dozens of applications and the overhead becomes significant — not because the work is hard, but because most of it is mechanical.
+**Generating the documents** is the first friction point. You either copy-paste AI output into your CV template by hand, or ask the AI to generate the entire file, which burns tokens and rarely gets the formatting right. Either way, you're spending time on something a machine should handle.
 
-The goal behind JobVault is simple: **remove everything that a machine can do better than you**, and leave only the part that requires human judgement — deciding whether a role is worth pursuing in the first place.
+**Tracking what you sent** is the second. After 20+ applications, you can't remember which version of your CV went to which company. Most of us end up maintaining a spreadsheet, manually updating it after every application, hoping we remember to do it.
+
+**Accuracy** is the third. AI will happily invent experience you don't have. If you let it write freely, you end up reviewing every bullet point to make sure it's real, which defeats the purpose of automating in the first place.
+
+I hit all three problems and built JobVault to close the gap.
 
 ---
 
-## What is JobVault
+## How It Works
 
-JobVault is a **personal job application automation platform**. You paste a job URL into Claude, and JobVault handles everything from that point forward: it generates a tailored CV and cover letter, converts them to PDF, commits all files to GitHub, updates a live dashboard, and sends you a real-time notification — all without touching your keyboard again.
+The idea is simple: **AI generates the content, machines handle everything else.**
 
-The workflow looks like this:
+**1. A curated bullet-point library**
+As a software engineer, I work across different tech stacks, but not every stack belongs on every CV. So I maintain `.md` files that list all my real accomplishments, grouped by technology and domain. When Claude sees a job description, it picks the relevant bullet points from this library instead of inventing them. Nothing fabricated, nothing generic.
+
+**2. Content-only handoff**
+Claude doesn't generate files. It evaluates the JD, selects the right bullets, writes a tailored cover letter, and sends the **content as structured data** to the JobVault API. No tokens wasted on formatting or file generation.
+
+**3. Automated document pipeline**
+The API takes over from there:
+- Generates properly formatted CV and cover letter (DOCX)
+- Converts both to PDF
+- Commits all files to a private GitHub repository (your vault)
+- Updates the database and live dashboard
+- Sends a Telegram notification
+
+**4. Everything is tracked**
+Every application, the company, the role, match score, documents, status, all of it lives in the dashboard. When a recruiter calls, you pull up the company and see exactly what you sent. No spreadsheet required.
 
 ```
-You paste a job URL into Claude
+Paste a job URL into Claude
         ↓
-Claude evaluates the role, scores the match, and builds a structured payload
+Claude picks bullets from your library, builds a structured payload
         ↓
-Payload is sent to the JobVault API
+Payload hits the JobVault API
         ↓
-Worker picks it up, calls the Generation Service to produce DOCX files
+Worker generates DOCX → converts to PDF → commits to GitHub vault
         ↓
-LibreOffice converts both documents to PDF
-        ↓
-All six files (CV + cover letter, both formats + two markdown reports)
-are committed to a private GitHub vault
-        ↓
-The dashboard updates. Telegram notifies you. Done.
+Dashboard updates. Telegram notifies you. Done.
 ```
 
-The only step that stays manual is deciding which jobs to look at. Everything else is automated.
+The only manual step is deciding which jobs to apply to. Everything after pasting the JD runs on its own.
 
 ---
 
