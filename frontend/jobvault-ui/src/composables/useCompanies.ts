@@ -1,7 +1,7 @@
 import { ref, computed, onMounted } from 'vue'
 import type { Company, ApplicationStage, DashboardStats } from '@/types'
 import { mockCompanies } from '@/mocks/companies'
-import { FLASK_API_BASE } from '@/api'
+import { api, FLASK_API_BASE } from '@/api'
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK !== 'false'
 
@@ -20,10 +20,29 @@ async function loadCompanies() {
       await new Promise(r => setTimeout(r, 350))
       _companies.value = mockCompanies
     } else {
-      const res = await fetch(`${FLASK_API_BASE}/api/companies`)
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const data: Company[] = await res.json()
-      _companies.value = data
+      // Fetch from both .NET API (MongoDB) and Flask (vault), merge results
+      const [dotnetRes, flaskRes] = await Promise.allSettled([
+        api.get<Company[]>('/api/applications'),
+        fetch(`${FLASK_API_BASE}/api/companies`),
+      ])
+
+      const dotnetApps: Company[] = dotnetRes.status === 'fulfilled'
+        ? dotnetRes.value.data
+        : []
+
+      let flaskApps: Company[] = []
+      if (flaskRes.status === 'fulfilled' && flaskRes.value.ok) {
+        flaskApps = await flaskRes.value.json()
+      }
+
+      // Merge: .NET is primary, Flask fills gaps for vault-only apps
+      const byName = new Map<string, Company>()
+      for (const app of dotnetApps) byName.set(app.name, app)
+      for (const app of flaskApps) {
+        if (!byName.has(app.name)) byName.set(app.name, app)
+      }
+
+      _companies.value = Array.from(byName.values())
     }
     _loaded.value = true
   } catch (e: unknown) {

@@ -103,15 +103,39 @@ public class MongoDbService : IJobApplicationRepository
                 ["tailoringNotesMarkdown"] = application.TailoringNotesMarkdown != null ? (BsonValue)application.TailoringNotesMarkdown : BsonNull.Value,
                 ["commitUrl"] = application.CommitUrl != null ? (BsonValue)application.CommitUrl : BsonNull.Value,
                 ["errorDetails"] = application.ErrorDetails != null ? (BsonValue)application.ErrorDetails : BsonNull.Value,
+                ["isHistorical"] = application.IsHistorical,
             };
 
+            // Preserve existing tracker fields on re-ingestion, set defaults on new documents
             if (isNew)
             {
+                doc["stage"] = application.Stage.Length > 0 ? application.Stage : "Ready to Apply";
+                doc["applied"] = application.Applied;
+                doc["appliedDate"] = application.AppliedDate.HasValue ? (BsonValue)application.AppliedDate.Value : BsonNull.Value;
+                doc["personalNotes"] = application.PersonalNotes;
+                doc["interviews"] = MapInterviewsToBson(application.Interviews);
+                doc["salary"] = MapSalaryToBson(application.Salary);
+                doc["recruiter"] = MapRecruiterToBson(application.Recruiter);
+                doc["followUpDate"] = application.FollowUpDate.HasValue ? (BsonValue)application.FollowUpDate.Value : BsonNull.Value;
+                doc["source"] = application.Source;
+
                 await _collection.InsertOneAsync(doc);
                 _logger.LogInformation("Inserted new job application for {CompanyName} (id={Id})", application.CompanyName, id);
             }
             else
             {
+                // Keep existing tracker fields from the database
+                doc["stage"] = existing!.GetValue("stage", "Ready to Apply");
+                doc["applied"] = existing.GetValue("applied", false);
+                doc["appliedDate"] = existing.GetValue("appliedDate", BsonNull.Value);
+                doc["personalNotes"] = existing.GetValue("personalNotes", "");
+                doc["interviews"] = existing.GetValue("interviews", new BsonArray());
+                doc["salary"] = existing.GetValue("salary", MapSalaryToBson(new SalaryInfo()));
+                doc["recruiter"] = existing.GetValue("recruiter", MapRecruiterToBson(new RecruiterInfo()));
+                doc["followUpDate"] = existing.GetValue("followUpDate", BsonNull.Value);
+                doc["source"] = existing.GetValue("source", "");
+                doc["isHistorical"] = existing.GetValue("isHistorical", false);
+
                 await _collection.ReplaceOneAsync(filter, doc);
                 _logger.LogInformation("Updated existing job application for {CompanyName} (id={Id})", application.CompanyName, id);
             }
@@ -175,6 +199,7 @@ public class MongoDbService : IJobApplicationRepository
                 updateDef = updateDef.Set("errorDetails", errorDetails);
 
             // Clear generation payload from MongoDB once processing is done (success or failure)
+            // Keep compatibilityReportMarkdown and tailoringNotesMarkdown for serving via API
             if (status == "Ready to Apply" || status == "Failed")
             {
                 updateDef = updateDef
@@ -185,11 +210,7 @@ public class MongoDbService : IJobApplicationRepository
                     .Unset("roles")
                     .Unset("recipient")
                     .Unset("coverLetterParagraphs")
-                    .Unset("strengths")
-                    .Unset("gaps")
-                    .Unset("tailoringNotes")
-                    .Unset("compatibilityReportMarkdown")
-                    .Unset("tailoringNotesMarkdown");
+                    .Unset("tailoringNotes");
             }
 
             var result = await _collection.UpdateOneAsync(filter, updateDef, cancellationToken: cancellationToken);
@@ -203,6 +224,63 @@ public class MongoDbService : IJobApplicationRepository
             return false;
         }
     }
+
+    public async Task<IReadOnlyList<JobApplication>> GetAllApplicationsAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var docs = await _collection.Find(FilterDefinition<BsonDocument>.Empty)
+                .Sort(Builders<BsonDocument>.Sort.Descending("updatedAt"))
+                .ToListAsync(cancellationToken);
+
+            return docs.Select(MapToJobApplication).ToList();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching all job applications");
+            return [];
+        }
+    }
+
+    public async Task<JobApplication?> GetByCompanyNameAsync(string companyName, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var filter = Builders<BsonDocument>.Filter.Eq("companyName", companyName);
+            var doc = await _collection.Find(filter).FirstOrDefaultAsync(cancellationToken);
+            return doc == null ? null : MapToJobApplication(doc);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching job application by companyName={CompanyName}", companyName);
+            return null;
+        }
+    }
+
+    private static BsonArray MapInterviewsToBson(List<InterviewRecord> interviews) =>
+        new(interviews.Select(i => new BsonDocument
+        {
+            ["id"] = i.Id,
+            ["date"] = i.Date,
+            ["type"] = i.Type,
+            ["notes"] = i.Notes,
+            ["outcome"] = i.Outcome,
+        }));
+
+    private static BsonDocument MapSalaryToBson(SalaryInfo salary) => new()
+    {
+        ["advertised"] = salary.Advertised,
+        ["target"] = salary.Target,
+        ["discussed"] = salary.Discussed,
+        ["offered"] = salary.Offered,
+    };
+
+    private static BsonDocument MapRecruiterToBson(RecruiterInfo recruiter) => new()
+    {
+        ["name"] = recruiter.Name,
+        ["email"] = recruiter.Email,
+        ["linkedin"] = recruiter.LinkedIn,
+    };
 
     private static JobApplication MapToJobApplication(BsonDocument doc)
     {
@@ -264,6 +342,42 @@ public class MongoDbService : IJobApplicationRepository
             TailoringNotesMarkdown = NullableString(doc, "tailoringNotesMarkdown"),
             CommitUrl = NullableString(doc, "commitUrl"),
             ErrorDetails = NullableString(doc, "errorDetails"),
+            Stage = doc.GetValue("stage", "").AsString,
+            Applied = doc.TryGetValue("applied", out var appliedVal) && appliedVal.IsBoolean && appliedVal.AsBoolean,
+            AppliedDate = doc.TryGetValue("appliedDate", out var adVal) && adVal != BsonNull.Value
+                ? adVal.ToUniversalTime() : null,
+            PersonalNotes = doc.GetValue("personalNotes", "").AsString,
+            Interviews = doc.TryGetValue("interviews", out var ivVal) && ivVal is BsonArray ivArr
+                ? ivArr.Select(i => new InterviewRecord
+                {
+                    Id = i.AsBsonDocument.GetValue("id", 0).AsInt32,
+                    Date = i.AsBsonDocument.GetValue("date", "").AsString,
+                    Type = i.AsBsonDocument.GetValue("type", "Phone").AsString,
+                    Notes = i.AsBsonDocument.GetValue("notes", "").AsString,
+                    Outcome = i.AsBsonDocument.GetValue("outcome", "Pending").AsString,
+                }).ToList()
+                : [],
+            Salary = doc.TryGetValue("salary", out var salVal) && salVal is BsonDocument salDoc
+                ? new SalaryInfo
+                {
+                    Advertised = salDoc.GetValue("advertised", "").AsString,
+                    Target = salDoc.GetValue("target", "").AsString,
+                    Discussed = salDoc.GetValue("discussed", "").AsString,
+                    Offered = salDoc.GetValue("offered", "").AsString,
+                }
+                : new SalaryInfo(),
+            Recruiter = doc.TryGetValue("recruiter", out var recVal) && recVal is BsonDocument recDoc
+                ? new RecruiterInfo
+                {
+                    Name = recDoc.GetValue("name", "").AsString,
+                    Email = recDoc.GetValue("email", "").AsString,
+                    LinkedIn = recDoc.GetValue("linkedin", "").AsString,
+                }
+                : new RecruiterInfo(),
+            FollowUpDate = doc.TryGetValue("followUpDate", out var fudVal) && fudVal != BsonNull.Value
+                ? fudVal.ToUniversalTime() : null,
+            Source = doc.GetValue("source", "").AsString,
+            IsHistorical = doc.TryGetValue("isHistorical", out var ihVal) && ihVal.IsBoolean && ihVal.AsBoolean,
         };
     }
 }

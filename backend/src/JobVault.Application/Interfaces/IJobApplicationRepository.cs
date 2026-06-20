@@ -27,4 +27,8 @@ public interface IJobApplicationRepository
         string? commitUrl = null,
         string? errorDetails = null,
         CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<JobApplication>> GetAllApplicationsAsync(CancellationToken cancellationToken = default);
+
+    Task<JobApplication?> GetByCompanyNameAsync(string companyName, CancellationToken cancellationToken = default);
 }
