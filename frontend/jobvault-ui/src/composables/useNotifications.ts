@@ -63,7 +63,7 @@ function connect() {
 }
 
 async function loadNotifications() {
-  if (_loaded.value || _loading.value) return
+  if (_loaded.value || _loading.value || !localStorage.getItem('jv_token')) return
   _loading.value = true
   _error.value = null
   try {
