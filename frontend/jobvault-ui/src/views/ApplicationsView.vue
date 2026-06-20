@@ -11,7 +11,7 @@ import type { ApplicationStage, Company } from '@/types'
 
 const router = useRouter()
 const { filtered, loading, search, filterStage, companies } = useCompanies()
-const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:5100'
+const API_BASE = import.meta.env.VITE_FLASK_API_BASE ?? 'http://localhost:5100'
 
 // ── Tabs ─────────────────────────────────────────────────────
 const STAGE_TABS = ['All', ...PIPELINE_STAGES] as const

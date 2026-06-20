@@ -3,7 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import { useRouter } from 'vue-router'
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:5100'
+const API_BASE = import.meta.env.VITE_FLASK_API_BASE ?? 'http://localhost:5100'
 const router = useRouter()
 
 interface GapSkill {

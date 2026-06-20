@@ -1,10 +1,9 @@
 import { ref, computed, onMounted } from 'vue'
 import type { Company, ApplicationStage, DashboardStats } from '@/types'
 import { mockCompanies } from '@/mocks/companies'
-import { api } from '@/api'
+import { FLASK_API_BASE } from '@/api'
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK !== 'false'
-const API_BASE = import.meta.env.VITE_API_BASE ?? 'https://api.kbilaluddin.dev'
 
 // Singleton cache — loaded once, shared across composable instances
 const _companies = ref<Company[]>([])
@@ -21,8 +20,10 @@ async function loadCompanies() {
       await new Promise(r => setTimeout(r, 350))
       _companies.value = mockCompanies
     } else {
-      const res = await api.get<Company[]>('/api/companies')
-      _companies.value = res.data
+      const res = await fetch(`${FLASK_API_BASE}/api/companies`)
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const data: Company[] = await res.json()
+      _companies.value = data
     }
     _loaded.value = true
   } catch (e: unknown) {

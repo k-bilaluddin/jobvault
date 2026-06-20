@@ -3,7 +3,7 @@ import type { AppNotification } from '@/types'
 import { forceRefreshCompanies } from '@/composables/useCompanies'
 import { api } from '@/api'
 
-const API_BASE = import.meta.env.VITE_NOTIFICATION_API_BASE ?? 'https://api.kbilaluddin.dev'
+const API_BASE = import.meta.env.VITE_API_BASE ?? 'https://api.kbilaluddin.dev'
 
 // Singleton state — shared across all useNotifications() instances
 const _notifications = ref<AppNotification[]>([])

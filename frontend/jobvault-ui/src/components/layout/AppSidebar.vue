@@ -6,7 +6,7 @@ import { useCompanies } from '@/composables/useCompanies'
 import { STAGE_COLORS, matchPctColor } from '@/utils/score'
 import type { ApplicationStage } from '@/types'
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:5100'
+const API_BASE = import.meta.env.VITE_FLASK_API_BASE ?? 'http://localhost:5100'
 
 const route = useRoute()
 const { companies, filtered, search: sidebarSearch, refresh } = useCompanies()
