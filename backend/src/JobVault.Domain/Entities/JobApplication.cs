@@ -40,4 +40,16 @@ public class JobApplication
     // Set by Worker on completion
     public string? CommitUrl { get; set; }
     public string? ErrorDetails { get; set; }
+
+    // Tracking fields (migrated from tracker_data.json)
+    public string Stage { get; set; } = string.Empty;
+    public bool Applied { get; set; }
+    public DateTime? AppliedDate { get; set; }
+    public string PersonalNotes { get; set; } = string.Empty;
+    public List<InterviewRecord> Interviews { get; set; } = [];
+    public SalaryInfo Salary { get; set; } = new();
+    public RecruiterInfo Recruiter { get; set; } = new();
+    public DateTime? FollowUpDate { get; set; }
+    public string Source { get; set; } = string.Empty;
+    public bool IsHistorical { get; set; }
 }
