@@ -1,0 +1,196 @@
+name: CD Staging Pipeline
+
+on:
+  workflow_run:
+    workflows: ["CI Tests"]
+    types: [completed]
+    branches: [develop]
+
+env:
+  REGISTRY: ghcr.io
+  API_IMAGE: ghcr.io/k-bilaluddin/jobvault-api
+  WORKER_IMAGE: ghcr.io/k-bilaluddin/jobvault-worker
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  # ================================
+  # Build & Push API Image (staging tag)
+  # ================================
+  build-api:
+    name: Build & Push API (staging)
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success'
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: develop
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build & Push API image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/api.Dockerfile
+          push: true
+          tags: ${{ env.API_IMAGE }}:staging
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ================================
+  # Build & Push Worker Image (staging tag)
+  # ================================
+  build-worker:
+    name: Build & Push Worker (staging)
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success'
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: develop
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build & Push Worker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/worker.Dockerfile
+          push: true
+          tags: ${{ env.WORKER_IMAGE }}:staging
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ================================
+  # Deploy Staging on Self-Hosted Runner
+  # ================================
+  deploy:
+    name: Deploy Staging
+    runs-on: [self-hosted, Windows]
+    needs: [build-api, build-worker]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: develop
+
+      - name: Create .env.staging for Docker Compose
+        shell: pwsh
+        working-directory: ${{ github.workspace }}
+        env:
+          AUTH_EMAIL: ${{ secrets.STG_AUTH_EMAIL }}
+          AUTH_PASSWORD_HASH: ${{ secrets.STG_AUTH_PASSWORD_HASH }}
+          AUTH_JWT_SECRET: ${{ secrets.STG_AUTH_JWT_SECRET }}
+          CORS_ALLOWED_ORIGINS: ${{ secrets.STG_CORS_ALLOWED_ORIGINS }}
+          MONGODB_CONNECTION_STRING: ${{ secrets.STG_MONGODB_CONNECTION_STRING }}
+          MONGODB_DATABASE_NAME: ${{ secrets.STG_MONGODB_DATABASE_NAME }}
+          MONGODB_JOB_APPLICATIONS_COLLECTION: ${{ secrets.STG_MONGODB_JOB_APPLICATIONS_COLLECTION }}
+          MONGODB_NOTIFICATIONS_COLLECTION: ${{ secrets.STG_MONGODB_NOTIFICATIONS_COLLECTION }}
+          RABBITMQ_CONNECTION_STRING: ${{ secrets.STG_RABBITMQ_CONNECTION_STRING }}
+          RABBITMQ_EXCHANGE_NAME: ${{ secrets.STG_RABBITMQ_EXCHANGE_NAME }}
+          RABBITMQ_DEAD_LETTER_EXCHANGE_NAME: ${{ secrets.STG_RABBITMQ_DEAD_LETTER_EXCHANGE_NAME }}
+          RABBITMQ_DEAD_LETTER_QUEUE_NAME: ${{ secrets.STG_RABBITMQ_DEAD_LETTER_QUEUE_NAME }}
+          RABBITMQ_JOB_APPLICATION_CREATED_QUEUE: ${{ secrets.STG_RABBITMQ_JOB_APPLICATION_CREATED_QUEUE }}
+          RABBITMQ_JOB_APPLICATION_UPDATED_QUEUE: ${{ secrets.STG_RABBITMQ_JOB_APPLICATION_UPDATED_QUEUE }}
+          RABBITMQ_JOB_APPLICATION_RECEIVED_QUEUE: ${{ secrets.STG_RABBITMQ_JOB_APPLICATION_RECEIVED_QUEUE }}
+          RABBITMQ_SSE_NOTIFICATIONS_QUEUE: ${{ secrets.STG_RABBITMQ_SSE_NOTIFICATIONS_QUEUE }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          APP_GH_TOKEN: ${{ secrets.APP_GH_TOKEN }}
+          APP_GH_OWNER: ${{ secrets.APP_GH_OWNER }}
+          APP_GH_REPOSITORY: ${{ secrets.APP_GH_REPOSITORY }}
+          APP_GH_BRANCH: ${{ secrets.APP_GH_BRANCH }}
+          APP_VAULT_ROOT_DIR: ${{ secrets.APP_VAULT_ROOT_DIR }}
+        run: |
+          @"
+          AUTH_EMAIL=$env:AUTH_EMAIL
+          AUTH_PASSWORD_HASH=$($env:AUTH_PASSWORD_HASH -replace '\$','$$$$')
+          AUTH_JWT_SECRET=$env:AUTH_JWT_SECRET
+          CORS_ALLOWED_ORIGINS=$env:CORS_ALLOWED_ORIGINS
+          MONGODB_CONNECTION_STRING=$env:MONGODB_CONNECTION_STRING
+          MONGODB_DATABASE_NAME=$env:MONGODB_DATABASE_NAME
+          MONGODB_JOB_APPLICATIONS_COLLECTION=$env:MONGODB_JOB_APPLICATIONS_COLLECTION
+          MONGODB_NOTIFICATIONS_COLLECTION=$env:MONGODB_NOTIFICATIONS_COLLECTION
+          RABBITMQ_CONNECTION_STRING=$env:RABBITMQ_CONNECTION_STRING
+          RABBITMQ_EXCHANGE_NAME=$env:RABBITMQ_EXCHANGE_NAME
+          RABBITMQ_DEAD_LETTER_EXCHANGE_NAME=$env:RABBITMQ_DEAD_LETTER_EXCHANGE_NAME
+          RABBITMQ_DEAD_LETTER_QUEUE_NAME=$env:RABBITMQ_DEAD_LETTER_QUEUE_NAME
+          RABBITMQ_JOB_APPLICATION_CREATED_QUEUE=$env:RABBITMQ_JOB_APPLICATION_CREATED_QUEUE
+          RABBITMQ_JOB_APPLICATION_UPDATED_QUEUE=$env:RABBITMQ_JOB_APPLICATION_UPDATED_QUEUE
+          RABBITMQ_JOB_APPLICATION_RECEIVED_QUEUE=$env:RABBITMQ_JOB_APPLICATION_RECEIVED_QUEUE
+          RABBITMQ_SSE_NOTIFICATIONS_QUEUE=$env:RABBITMQ_SSE_NOTIFICATIONS_QUEUE
+          TELEGRAM_BOT_TOKEN=$env:TELEGRAM_BOT_TOKEN
+          TELEGRAM_CHAT_ID=$env:TELEGRAM_CHAT_ID
+          APP_GH_TOKEN=$env:APP_GH_TOKEN
+          APP_GH_OWNER=$env:APP_GH_OWNER
+          APP_GH_REPOSITORY=$env:APP_GH_REPOSITORY
+          APP_GH_BRANCH=$env:APP_GH_BRANCH
+          APP_VAULT_ROOT_DIR=$env:APP_VAULT_ROOT_DIR
+          "@ | Set-Content -Path .env.staging -Encoding utf8
+
+      - name: Verify .env.staging exists
+        shell: pwsh
+        working-directory: ${{ github.workspace }}
+        run: |
+          if (-not (Test-Path -Path .env.staging -PathType Leaf)) {
+            throw "Required .env.staging file was not created."
+          }
+
+      - name: Ensure jobvault-internal network exists
+        shell: pwsh
+        run: |
+          docker network inspect jobvault-internal 2>&1 | Out-Null
+          if ($LASTEXITCODE -ne 0) {
+            docker network create jobvault-internal
+          }
+
+      - name: Deploy Staging with Docker Compose
+        shell: pwsh
+        working-directory: ${{ github.workspace }}
+        run: |
+          docker compose -f docker-compose.staging.yml pull
+          docker compose -f docker-compose.staging.yml up -d
+
+      - name: Notify Telegram
+        shell: pwsh
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          $message = "🧪 JobVault STAGING deployed`nCommit: ${{ github.sha }}`nBy: ${{ github.actor }}"
+          Invoke-RestMethod -Method Post -Uri "https://api.telegram.org/bot$env:TELEGRAM_BOT_TOKEN/sendMessage" -Body @{
+            chat_id = $env:TELEGRAM_CHAT_ID
+            text    = $message
+          } | Out-Null
