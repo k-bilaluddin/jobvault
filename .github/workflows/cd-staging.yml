@@ -1,6 +1,7 @@
 name: CD Staging Pipeline
 
 on:
+  workflow_dispatch:
   workflow_run:
     workflows: ["CI Tests"]
     types: [completed]
@@ -179,9 +180,11 @@ jobs:
       - name: Deploy Staging with Docker Compose
         shell: pwsh
         working-directory: ${{ github.workspace }}
+        env:
+          APP_VAULT_ROOT_DIR: ${{ secrets.APP_VAULT_ROOT_DIR }}
         run: |
-          docker compose -f docker-compose.staging.yml pull
-          docker compose -f docker-compose.staging.yml up -d
+          docker compose -f docker-compose.staging.yml --env-file .env.staging pull
+          docker compose -f docker-compose.staging.yml --env-file .env.staging up -d
 
       - name: Notify Telegram
         shell: pwsh
