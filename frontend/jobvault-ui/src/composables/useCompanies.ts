@@ -35,11 +35,19 @@ async function loadCompanies() {
         flaskApps = await flaskRes.value.json()
       }
 
-      // Merge: .NET is primary, Flask fills gaps for vault-only apps
+      // Merge: .NET is primary, Flask enriches with vault file presence
       const byName = new Map<string, Company>()
       for (const app of dotnetApps) byName.set(app.name, app)
       for (const app of flaskApps) {
-        if (!byName.has(app.name)) byName.set(app.name, app)
+        const existing = byName.get(app.name)
+        if (!existing) {
+          byName.set(app.name, app)
+        } else {
+          existing.has_report = existing.has_report || app.has_report
+          existing.has_notes = existing.has_notes || app.has_notes
+          existing.has_cv_pdf = existing.has_cv_pdf || app.has_cv_pdf
+          existing.has_letter_pdf = existing.has_letter_pdf || app.has_letter_pdf
+        }
       }
 
       _companies.value = Array.from(byName.values())

@@ -192,4 +192,116 @@ public class MongoDbService : IJobApplicationRepository
             return null;
         }
     }
+
+    public async Task<bool> UpdateStageAsync(string companyName, string stage, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.CompanyName, companyName);
+
+            var update = Builders<JobApplicationDocument>.Update
+                .Set(d => d.Stage, stage)
+                .Set(d => d.UpdatedAt, DateTime.UtcNow);
+
+            if (stage == "Applied")
+            {
+                update = update
+                    .Set(d => d.Applied, true)
+                    .Set(d => d.AppliedDate, DateTime.UtcNow);
+            }
+
+            var result = await _collection.UpdateOneAsync(filter, update, cancellationToken: cancellationToken);
+            return result.MatchedCount > 0;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating stage for {CompanyName}", companyName);
+            return false;
+        }
+    }
+
+    public async Task<bool> UpdatePersonalNotesAsync(string companyName, string notes, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.CompanyName, companyName);
+
+            var update = Builders<JobApplicationDocument>.Update
+                .Set(d => d.PersonalNotes, notes)
+                .Set(d => d.UpdatedAt, DateTime.UtcNow);
+
+            var result = await _collection.UpdateOneAsync(filter, update, cancellationToken: cancellationToken);
+            return result.MatchedCount > 0;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating personal notes for {CompanyName}", companyName);
+            return false;
+        }
+    }
+
+    public async Task<JobApplication?> AddInterviewAsync(string companyName, Domain.ValueObjects.InterviewRecord interview, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.CompanyName, companyName);
+            var doc = await _collection.Find(filter).FirstOrDefaultAsync(cancellationToken);
+            if (doc == null) return null;
+
+            var interviews = doc.Interviews ?? [];
+            interview.Id = interviews.Count;
+
+            var interviewDoc = new InterviewDocument
+            {
+                Id = interview.Id,
+                Date = interview.Date,
+                Type = interview.Type,
+                Notes = interview.Notes,
+                Outcome = interview.Outcome,
+            };
+
+            var update = Builders<JobApplicationDocument>.Update
+                .Push(d => d.Interviews, interviewDoc)
+                .Set(d => d.UpdatedAt, DateTime.UtcNow);
+
+            await _collection.UpdateOneAsync(filter, update, cancellationToken: cancellationToken);
+
+            doc.Interviews!.Add(interviewDoc);
+            return JobApplicationMapper.ToDomain(doc);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error adding interview for {CompanyName}", companyName);
+            return null;
+        }
+    }
+
+    public async Task<bool> DeleteInterviewAsync(string companyName, int index, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.CompanyName, companyName);
+            var doc = await _collection.Find(filter).FirstOrDefaultAsync(cancellationToken);
+            if (doc == null) return false;
+
+            var interviews = doc.Interviews ?? [];
+            if (index < 0 || index >= interviews.Count) return false;
+
+            interviews.RemoveAt(index);
+            for (var i = 0; i < interviews.Count; i++)
+                interviews[i].Id = i;
+
+            var update = Builders<JobApplicationDocument>.Update
+                .Set(d => d.Interviews, interviews)
+                .Set(d => d.UpdatedAt, DateTime.UtcNow);
+
+            var result = await _collection.UpdateOneAsync(filter, update, cancellationToken: cancellationToken);
+            return result.MatchedCount > 0;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting interview for {CompanyName}", companyName);
+            return false;
+        }
+    }
 }

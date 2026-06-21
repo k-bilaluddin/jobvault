@@ -1,4 +1,6 @@
 using JobVault.Application.Interfaces;
+using JobVault.Contracts.Requests;
+using JobVault.Domain.ValueObjects;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -73,4 +75,57 @@ public class ApplicationsController : ControllerBase
 
         return Ok(result);
     }
+
+    [HttpPost("{name}/stage")]
+    public async Task<IActionResult> UpdateStage(string name, [FromBody] UpdateStageRequest request, CancellationToken cancellationToken)
+    {
+        var success = await _repository.UpdateStageAsync(name, request.Stage, cancellationToken);
+        if (!success) return NotFound();
+        return Ok(new { ok = true, stage = request.Stage });
+    }
+
+    [HttpPost("{name}/personal-notes")]
+    public async Task<IActionResult> UpdatePersonalNotes(string name, [FromBody] UpdateNotesRequest request, CancellationToken cancellationToken)
+    {
+        var success = await _repository.UpdatePersonalNotesAsync(name, request.Notes, cancellationToken);
+        if (!success) return NotFound();
+        return Ok(new { ok = true });
+    }
+
+    [HttpPost("{name}/interviews")]
+    public async Task<IActionResult> AddInterview(string name, [FromBody] AddInterviewRequest request, CancellationToken cancellationToken)
+    {
+        var interview = new InterviewRecord
+        {
+            Date = request.Date,
+            Type = request.Type,
+            Notes = request.Notes,
+            Outcome = request.Outcome,
+        };
+
+        var application = await _repository.AddInterviewAsync(name, interview, cancellationToken);
+        if (application == null) return NotFound();
+
+        return Ok(new
+        {
+            ok = true,
+            interviews = application.Interviews.Select(i => new
+            {
+                id = i.Id,
+                date = i.Date,
+                type = i.Type,
+                notes = i.Notes,
+                outcome = i.Outcome,
+            }),
+        });
+    }
+
+    [HttpDelete("{name}/interviews")]
+    public async Task<IActionResult> DeleteInterview(string name, [FromQuery] int idx, CancellationToken cancellationToken)
+    {
+        var success = await _repository.DeleteInterviewAsync(name, idx, cancellationToken);
+        if (!success) return NotFound();
+        return Ok(new { ok = true });
+    }
 }
+

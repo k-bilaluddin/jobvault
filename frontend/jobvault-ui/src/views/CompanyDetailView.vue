@@ -9,12 +9,13 @@ import { useCompanies } from '@/composables/useCompanies'
 import { OUTCOME_COLORS, STAGE_COLORS } from '@/utils/score'
 import { PIPELINE_STAGES } from '@/types'
 import type { ApplicationStage } from '@/types'
+import { api, FLASK_API_BASE } from '@/api'
 
 const route  = useRoute()
 const router = useRouter()
 const { getByName, loading } = useCompanies()
 
-const API_BASE = import.meta.env.VITE_FLASK_API_BASE ?? 'http://localhost:5100'
+const API_BASE = FLASK_API_BASE
 
 const companyName = computed(() => decodeURIComponent(route.params.name as string))
 const company     = computed(() => getByName(companyName.value))
@@ -37,12 +38,7 @@ async function updateStage(newStage: ApplicationStage) {
   stageUpdating.value = true
   stageError.value = ''
   try {
-    const res = await fetch(`${API_BASE}/api/company/${encodeURIComponent(companyName.value)}/stage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ stage: newStage }),
-    })
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    await api.post(`/api/applications/${encodeURIComponent(companyName.value)}/stage`, { stage: newStage })
     currentStage.value = newStage
     // Update local cache
     const c = company.value
@@ -124,11 +120,7 @@ watch(() => company.value, (c) => {
 async function saveNote() {
   noteSaving.value = true
   try {
-    await fetch(`${API_BASE}/api/company/${encodeURIComponent(companyName.value)}/personal-notes`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ notes: noteText.value }),
-    })
+    await api.post(`/api/applications/${encodeURIComponent(companyName.value)}/personal-notes`, { notes: noteText.value })
     if (company.value) company.value.personal_notes = noteText.value
     noteEditing.value = false
     noteSaved.value = true
@@ -209,12 +201,7 @@ async function saveInterview() {
   ivSaving.value = true
   ivError.value  = ''
   try {
-    const res = await fetch(`${API_BASE}/api/company/${encodeURIComponent(companyName.value)}/interviews`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify(newInterview.value),
-    })
-    const data = await res.json()
+    const { data } = await api.post(`/api/applications/${encodeURIComponent(companyName.value)}/interviews`, newInterview.value)
     if (data.ok) {
       localInterviews.value = data.interviews
       if (company.value) company.value.interviews = data.interviews
@@ -227,8 +214,7 @@ async function saveInterview() {
 
 async function deleteInterview(idx: number) {
   try {
-    const res = await fetch(`${API_BASE}/api/company/${encodeURIComponent(companyName.value)}/interviews?idx=${idx}`, { method: 'DELETE' })
-    const data = await res.json()
+    const { data } = await api.delete(`/api/applications/${encodeURIComponent(companyName.value)}/interviews?idx=${idx}`)
     if (data.ok) {
       localInterviews.value = localInterviews.value.filter((_, i) => i !== idx)
       if (company.value) company.value.interviews = localInterviews.value
