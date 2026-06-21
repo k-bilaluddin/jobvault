@@ -252,6 +252,101 @@ public class ArchitectureDependencyTests
             $"Controllers missing 'Controller' suffix: {string.Join(", ", result.FailingTypeNames ?? [])}");
     }
 
+    // ─── Controller Clean Architecture Enforcement ───────────────────
+
+    [Fact]
+    public void Controllers_Should_Not_Depend_On_Repositories()
+    {
+        var apiAssembly = typeof(JobVault.API.Controllers.VaultController).Assembly;
+
+        var result = Types.InAssembly(apiAssembly)
+            .That()
+            .ResideInNamespace($"{ApiNamespace}.Controllers")
+            .And()
+            .AreClasses()
+            .Should()
+            .NotHaveDependencyOn("JobVault.Application.Interfaces.IJobApplicationRepository")
+            .GetResult();
+
+        Assert.True(result.IsSuccessful,
+            $"Controllers depend on repositories directly: {string.Join(", ", result.FailingTypeNames ?? [])}");
+    }
+
+    [Fact]
+    public void Controllers_Should_Not_Use_FileSystem()
+    {
+        var apiAssembly = typeof(JobVault.API.Controllers.VaultController).Assembly;
+
+        var result = Types.InAssembly(apiAssembly)
+            .That()
+            .ResideInNamespace($"{ApiNamespace}.Controllers")
+            .And()
+            .AreClasses()
+            .Should()
+            .NotHaveDependencyOn("System.IO.Directory")
+            .And().NotHaveDependencyOn("System.IO.File")
+            .And().NotHaveDependencyOn("System.IO.Path")
+            .GetResult();
+
+        Assert.True(result.IsSuccessful,
+            $"Controllers use file system APIs directly: {string.Join(", ", result.FailingTypeNames ?? [])}");
+    }
+
+    [Fact]
+    public void Controllers_Should_Not_Use_ProcessApis()
+    {
+        var apiAssembly = typeof(JobVault.API.Controllers.VaultController).Assembly;
+
+        var result = Types.InAssembly(apiAssembly)
+            .That()
+            .ResideInNamespace($"{ApiNamespace}.Controllers")
+            .And()
+            .AreClasses()
+            .Should()
+            .NotHaveDependencyOn("System.Diagnostics.Process")
+            .And().NotHaveDependencyOn("System.Diagnostics.ProcessStartInfo")
+            .GetResult();
+
+        Assert.True(result.IsSuccessful,
+            $"Controllers use Process APIs directly: {string.Join(", ", result.FailingTypeNames ?? [])}");
+    }
+
+    [Fact]
+    public void Controllers_Should_Not_Depend_On_Markdig()
+    {
+        var apiAssembly = typeof(JobVault.API.Controllers.VaultController).Assembly;
+
+        var result = Types.InAssembly(apiAssembly)
+            .That()
+            .ResideInNamespace($"{ApiNamespace}.Controllers")
+            .And()
+            .AreClasses()
+            .Should()
+            .NotHaveDependencyOn("Markdig")
+            .GetResult();
+
+        Assert.True(result.IsSuccessful,
+            $"Controllers depend on Markdig directly: {string.Join(", ", result.FailingTypeNames ?? [])}");
+    }
+
+    [Fact]
+    public void Controllers_Should_Not_Depend_On_JwtHandlers()
+    {
+        var apiAssembly = typeof(JobVault.API.Controllers.VaultController).Assembly;
+
+        var result = Types.InAssembly(apiAssembly)
+            .That()
+            .ResideInNamespace($"{ApiNamespace}.Controllers")
+            .And()
+            .AreClasses()
+            .Should()
+            .NotHaveDependencyOn("System.IdentityModel.Tokens.Jwt")
+            .GetResult();
+
+        Assert.True(result.IsSuccessful,
+            $"Controllers depend on JWT handlers directly: {string.Join(", ", result.FailingTypeNames ?? [])}");
+    }
+
     // ─── Interface Implementation Coverage ──────────────────────────
 
     [Fact]
