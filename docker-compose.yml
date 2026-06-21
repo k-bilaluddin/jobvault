@@ -9,6 +9,10 @@ services:
       - "5000:8080"
     env_file:
       - .env
+    environment:
+      - APP_VAULT_ROOT_DIR=/app/vault
+    volumes:
+      - ${APP_VAULT_ROOT_DIR}:/app/vault:ro
     restart: unless-stopped
 
   worker:

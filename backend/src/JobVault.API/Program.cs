@@ -46,6 +46,7 @@ builder.Configuration.AddInMemoryCollection(
         ["GitHub:CoverLetterFileName"]               = E("APP_GH_COVER_LETTER_FILE_NAME"),
         ["DocumentGeneration:BaseUrl"]               = E("DOCUMENT_GENERATION_BASE_URL"),
         ["LibreOffice:ExecutablePath"]               = E("LIBREOFFICE_EXECUTABLE_PATH"),
+        ["Vault:RootDir"]                            = E("APP_VAULT_ROOT_DIR"),
     }
     .Where(kv => kv.Value is not null)
     .ToDictionary(kv => kv.Key, kv => kv.Value));

@@ -1,7 +1,6 @@
 import axios from 'axios'
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? 'https://api.kbilaluddin.dev'
-export const FLASK_API_BASE = import.meta.env.VITE_FLASK_API_BASE ?? 'http://localhost:5100'
+export const API_BASE = import.meta.env.VITE_API_BASE ?? 'https://api.kbilaluddin.dev'
 
 export const api = axios.create({ baseURL: API_BASE })
 

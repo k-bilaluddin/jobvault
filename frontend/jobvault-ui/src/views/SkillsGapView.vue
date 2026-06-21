@@ -2,8 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import { useRouter } from 'vue-router'
-
-const API_BASE = import.meta.env.VITE_FLASK_API_BASE ?? 'http://localhost:5100'
+import { api } from '@/api'
 const router = useRouter()
 
 interface GapSkill {
@@ -23,12 +22,11 @@ async function load() {
   loading.value = true
   error.value   = ''
   try {
-    const res  = await fetch(`${API_BASE}/api/skills-gap`)
-    const data = await res.json()
+    const { data } = await api.get('/api/applications/skills-gap')
     gaps.value          = data.gaps ?? []
     reportsScanned.value = data.reports_scanned ?? 0
   } catch {
-    error.value = 'Could not load skills gap data. Is Flask running?'
+    error.value = 'Could not load skills gap data.'
   } finally {
     loading.value = false
   }

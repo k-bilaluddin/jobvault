@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
-
-const API_BASE = import.meta.env.VITE_FLASK_API_BASE ?? 'http://localhost:5100'
+import { api } from '@/api'
 
 // ── Data ─────────────────────────────────────────────────────
 interface HistEntry { name: string; applied_date: string; stage: string; source: string; current?: boolean }
@@ -24,12 +23,11 @@ async function load() {
   loading.value = true
   error.value   = ''
   try {
-    const res  = await fetch(`${API_BASE}/api/historical`)
-    const json = await res.json()
+    const { data: json } = await api.get('/api/applications/historical')
     data.value  = json
     if (!json.available) error.value = json.error ?? 'Historical data not available'
   } catch {
-    error.value = 'Could not reach Flask. Is it running?'
+    error.value = 'Could not load historical data.'
   } finally {
     loading.value = false
   }

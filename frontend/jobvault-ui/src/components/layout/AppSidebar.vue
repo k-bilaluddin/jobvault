@@ -5,8 +5,7 @@ import CompanyAvatar from '@/components/common/CompanyAvatar.vue'
 import { useCompanies } from '@/composables/useCompanies'
 import { STAGE_COLORS, matchPctColor } from '@/utils/score'
 import type { ApplicationStage } from '@/types'
-
-const API_BASE = import.meta.env.VITE_FLASK_API_BASE ?? 'http://localhost:5100'
+import { api } from '@/api'
 
 const route = useRoute()
 const { companies, filtered, search: sidebarSearch, refresh } = useCompanies()
@@ -76,8 +75,7 @@ async function syncVault() {
   syncError.value = false
   startProgress()
   try {
-    const res  = await fetch(`${API_BASE}/api/sync-vault`, { method: 'POST' })
-    const data = await res.json()
+    const { data } = await api.post('/api/applications/sync-vault')
     const ok   = !!data.ok
     finishProgress(ok)
     syncError.value = !ok
