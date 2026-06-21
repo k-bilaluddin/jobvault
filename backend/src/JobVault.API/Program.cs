@@ -1,12 +1,14 @@
 using System.Text;
 using JobVault.Application.Interfaces;
 using JobVault.Application.Services;
+using JobVault.Infrastructure.Auth;
 using JobVault.Infrastructure.GitHub;
 using JobVault.Infrastructure.Messaging.RabbitMQ;
 using JobVault.Infrastructure.Notifications;
 using JobVault.Infrastructure.Notifications.Telegram;
 using JobVault.Infrastructure.Persistence.MongoDB;
 using JobVault.Infrastructure.Processing;
+using JobVault.Infrastructure.Vault;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 
@@ -108,9 +110,15 @@ builder.Services.AddSingleton<IGitHubFileService, GitHubFileService>();
 builder.Services.AddSingleton<IMarkdownParserService, MarkdownParserService>();
 builder.Services.AddSingleton<IRabbitMqPublisher, RabbitMqPublisher>();
 builder.Services.AddSingleton<ITelegramNotificationService, TelegramNotificationService>();
+builder.Services.AddSingleton<IVaultFileService, VaultFileService>();
+builder.Services.AddSingleton<IMarkdownRenderService, MarkdownRenderService>();
+builder.Services.AddSingleton<IGitSyncService, GitSyncService>();
+builder.Services.AddSingleton<ITokenService, TokenService>();
+builder.Services.AddSingleton<IAuthenticationService, AuthenticationService>();
 builder.Services.AddScoped<IWebhookHandler, WebhookHandler>();
 builder.Services.AddScoped<IFileIngestService, FileIngestService>();
 builder.Services.AddScoped<IApplicationIngestionService, ApplicationIngestionService>();
+builder.Services.AddScoped<IApplicationQueryService, ApplicationQueryService>();
 
 // Notification services
 builder.Services.AddSingleton<INotificationHub, NotificationHub>();
