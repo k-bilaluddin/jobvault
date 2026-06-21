@@ -8,10 +8,10 @@ import { useCompanies } from '@/composables/useCompanies'
 import { STAGE_COLORS, matchPctColor, matchPctBar } from '@/utils/score'
 import { PIPELINE_STAGES } from '@/types'
 import type { ApplicationStage, Company } from '@/types'
+import { api } from '@/api'
 
 const router = useRouter()
 const { filtered, loading, search, filterStage, companies } = useCompanies()
-const API_BASE = import.meta.env.VITE_FLASK_API_BASE ?? 'http://localhost:5100'
 
 // ── Tabs ─────────────────────────────────────────────────────
 const STAGE_TABS = ['All', ...PIPELINE_STAGES] as const
@@ -103,11 +103,7 @@ async function quickStage(c: Company, stage: ApplicationStage, e: MouseEvent) {
   stageUpdating.value = c.name
   activeActionRow.value = null
   try {
-    await fetch(`${API_BASE}/api/company/${encodeURIComponent(c.name)}/stage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ stage }),
-    })
+    await api.post(`/api/applications/${encodeURIComponent(c.name)}/stage`, { stage })
     c.stage = stage
   } finally {
     stageUpdating.value = null
