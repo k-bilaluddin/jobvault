@@ -1,0 +1,35 @@
+services:
+  api:
+    image: ghcr.io/k-bilaluddin/jobvault-api:staging
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    container_name: jobvault-api-staging
+    ports:
+      - "5002:8080"
+    env_file:
+      - .env.staging
+    environment:
+      - APP_VAULT_ROOT_DIR=/app/vault
+    volumes:
+      - ${APP_VAULT_ROOT_DIR}:/app/vault:ro
+    restart: unless-stopped
+
+  worker:
+    image: ghcr.io/k-bilaluddin/jobvault-worker:staging
+    build:
+      context: .
+      dockerfile: docker/worker.Dockerfile
+    container_name: jobvault-worker-staging
+    env_file:
+      - .env.staging
+    restart: unless-stopped
+    depends_on:
+      - api
+    networks:
+      - default
+      - jobvault-internal
+
+networks:
+  jobvault-internal:
+    external: true
