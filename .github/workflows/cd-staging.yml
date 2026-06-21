@@ -107,9 +107,8 @@ jobs:
         with:
           ref: develop
 
-      - name: Create .env.staging for Docker Compose
+      - name: Create persistent .env.staging
         shell: pwsh
-        working-directory: ${{ github.workspace }}
         env:
           AUTH_EMAIL: ${{ secrets.STG_AUTH_EMAIL }}
           AUTH_PASSWORD_HASH: ${{ secrets.STG_AUTH_PASSWORD_HASH }}
@@ -135,6 +134,8 @@ jobs:
           APP_GH_BRANCH: ${{ secrets.APP_GH_BRANCH }}
           APP_VAULT_ROOT_DIR: ${{ secrets.APP_VAULT_ROOT_DIR }}
         run: |
+          $envDir = "$env:USERPROFILE\.jobvault"
+          if (-not (Test-Path $envDir)) { New-Item -ItemType Directory -Path $envDir -Force | Out-Null }
           @"
           AUTH_EMAIL=$env:AUTH_EMAIL
           AUTH_PASSWORD_HASH=$($env:AUTH_PASSWORD_HASH -replace '\$','$$$$')
@@ -159,15 +160,7 @@ jobs:
           APP_GH_REPOSITORY=$env:APP_GH_REPOSITORY
           APP_GH_BRANCH=$env:APP_GH_BRANCH
           APP_VAULT_ROOT_DIR=$env:APP_VAULT_ROOT_DIR
-          "@ | Set-Content -Path .env.staging -Encoding utf8
-
-      - name: Verify .env.staging exists
-        shell: pwsh
-        working-directory: ${{ github.workspace }}
-        run: |
-          if (-not (Test-Path -Path .env.staging -PathType Leaf)) {
-            throw "Required .env.staging file was not created."
-          }
+          "@ | Set-Content -Path "$envDir\.env.staging" -Encoding utf8
 
       - name: Ensure jobvault-internal network exists
         shell: pwsh
@@ -183,8 +176,9 @@ jobs:
         env:
           APP_VAULT_ROOT_DIR: ${{ secrets.APP_VAULT_ROOT_DIR }}
         run: |
-          docker compose -f docker-compose.staging.yml --env-file .env.staging pull
-          docker compose -f docker-compose.staging.yml --env-file .env.staging up -d
+          $envFile = "$env:USERPROFILE\.jobvault\.env.staging"
+          docker compose -f docker-compose.staging.yml --env-file $envFile pull
+          docker compose -f docker-compose.staging.yml --env-file $envFile up -d
 
       - name: Notify Telegram
         shell: pwsh
