@@ -9,13 +9,11 @@ import { useCompanies } from '@/composables/useCompanies'
 import { OUTCOME_COLORS, STAGE_COLORS } from '@/utils/score'
 import { PIPELINE_STAGES } from '@/types'
 import type { ApplicationStage } from '@/types'
-import { api, FLASK_API_BASE } from '@/api'
+import { api, API_BASE } from '@/api'
 
 const route  = useRoute()
 const router = useRouter()
 const { getByName, loading } = useCompanies()
-
-const API_BASE = FLASK_API_BASE
 
 const companyName = computed(() => decodeURIComponent(route.params.name as string))
 const company     = computed(() => getByName(companyName.value))
@@ -59,19 +57,18 @@ async function loadReport() {
   if (reportLoaded.value) return
   reportLoading.value = true
   try {
-    const res = await fetch(`${API_BASE}/api/company/${encodeURIComponent(companyName.value)}/report`)
-    const data = await res.json()
+    const { data } = await api.get(`/api/applications/${encodeURIComponent(companyName.value)}/report`)
     reportHtml.value = data.html ?? ''
     reportLoaded.value = true
   } catch {
-    reportHtml.value = '<p class="text-red-400 text-sm">Failed to load report. Is Flask running?</p>'
+    reportHtml.value = '<p class="text-red-400 text-sm">Failed to load report.</p>'
     reportLoaded.value = true
   } finally {
     reportLoading.value = false
   }
 }
 
-// ── Tailoring notes HTML (from Flask) ────────────────────────
+// ── Tailoring notes HTML ─────────────────────────────────────
 const notesHtml    = ref('')
 const notesLoading  = ref(false)
 const notesLoaded   = ref(false)
@@ -80,12 +77,11 @@ async function loadNotes() {
   if (notesLoaded.value) return
   notesLoading.value = true
   try {
-    const res = await fetch(`${API_BASE}/api/company/${encodeURIComponent(companyName.value)}/notes`)
-    const data = await res.json()
+    const { data } = await api.get(`/api/applications/${encodeURIComponent(companyName.value)}/notes`)
     notesHtml.value = data.html ?? ''
     notesLoaded.value = true
   } catch {
-    notesHtml.value = '<p class="text-red-400 text-sm">Failed to load notes. Is Flask running?</p>'
+    notesHtml.value = '<p class="text-red-400 text-sm">Failed to load notes.</p>'
     notesLoaded.value = true
   } finally {
     notesLoading.value = false
@@ -96,6 +92,18 @@ async function loadNotes() {
 watch(activeTab, (tab) => {
   if (tab === 'Analysis') loadReport()
   if (tab === 'Strategy') loadNotes()
+})
+
+// Reset and reload when company changes
+watch(companyName, () => {
+  reportLoaded.value = false
+  reportHtml.value = ''
+  notesLoaded.value = false
+  notesHtml.value = ''
+  noteInit.value = false
+  interviewsInit.value = false
+  if (activeTab.value === 'Analysis') loadReport()
+  if (activeTab.value === 'Strategy') loadNotes()
 })
 
 // Load report on mount if it's the default tab
@@ -132,11 +140,11 @@ async function saveNote() {
 
 // ── PDF viewer ────────────────────────────────────────────────
 const pdfViewer  = ref<'cv' | 'letter' | null>(null)
-const pdfUrl = computed(() =>
-  pdfViewer.value
-    ? `${API_BASE}/api/company/${encodeURIComponent(companyName.value)}/pdf/${pdfViewer.value}`
-    : ''
-)
+const pdfUrl = computed(() => {
+  if (!pdfViewer.value) return ''
+  const token = localStorage.getItem('jv_token') ?? ''
+  return `${API_BASE}/api/applications/${encodeURIComponent(companyName.value)}/pdf/${pdfViewer.value}?token=${encodeURIComponent(token)}`
+})
 
 // ── Salary formatter ─────────────────────────────────────────
 const salaryDisplay = computed(() => {

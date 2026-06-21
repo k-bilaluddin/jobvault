@@ -146,6 +146,7 @@ jobs:
           APP_GH_OWNER: ${{ secrets.APP_GH_OWNER }}
           APP_GH_REPOSITORY: ${{ secrets.APP_GH_REPOSITORY }}
           APP_GH_BRANCH: ${{ secrets.APP_GH_BRANCH }}
+          APP_VAULT_ROOT_DIR: ${{ secrets.APP_VAULT_ROOT_DIR }}
         run: |
           @"
           AUTH_EMAIL=$env:AUTH_EMAIL
@@ -170,6 +171,7 @@ jobs:
           APP_GH_OWNER=$env:APP_GH_OWNER
           APP_GH_REPOSITORY=$env:APP_GH_REPOSITORY
           APP_GH_BRANCH=$env:APP_GH_BRANCH
+          APP_VAULT_ROOT_DIR=$env:APP_VAULT_ROOT_DIR
           "@ | Set-Content -Path .env -Encoding utf8
 
       - name: Verify .env exists
