@@ -1,3 +1,5 @@
+name: jobvault-prod
+
 services:
   api:
     image: ghcr.io/k-bilaluddin/jobvault-api:latest
@@ -14,6 +16,9 @@ services:
     volumes:
       - ${APP_VAULT_ROOT_DIR}:/app/vault
     restart: unless-stopped
+    networks:
+      - prod
+      - jobvault-internal
 
   worker:
     image: ghcr.io/k-bilaluddin/jobvault-worker:latest
@@ -27,11 +32,11 @@ services:
     depends_on:
       - api
     networks:
-      - default
+      - prod
       - jobvault-internal
 
 networks:
-  # Must be created once before first `docker-compose up`:
-  #   docker network create jobvault-internal
+  prod:
+    name: jobvault-prod
   jobvault-internal:
     external: true
