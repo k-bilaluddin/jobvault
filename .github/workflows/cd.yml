@@ -192,8 +192,9 @@ jobs:
           APP_VAULT_ROOT_DIR: ${{ secrets.APP_VAULT_ROOT_DIR }}
         run: |
           $envFile = "$env:USERPROFILE\${{ env.ENV_DIR }}\.env"
-          docker compose --env-file $envFile pull --quiet
-          docker compose --env-file $envFile up -d
+          Copy-Item $envFile -Destination ".env" -Force
+          docker compose pull --quiet
+          docker compose up -d
 
       - name: Notify Telegram
         shell: pwsh

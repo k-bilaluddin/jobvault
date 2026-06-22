@@ -178,8 +178,9 @@ jobs:
           APP_VAULT_ROOT_DIR: ${{ secrets.APP_VAULT_ROOT_DIR }}
         run: |
           $envFile = "$env:USERPROFILE\${{ env.ENV_DIR }}\.env.staging"
-          docker compose -f docker-compose.staging.yml --env-file $envFile pull --quiet
-          docker compose -f docker-compose.staging.yml --env-file $envFile up -d
+          Copy-Item $envFile -Destination ".env.staging" -Force
+          docker compose -f docker-compose.staging.yml pull --quiet
+          docker compose -f docker-compose.staging.yml up -d
 
       - name: Notify Telegram
         shell: pwsh
