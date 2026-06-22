@@ -1,3 +1,5 @@
+name: jobvault-stg
+
 services:
   api:
     image: ghcr.io/k-bilaluddin/jobvault-api:staging
@@ -14,6 +16,9 @@ services:
     volumes:
       - ${APP_VAULT_ROOT_DIR}:/app/vault
     restart: unless-stopped
+    networks:
+      - staging
+      - jobvault-internal
 
   worker:
     image: ghcr.io/k-bilaluddin/jobvault-worker:staging
@@ -27,9 +32,11 @@ services:
     depends_on:
       - api
     networks:
-      - default
+      - staging
       - jobvault-internal
 
 networks:
+  staging:
+    name: jobvault-stg
   jobvault-internal:
     external: true

@@ -1,9 +1,9 @@
-name: CD Pipeline
+name: Deploy Production
 
 on:
   workflow_dispatch:
   workflow_run:
-    workflows: ["CI Tests"]
+    workflows: ["CI"]
     types: [completed]
     branches: [master]
 
@@ -11,6 +11,7 @@ env:
   REGISTRY: ghcr.io
   API_IMAGE: ghcr.io/k-bilaluddin/jobvault-api
   WORKER_IMAGE: ghcr.io/k-bilaluddin/jobvault-worker
+  ENV_DIR: .jobvault
 
 permissions:
   contents: read
@@ -23,7 +24,7 @@ jobs:
   build-api:
     name: Build & Push API
     runs-on: ubuntu-latest
-    if: github.event.workflow_run.conclusion == 'success'
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
 
     permissions:
       contents: read
@@ -69,7 +70,7 @@ jobs:
   build-worker:
     name: Build & Push Worker
     runs-on: ubuntu-latest
-    if: github.event.workflow_run.conclusion == 'success'
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
 
     permissions:
       contents: read
@@ -121,9 +122,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Create root .env for Docker Compose
+      - name: Write persistent .env
         shell: pwsh
-        working-directory: ${{ github.workspace }}
         env:
           AUTH_EMAIL: ${{ secrets.AUTH_EMAIL }}
           AUTH_PASSWORD_HASH: ${{ secrets.AUTH_PASSWORD_HASH }}
@@ -149,6 +149,8 @@ jobs:
           APP_GH_BRANCH: ${{ secrets.APP_GH_BRANCH }}
           APP_VAULT_ROOT_DIR: ${{ secrets.APP_VAULT_ROOT_DIR }}
         run: |
+          $dir = "$env:USERPROFILE\${{ env.ENV_DIR }}"
+          if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
           @"
           AUTH_EMAIL=$env:AUTH_EMAIL
           AUTH_PASSWORD_HASH=$($env:AUTH_PASSWORD_HASH -replace '\$','$$$$')
@@ -173,15 +175,7 @@ jobs:
           APP_GH_REPOSITORY=$env:APP_GH_REPOSITORY
           APP_GH_BRANCH=$env:APP_GH_BRANCH
           APP_VAULT_ROOT_DIR=$env:APP_VAULT_ROOT_DIR
-          "@ | Set-Content -Path .env -Encoding utf8
-
-      - name: Verify .env exists
-        shell: pwsh
-        working-directory: ${{ github.workspace }}
-        run: |
-          if (-not (Test-Path -Path .env -PathType Leaf)) {
-            throw "Required .env file was not created."
-          }
+          "@ | Set-Content -Path "$dir\.env" -Encoding utf8
 
       - name: Ensure jobvault-internal network exists
         shell: pwsh
@@ -194,9 +188,12 @@ jobs:
       - name: Deploy with Docker Compose
         shell: pwsh
         working-directory: ${{ github.workspace }}
+        env:
+          APP_VAULT_ROOT_DIR: ${{ secrets.APP_VAULT_ROOT_DIR }}
         run: |
-          docker compose pull
-          docker compose up -d
+          $envFile = "$env:USERPROFILE\${{ env.ENV_DIR }}\.env"
+          docker compose --env-file $envFile pull --quiet
+          docker compose --env-file $envFile up -d
 
       - name: Notify Telegram
         shell: pwsh
@@ -204,7 +201,7 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          $message = "🚀 JobVault deployed`nCommit: ${{ github.sha }}`nBy: ${{ github.actor }}"
+          $message = "🚀 JobVault PRODUCTION deployed`nCommit: ${{ github.sha }}`nBy: ${{ github.actor }}"
           Invoke-RestMethod -Method Post -Uri "https://api.telegram.org/bot$env:TELEGRAM_BOT_TOKEN/sendMessage" -Body @{
             chat_id = $env:TELEGRAM_CHAT_ID
             text    = $message
