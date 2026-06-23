@@ -8,10 +8,9 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace JobVault.API.Controllers;
 
-[ApiController]
 [Authorize]
 [Route("api")]
-public class VaultController : ControllerBase
+public class VaultController : ApiControllerBase
 {
     private readonly IFileIngestService _fileIngestService;
     private readonly IApplicationIngestionService _applicationIngestionService;
@@ -41,26 +40,12 @@ public class VaultController : ControllerBase
         [FromBody] IngestApplicationRequest request,
         CancellationToken cancellationToken)
     {
-        using var scope = _logger.BeginScope(new Dictionary<string, object>
-        {
-            ["TraceId"] = HttpContext.TraceIdentifier,
-            ["CompanyName"] = request.CompanyName ?? string.Empty
-        });
+        var result = await _applicationIngestionService.IngestAsync(request, cancellationToken);
 
-        try
-        {
-            var result = await _applicationIngestionService.IngestAsync(request, cancellationToken);
+        if (!result.IsSuccess)
+            return ErrorResponse("ingest.validation_failed", result.ErrorMessage ?? "unknown");
 
-            if (!result.IsSuccess)
-                return BadRequest(new { error = result.ErrorMessage });
-
-            return Accepted(new IngestApplicationResponse { ApplicationId = result.ApplicationId! });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unexpected error during application ingestion for {CompanyName}", request.CompanyName);
-            return StatusCode(500, new { error = "An unexpected error occurred" });
-        }
+        return Accepted(new IngestApplicationResponse { ApplicationId = result.ApplicationId! });
     }
 
     // LEGACY: remove after async ingestion is confirmed stable.
@@ -73,53 +58,39 @@ public class VaultController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> Ingest([FromForm] IngestRequest request, CancellationToken cancellationToken)
     {
-        using var scope = _logger.BeginScope(new Dictionary<string, object>
+        if (string.IsNullOrWhiteSpace(request.CompanyName))
+            return ErrorResponse("vault.company_required");
+
+        if (request.Files == null || request.Files.Count == 0)
+            return ErrorResponse("vault.no_files_uploaded");
+
+        var ingestedFiles = new List<IngestedFile>();
+        foreach (var file in request.Files)
         {
-            ["TraceId"] = HttpContext.TraceIdentifier,
-            ["CompanyName"] = request.CompanyName ?? string.Empty
-        });
-
-        try
-        {
-            if (string.IsNullOrWhiteSpace(request.CompanyName))
-                return BadRequest(new { error = "Company name is required" });
-
-            if (request.Files == null || request.Files.Count == 0)
-                return BadRequest(new { error = "At least one file must be uploaded" });
-
-            var ingestedFiles = new List<IngestedFile>();
-            foreach (var file in request.Files)
+            if (file.Length > 0)
             {
-                if (file.Length > 0)
+                ingestedFiles.Add(new IngestedFile
                 {
-                    ingestedFiles.Add(new IngestedFile
-                    {
-                        FileName = file.FileName,
-                        Content = file.OpenReadStream(),
-                        Length = file.Length
-                    });
-                }
+                    FileName = file.FileName,
+                    Content = file.OpenReadStream(),
+                    Length = file.Length
+                });
             }
-
-            if (ingestedFiles.Count == 0)
-                return BadRequest(new { error = "All uploaded files are empty" });
-
-            var result = await _fileIngestService.IngestAsync(request.CompanyName, ingestedFiles, cancellationToken);
-
-            if (!result.IsSuccess)
-                return StatusCode(500, new { error = result.ErrorMessage });
-
-            return Ok(new IngestResponse
-            {
-                CompanyName = result.CompanyName,
-                CommitUrl = result.CommitUrl,
-                FilesUploaded = result.FilesUploaded
-            });
         }
-        catch (Exception ex)
+
+        if (ingestedFiles.Count == 0)
+            return ErrorResponse("vault.empty_files");
+
+        var result = await _fileIngestService.IngestAsync(request.CompanyName, ingestedFiles, cancellationToken);
+
+        if (!result.IsSuccess)
+            return ErrorResponse("ingest.upsert_failed", request.CompanyName);
+
+        return Ok(new IngestResponse
         {
-            _logger.LogError(ex, "Unexpected error during file ingestion for {CompanyName}", request.CompanyName);
-            return StatusCode(500, new { error = "An unexpected error occurred" });
-        }
+            CompanyName = result.CompanyName,
+            CommitUrl = result.CommitUrl,
+            FilesUploaded = result.FilesUploaded
+        });
     }
 }

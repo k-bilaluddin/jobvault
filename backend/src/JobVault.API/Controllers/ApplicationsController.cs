@@ -6,10 +6,9 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace JobVault.API.Controllers;
 
-[ApiController]
 [Authorize]
 [Route("api/applications")]
-public class ApplicationsController : ControllerBase
+public class ApplicationsController : ApiControllerBase
 {
     private readonly IApplicationQueryService _queryService;
     private readonly IVaultFileService _vaultFileService;
@@ -39,7 +38,7 @@ public class ApplicationsController : ControllerBase
     public async Task<IActionResult> UpdateStage(string name, [FromBody] UpdateStageRequest request, CancellationToken cancellationToken)
     {
         var success = await _queryService.UpdateStageAsync(name, request.Stage, cancellationToken);
-        if (!success) return NotFound();
+        if (!success) return ErrorResponse("application.stage_update_failed", name);
         return Ok(new { ok = true, stage = request.Stage });
     }
 
@@ -47,7 +46,7 @@ public class ApplicationsController : ControllerBase
     public async Task<IActionResult> UpdatePersonalNotes(string name, [FromBody] UpdateNotesRequest request, CancellationToken cancellationToken)
     {
         var success = await _queryService.UpdatePersonalNotesAsync(name, request.Notes, cancellationToken);
-        if (!success) return NotFound();
+        if (!success) return ErrorResponse("application.notes_update_failed", name);
         return Ok(new { ok = true });
     }
 
@@ -63,7 +62,7 @@ public class ApplicationsController : ControllerBase
         };
 
         var application = await _queryService.AddInterviewAsync(name, interview, cancellationToken);
-        if (application == null) return NotFound();
+        if (application == null) return ErrorResponse("application.interview_add_failed", name);
 
         return Ok(new
         {
@@ -79,7 +78,7 @@ public class ApplicationsController : ControllerBase
     public async Task<IActionResult> DeleteInterview(string name, [FromQuery] int idx, CancellationToken cancellationToken)
     {
         var success = await _queryService.DeleteInterviewAsync(name, idx, cancellationToken);
-        if (!success) return NotFound();
+        if (!success) return ErrorResponse("application.interview_del_failed", name);
         return Ok(new { ok = true });
     }
 
@@ -104,7 +103,7 @@ public class ApplicationsController : ControllerBase
         if (!_tokenService.ValidateToken(token)) return Unauthorized();
 
         var path = _vaultFileService.GetPdfPath(name, type);
-        if (path == null) return NotFound();
+        if (path == null) return ErrorResponse("vault.file_not_found", type, name);
 
         return PhysicalFile(path, "application/pdf");
     }
