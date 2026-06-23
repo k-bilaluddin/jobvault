@@ -57,6 +57,16 @@ internal static class JobApplicationMapper
             Notes = i.Notes ?? "",
             Outcome = i.Outcome ?? "Pending",
         }).ToList() ?? [],
+        Notes = doc.Notes?.Select(n => new ApplicationNote
+        {
+            Id = n.Id ?? 0,
+            Category = n.Category ?? "General",
+            Content = n.Content ?? "",
+            Stage = n.Stage ?? "",
+            Pinned = n.Pinned ?? false,
+            CreatedAt = n.CreatedAt ?? DateTime.UtcNow,
+            UpdatedAt = n.UpdatedAt ?? DateTime.UtcNow,
+        }).ToList() ?? [],
         Salary = doc.Salary != null
             ? new SalaryInfo
             {
@@ -122,6 +132,16 @@ internal static class JobApplicationMapper
             Type = i.Type,
             Notes = i.Notes,
             Outcome = i.Outcome,
+        }).ToList(),
+        Notes = entity.Notes.Select(n => new NoteDocument
+        {
+            Id = n.Id,
+            Category = n.Category,
+            Content = n.Content,
+            Stage = n.Stage,
+            Pinned = n.Pinned,
+            CreatedAt = n.CreatedAt,
+            UpdatedAt = n.UpdatedAt,
         }).ToList(),
         Salary = new SalaryDocument
         {

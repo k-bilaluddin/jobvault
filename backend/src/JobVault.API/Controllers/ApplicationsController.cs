@@ -1,6 +1,5 @@
 using JobVault.Application.Interfaces;
 using JobVault.Contracts.Requests;
-using JobVault.Domain.ValueObjects;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -53,25 +52,17 @@ public class ApplicationsController : ApiControllerBase
     [HttpPost("{name}/interviews")]
     public async Task<IActionResult> AddInterview(string name, [FromBody] AddInterviewRequest request, CancellationToken cancellationToken)
     {
-        var interview = new InterviewRecord
-        {
-            Date = request.Date,
-            Type = request.Type,
-            Notes = request.Notes,
-            Outcome = request.Outcome,
-        };
+        var result = await _queryService.AddInterviewAsync(name, request, cancellationToken);
+        if (result == null) return ErrorResponse("application.interview_add_failed", name);
+        return Ok(result);
+    }
 
-        var application = await _queryService.AddInterviewAsync(name, interview, cancellationToken);
-        if (application == null) return ErrorResponse("application.interview_add_failed", name);
-
-        return Ok(new
-        {
-            ok = true,
-            interviews = application.Interviews.Select(i => new
-            {
-                id = i.Id, date = i.Date, type = i.Type, notes = i.Notes, outcome = i.Outcome,
-            }),
-        });
+    [HttpPut("{name}/interviews/{idx:int}")]
+    public async Task<IActionResult> UpdateInterview(string name, int idx, [FromBody] UpdateInterviewRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _queryService.UpdateInterviewAsync(name, idx, request, cancellationToken);
+        if (result == null) return ErrorResponse("application.interview_update_failed", name);
+        return Ok(result);
     }
 
     [HttpDelete("{name}/interviews")]
@@ -79,6 +70,30 @@ public class ApplicationsController : ApiControllerBase
     {
         var success = await _queryService.DeleteInterviewAsync(name, idx, cancellationToken);
         if (!success) return ErrorResponse("application.interview_del_failed", name);
+        return Ok(new { ok = true });
+    }
+
+    [HttpPost("{name}/notes")]
+    public async Task<IActionResult> AddNote(string name, [FromBody] AddNoteRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _queryService.AddNoteAsync(name, request, cancellationToken);
+        if (result == null) return ErrorResponse("application.note_add_failed", name);
+        return Ok(result);
+    }
+
+    [HttpPut("{name}/notes/{noteId:int}")]
+    public async Task<IActionResult> UpdateNote(string name, int noteId, [FromBody] UpdateNoteRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _queryService.UpdateNoteAsync(name, noteId, request, cancellationToken);
+        if (result == null) return ErrorResponse("application.note_update_failed", name);
+        return Ok(result);
+    }
+
+    [HttpDelete("{name}/notes/{noteId:int}")]
+    public async Task<IActionResult> DeleteNote(string name, int noteId, CancellationToken cancellationToken)
+    {
+        var success = await _queryService.DeleteNoteAsync(name, noteId, cancellationToken);
+        if (!success) return ErrorResponse("application.note_del_failed", name);
         return Ok(new { ok = true });
     }
 
