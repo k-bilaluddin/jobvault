@@ -5,9 +5,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace JobVault.API.Controllers;
 
-[ApiController]
 [Route("api/auth")]
-public class AuthController : ControllerBase
+public class AuthController : ApiControllerBase
 {
     private readonly IAuthenticationService _authService;
     private readonly ILogger<AuthController> _logger;
@@ -27,7 +26,7 @@ public class AuthController : ControllerBase
         if (result is null)
         {
             _logger.LogWarning("Failed login attempt for email {Email}", request.Email);
-            return Unauthorized(new { error = "Invalid credentials" });
+            return ErrorResponse("auth.invalid_credentials");
         }
 
         _logger.LogInformation("Successful login for {Email}", request.Email);

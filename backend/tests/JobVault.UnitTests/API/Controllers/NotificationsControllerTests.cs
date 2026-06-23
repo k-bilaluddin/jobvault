@@ -50,17 +50,14 @@ public class NotificationsControllerTests
     }
 
     [Fact]
-    public async Task GetNotifications_RepositoryThrows_Returns500()
+    public async Task GetNotifications_RepositoryThrows_ExceptionBubbles()
     {
         // Arrange
         _notificationRepository.GetRecentAsync(50).ThrowsAsync(new Exception("DB down"));
 
-        // Act
-        var result = await _sut.GetNotifications();
-
-        // Assert
-        var objectResult = result.Result.Should().BeOfType<ObjectResult>().Subject;
-        objectResult.StatusCode.Should().Be(500);
+        // Act & Assert — exception bubbles to GlobalExceptionHandler middleware
+        await Assert.ThrowsAsync<Exception>(() =>
+            _sut.GetNotifications());
     }
 
     [Fact]

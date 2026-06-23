@@ -7,10 +7,9 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace JobVault.API.Controllers;
 
-[ApiController]
 [Authorize]
 [Route("api/notifications")]
-public class NotificationsController : ControllerBase
+public class NotificationsController : ApiControllerBase
 {
     private readonly INotificationHub _notificationHub;
     private readonly INotificationRepository _notificationRepository;
@@ -45,11 +44,6 @@ public class NotificationsController : ControllerBase
             return;
         }
 
-        using var scope = _logger.BeginScope(new Dictionary<string, object>
-        {
-            ["TraceId"] = HttpContext.TraceIdentifier
-        });
-
         Response.Headers.Append("Content-Type", "text/event-stream");
         Response.Headers.Append("Cache-Control", "no-cache");
         Response.Headers.Append("X-Accel-Buffering", "no");
@@ -83,74 +77,35 @@ public class NotificationsController : ControllerBase
         }
         catch (OperationCanceledException)
         {
-            _logger.LogDebug(LogEvents.SseClientCancelled, "SSE stream cancelled for client {TraceId}", HttpContext.TraceIdentifier);
+            _logger.LogDebug(LogEvents.SseClientCancelled, "SSE stream cancelled");
         }
         catch (Exception ex)
         {
-            _logger.LogError(LogEvents.SseStreamError, ex, "Error in SSE stream for client {TraceId}", HttpContext.TraceIdentifier);
+            _logger.LogError(LogEvents.SseStreamError, ex, "Error in SSE stream");
         }
     }
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<AppNotification>>> GetNotifications()
     {
-        using var scope = _logger.BeginScope(new Dictionary<string, object>
-        {
-            ["TraceId"] = HttpContext.TraceIdentifier
-        });
-
-        try
-        {
-            var notifications = await _notificationRepository.GetRecentAsync(50);
-            return Ok(notifications);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving notifications");
-            return StatusCode(500, "Internal server error");
-        }
+        var notifications = await _notificationRepository.GetRecentAsync(50);
+        return Ok(notifications);
     }
 
     [HttpPost("read-all")]
     public async Task<ActionResult> MarkAllRead()
     {
-        using var scope = _logger.BeginScope(new Dictionary<string, object>
-        {
-            ["TraceId"] = HttpContext.TraceIdentifier
-        });
-
-        try
-        {
-            var count = await _notificationRepository.MarkAllReadAsync();
-            _logger.LogInformation(LogEvents.NotificationsMarkedRead, "Marked {Count} notifications as read", count);
-            return Ok();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error marking all notifications as read");
-            return StatusCode(500, "Internal server error");
-        }
+        var count = await _notificationRepository.MarkAllReadAsync();
+        _logger.LogInformation(LogEvents.NotificationsMarkedRead, "Marked {Count} notifications as read", count);
+        return Ok();
     }
 
     [HttpPost("{id:guid}/read")]
     public async Task<ActionResult> MarkRead(Guid id)
     {
-        using var scope = _logger.BeginScope(new Dictionary<string, object>
-        {
-            ["TraceId"] = HttpContext.TraceIdentifier
-        });
-
-        try
-        {
-            await _notificationRepository.MarkReadAsync(id);
-            _logger.LogInformation(LogEvents.NotificationMarkedRead, "Marked notification {Id} as read", id);
-            return Ok();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error marking notification {Id} as read", id);
-            return StatusCode(500, "Internal server error");
-        }
+        await _notificationRepository.MarkReadAsync(id);
+        _logger.LogInformation(LogEvents.NotificationMarkedRead, "Marked notification {Id} as read", id);
+        return Ok();
     }
 
     private async Task WriteRawAsync(string text, CancellationToken cancellationToken)
@@ -158,5 +113,4 @@ public class NotificationsController : ControllerBase
         await Response.WriteAsync(text, cancellationToken);
         await Response.Body.FlushAsync(cancellationToken);
     }
-
 }

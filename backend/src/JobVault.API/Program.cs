@@ -1,4 +1,5 @@
 using System.Text;
+using JobVault.API.Middleware;
 using JobVault.Application.Interfaces;
 using JobVault.Application.Services;
 using JobVault.Infrastructure.Auth;
@@ -57,6 +58,8 @@ builder.Configuration.AddInMemoryCollection(
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 // Register HTTP client factory
 builder.Services.AddHttpClient();
@@ -134,6 +137,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseMiddleware<CorrelationIdMiddleware>();
+app.UseExceptionHandler();
 app.UseHttpsRedirection();
 app.UseCors();
 app.UseAuthentication();
