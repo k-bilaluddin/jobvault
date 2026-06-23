@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using JobVault.Application.Interfaces;
+using JobVault.Contracts.Requests;
 using JobVault.Contracts.Responses;
 using JobVault.Domain.Entities;
 using JobVault.Domain.ValueObjects;
@@ -55,6 +56,13 @@ public class ApplicationQueryService : IApplicationQueryService
                     Interviews = a.Interviews.Select(i => new InterviewResponse
                     {
                         Id = i.Id, Date = i.Date, Type = i.Type, Notes = i.Notes, Outcome = i.Outcome,
+                    }).ToList(),
+                    Notes = a.Notes.Select(n => new NoteResponse
+                    {
+                        Id = n.Id, Category = n.Category, Content = n.Content,
+                        Stage = n.Stage, Pinned = n.Pinned,
+                        Created_at = n.CreatedAt.ToString("o"),
+                        Updated_at = n.UpdatedAt.ToString("o"),
                     }).ToList(),
                     Salary = new SalaryResponse
                     {
@@ -227,9 +235,90 @@ public class ApplicationQueryService : IApplicationQueryService
     public Task<bool> UpdatePersonalNotesAsync(string companyName, string notes, CancellationToken cancellationToken = default)
         => _repository.UpdatePersonalNotesAsync(companyName, notes, cancellationToken);
 
-    public Task<JobApplication?> AddInterviewAsync(string companyName, InterviewRecord interview, CancellationToken cancellationToken = default)
-        => _repository.AddInterviewAsync(companyName, interview, cancellationToken);
+    public async Task<InterviewListResponse?> AddInterviewAsync(string companyName, AddInterviewRequest request, CancellationToken cancellationToken = default)
+    {
+        var interview = new InterviewRecord
+        {
+            Date = request.Date,
+            Type = request.Type,
+            Notes = request.Notes,
+            Outcome = request.Outcome,
+        };
+
+        var application = await _repository.AddInterviewAsync(companyName, interview, cancellationToken);
+        if (application == null) return null;
+
+        return new InterviewListResponse
+        {
+            Ok = true,
+            Interviews = application.Interviews.Select(i => new InterviewResponse
+            {
+                Id = i.Id, Date = i.Date, Type = i.Type, Notes = i.Notes, Outcome = i.Outcome,
+            }).ToList(),
+        };
+    }
+
+    public async Task<InterviewListResponse?> UpdateInterviewAsync(string companyName, int index, UpdateInterviewRequest request, CancellationToken cancellationToken = default)
+    {
+        var application = await _repository.UpdateInterviewAsync(companyName, index, request.Date, request.Type, request.Notes, request.Outcome, cancellationToken);
+        if (application == null) return null;
+
+        return new InterviewListResponse
+        {
+            Ok = true,
+            Interviews = application.Interviews.Select(i => new InterviewResponse
+            {
+                Id = i.Id, Date = i.Date, Type = i.Type, Notes = i.Notes, Outcome = i.Outcome,
+            }).ToList(),
+        };
+    }
 
     public Task<bool> DeleteInterviewAsync(string companyName, int index, CancellationToken cancellationToken = default)
         => _repository.DeleteInterviewAsync(companyName, index, cancellationToken);
+
+    public async Task<NoteListResponse?> AddNoteAsync(string companyName, AddNoteRequest request, CancellationToken cancellationToken = default)
+    {
+        var stage = request.Stage;
+        if (string.IsNullOrEmpty(stage))
+        {
+            var app = await _repository.GetByCompanyNameAsync(companyName, cancellationToken);
+            stage = app?.Stage is { Length: > 0 } s ? s : "Ready to Apply";
+        }
+
+        var note = new ApplicationNote
+        {
+            Category = request.Category,
+            Content = request.Content,
+            Pinned = request.Pinned,
+            Stage = stage,
+        };
+
+        var application = await _repository.AddNoteAsync(companyName, note, cancellationToken);
+        if (application == null) return null;
+
+        return MapNoteListResponse(application);
+    }
+
+    public async Task<NoteListResponse?> UpdateNoteAsync(string companyName, int noteId, UpdateNoteRequest request, CancellationToken cancellationToken = default)
+    {
+        var application = await _repository.UpdateNoteAsync(companyName, noteId, request.Category, request.Content, request.Pinned, cancellationToken);
+        if (application == null) return null;
+
+        return MapNoteListResponse(application);
+    }
+
+    public Task<bool> DeleteNoteAsync(string companyName, int noteId, CancellationToken cancellationToken = default)
+        => _repository.DeleteNoteAsync(companyName, noteId, cancellationToken);
+
+    private static NoteListResponse MapNoteListResponse(JobApplication application) => new()
+    {
+        Ok = true,
+        Notes = application.Notes.Select(n => new NoteResponse
+        {
+            Id = n.Id, Category = n.Category, Content = n.Content,
+            Stage = n.Stage, Pinned = n.Pinned,
+            Created_at = n.CreatedAt.ToString("o"),
+            Updated_at = n.UpdatedAt.ToString("o"),
+        }).ToList(),
+    };
 }

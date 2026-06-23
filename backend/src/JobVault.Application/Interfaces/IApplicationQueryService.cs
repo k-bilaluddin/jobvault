@@ -1,6 +1,5 @@
+using JobVault.Contracts.Requests;
 using JobVault.Contracts.Responses;
-using JobVault.Domain.Entities;
-using JobVault.Domain.ValueObjects;
 
 namespace JobVault.Application.Interfaces;
 
@@ -13,6 +12,10 @@ public interface IApplicationQueryService
     Task<HistoricalResponse> GetHistoricalAsync(CancellationToken cancellationToken = default);
     Task<bool> UpdateStageAsync(string companyName, string stage, CancellationToken cancellationToken = default);
     Task<bool> UpdatePersonalNotesAsync(string companyName, string notes, CancellationToken cancellationToken = default);
-    Task<JobApplication?> AddInterviewAsync(string companyName, InterviewRecord interview, CancellationToken cancellationToken = default);
+    Task<InterviewListResponse?> AddInterviewAsync(string companyName, AddInterviewRequest request, CancellationToken cancellationToken = default);
+    Task<InterviewListResponse?> UpdateInterviewAsync(string companyName, int index, UpdateInterviewRequest request, CancellationToken cancellationToken = default);
     Task<bool> DeleteInterviewAsync(string companyName, int index, CancellationToken cancellationToken = default);
+    Task<NoteListResponse?> AddNoteAsync(string companyName, AddNoteRequest request, CancellationToken cancellationToken = default);
+    Task<NoteListResponse?> UpdateNoteAsync(string companyName, int noteId, UpdateNoteRequest request, CancellationToken cancellationToken = default);
+    Task<bool> DeleteNoteAsync(string companyName, int noteId, CancellationToken cancellationToken = default);
 }

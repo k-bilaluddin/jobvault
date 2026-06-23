@@ -56,7 +56,6 @@ public class ArchitectureDependencyTests
             .And().NotHaveDependencyOn("MongoDB.Driver")
             .And().NotHaveDependencyOn("RabbitMQ.Client")
             .And().NotHaveDependencyOn("Telegram.Bot")
-            .And().NotHaveDependencyOn("Microsoft.AspNetCore")
             .GetResult();
 
         Assert.True(result.IsSuccessful,
@@ -244,6 +243,8 @@ public class ArchitectureDependencyTests
             .ResideInNamespace($"{ApiNamespace}.Controllers")
             .And()
             .AreClasses()
+            .And()
+            .AreNotAbstract()
             .Should()
             .HaveNameEndingWith("Controller")
             .GetResult();

@@ -61,10 +61,28 @@ export interface Company {
   stage: ApplicationStage
   personal_notes: string
   interviews: Interview[]
+  notes: ApplicationNote[]
   salary: Salary
   recruiter: Recruiter
   follow_up_date: string
   source: string
+}
+
+// ─── Categorized application note ─────────────────────────────
+export type NoteCategory = 'Application' | 'Interview' | 'Follow-up' | 'Rejection' | 'General'
+
+export const NOTE_CATEGORIES: NoteCategory[] = [
+  'Application', 'Interview', 'Follow-up', 'Rejection', 'General',
+]
+
+export interface ApplicationNote {
+  id: number
+  category: NoteCategory
+  content: string
+  stage: string
+  pinned: boolean
+  created_at: string
+  updated_at: string
 }
 
 // ─── In-app notification ──────────────────────────────────────

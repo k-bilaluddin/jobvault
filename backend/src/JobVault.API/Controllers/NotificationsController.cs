@@ -1,19 +1,18 @@
 using System.Text.Json;
 using JobVault.API.Logging;
 using JobVault.Application.Interfaces;
-using JobVault.Domain.Entities;
+using JobVault.Contracts.Responses;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace JobVault.API.Controllers;
 
-[ApiController]
 [Authorize]
 [Route("api/notifications")]
-public class NotificationsController : ControllerBase
+public class NotificationsController : ApiControllerBase
 {
     private readonly INotificationHub _notificationHub;
-    private readonly INotificationRepository _notificationRepository;
+    private readonly INotificationQueryService _queryService;
     private readonly ILogger<NotificationsController> _logger;
     private readonly ITokenService _tokenService;
 
@@ -24,17 +23,16 @@ public class NotificationsController : ControllerBase
 
     public NotificationsController(
         INotificationHub notificationHub,
-        INotificationRepository notificationRepository,
+        INotificationQueryService queryService,
         ILogger<NotificationsController> logger,
         ITokenService tokenService)
     {
         _notificationHub = notificationHub;
-        _notificationRepository = notificationRepository;
+        _queryService = queryService;
         _logger = logger;
         _tokenService = tokenService;
     }
 
-    // EventSource cannot send Authorization headers — accept token via query param for SSE only.
     [HttpGet("stream")]
     [AllowAnonymous]
     public async Task StreamNotifications([FromQuery] string? token, CancellationToken cancellationToken)
@@ -44,11 +42,6 @@ public class NotificationsController : ControllerBase
             HttpContext.Response.StatusCode = 401;
             return;
         }
-
-        using var scope = _logger.BeginScope(new Dictionary<string, object>
-        {
-            ["TraceId"] = HttpContext.TraceIdentifier
-        });
 
         Response.Headers.Append("Content-Type", "text/event-stream");
         Response.Headers.Append("Cache-Control", "no-cache");
@@ -83,74 +76,33 @@ public class NotificationsController : ControllerBase
         }
         catch (OperationCanceledException)
         {
-            _logger.LogDebug(LogEvents.SseClientCancelled, "SSE stream cancelled for client {TraceId}", HttpContext.TraceIdentifier);
+            _logger.LogDebug(LogEvents.SseClientCancelled, "SSE stream cancelled");
         }
         catch (Exception ex)
         {
-            _logger.LogError(LogEvents.SseStreamError, ex, "Error in SSE stream for client {TraceId}", HttpContext.TraceIdentifier);
+            _logger.LogError(LogEvents.SseStreamError, ex, "Error in SSE stream");
         }
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<AppNotification>>> GetNotifications()
+    public async Task<ActionResult<IEnumerable<NotificationResponse>>> GetNotifications(CancellationToken cancellationToken)
     {
-        using var scope = _logger.BeginScope(new Dictionary<string, object>
-        {
-            ["TraceId"] = HttpContext.TraceIdentifier
-        });
-
-        try
-        {
-            var notifications = await _notificationRepository.GetRecentAsync(50);
-            return Ok(notifications);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving notifications");
-            return StatusCode(500, "Internal server error");
-        }
+        var result = await _queryService.GetRecentAsync(50, cancellationToken);
+        return Ok(result);
     }
 
     [HttpPost("read-all")]
-    public async Task<ActionResult> MarkAllRead()
+    public async Task<ActionResult> MarkAllRead(CancellationToken cancellationToken)
     {
-        using var scope = _logger.BeginScope(new Dictionary<string, object>
-        {
-            ["TraceId"] = HttpContext.TraceIdentifier
-        });
-
-        try
-        {
-            var count = await _notificationRepository.MarkAllReadAsync();
-            _logger.LogInformation(LogEvents.NotificationsMarkedRead, "Marked {Count} notifications as read", count);
-            return Ok();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error marking all notifications as read");
-            return StatusCode(500, "Internal server error");
-        }
+        await _queryService.MarkAllReadAsync(cancellationToken);
+        return Ok();
     }
 
     [HttpPost("{id:guid}/read")]
-    public async Task<ActionResult> MarkRead(Guid id)
+    public async Task<ActionResult> MarkRead(Guid id, CancellationToken cancellationToken)
     {
-        using var scope = _logger.BeginScope(new Dictionary<string, object>
-        {
-            ["TraceId"] = HttpContext.TraceIdentifier
-        });
-
-        try
-        {
-            await _notificationRepository.MarkReadAsync(id);
-            _logger.LogInformation(LogEvents.NotificationMarkedRead, "Marked notification {Id} as read", id);
-            return Ok();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error marking notification {Id} as read", id);
-            return StatusCode(500, "Internal server error");
-        }
+        await _queryService.MarkReadAsync(id, cancellationToken);
+        return Ok();
     }
 
     private async Task WriteRawAsync(string text, CancellationToken cancellationToken)
@@ -158,5 +110,4 @@ public class NotificationsController : ControllerBase
         await Response.WriteAsync(text, cancellationToken);
         await Response.Body.FlushAsync(cancellationToken);
     }
-
 }

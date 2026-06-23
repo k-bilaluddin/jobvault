@@ -1,4 +1,5 @@
 using System.Text;
+using JobVault.API.Middleware;
 using JobVault.Application.Interfaces;
 using JobVault.Application.Services;
 using JobVault.Infrastructure.Auth;
@@ -49,6 +50,7 @@ builder.Configuration.AddInMemoryCollection(
         ["DocumentGeneration:BaseUrl"]               = E("DOCUMENT_GENERATION_BASE_URL"),
         ["LibreOffice:ExecutablePath"]               = E("LIBREOFFICE_EXECUTABLE_PATH"),
         ["Vault:RootDir"]                            = E("APP_VAULT_ROOT_DIR"),
+        ["Ingestion:ApiKey"]                         = E("INGESTION_API_KEY"),
     }
     .Where(kv => kv.Value is not null)
     .ToDictionary(kv => kv.Key, kv => kv.Value));
@@ -57,6 +59,8 @@ builder.Configuration.AddInMemoryCollection(
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 // Register HTTP client factory
 builder.Services.AddHttpClient();
@@ -123,6 +127,7 @@ builder.Services.AddScoped<IApplicationQueryService, ApplicationQueryService>();
 // Notification services
 builder.Services.AddSingleton<INotificationHub, NotificationHub>();
 builder.Services.AddSingleton<INotificationRepository, NotificationRepository>();
+builder.Services.AddSingleton<INotificationQueryService, NotificationQueryService>();
 builder.Services.AddHostedService<SseNotificationConsumer>();
 
 var app = builder.Build();
@@ -134,6 +139,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseMiddleware<CorrelationIdMiddleware>();
+app.UseExceptionHandler();
 app.UseHttpsRedirection();
 app.UseCors();
 app.UseAuthentication();

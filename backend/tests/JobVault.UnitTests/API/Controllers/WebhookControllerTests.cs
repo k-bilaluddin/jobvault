@@ -63,20 +63,15 @@ public class WebhookControllerTests
     }
 
     [Fact]
-    public async Task HandleGitHubWebhook_HandlerThrows_Returns500()
+    public async Task HandleGitHubWebhook_HandlerThrows_ExceptionBubbles()
     {
         // Arrange
         var payload = new GitHubWebhookPayload();
         _webhookHandler.HandleAsync(payload).ThrowsAsync(new Exception("Boom"));
 
-        // Act
-        var result = await _sut.HandleGitHubWebhook(payload);
-
-        // Assert
-        var objectResult = result.Result.Should().BeOfType<ObjectResult>().Subject;
-        objectResult.StatusCode.Should().Be(500);
-        var response = objectResult.Value.Should().BeOfType<WebhookResponse>().Subject;
-        response.Success.Should().BeFalse();
+        // Act & Assert — exception bubbles to GlobalExceptionHandler middleware
+        await Assert.ThrowsAsync<Exception>(() =>
+            _sut.HandleGitHubWebhook(payload));
     }
 
     [Fact]

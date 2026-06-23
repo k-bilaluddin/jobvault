@@ -148,6 +148,7 @@ jobs:
           APP_GH_REPOSITORY: ${{ secrets.APP_GH_REPOSITORY }}
           APP_GH_BRANCH: ${{ secrets.APP_GH_BRANCH }}
           APP_VAULT_ROOT_DIR: ${{ secrets.APP_VAULT_ROOT_DIR }}
+          INGESTION_API_KEY: ${{ secrets.INGESTION_API_KEY }}
         run: |
           $dir = "$env:USERPROFILE\${{ env.ENV_DIR }}"
           if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
@@ -175,6 +176,7 @@ jobs:
           APP_GH_REPOSITORY=$env:APP_GH_REPOSITORY
           APP_GH_BRANCH=$env:APP_GH_BRANCH
           APP_VAULT_ROOT_DIR=$env:APP_VAULT_ROOT_DIR
+          INGESTION_API_KEY=$env:INGESTION_API_KEY
           "@ | Set-Content -Path "$dir\.env" -Encoding utf8
 
       - name: Ensure jobvault-internal network exists

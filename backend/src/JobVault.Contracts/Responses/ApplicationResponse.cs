@@ -17,6 +17,7 @@ public class ApplicationResponse
     public string Stage { get; init; } = "";
     public string Personal_notes { get; init; } = "";
     public List<InterviewResponse> Interviews { get; init; } = [];
+    public List<NoteResponse> Notes { get; init; } = [];
     public SalaryResponse Salary { get; init; } = new();
     public RecruiterResponse Recruiter { get; init; } = new();
     public string Follow_up_date { get; init; } = "";

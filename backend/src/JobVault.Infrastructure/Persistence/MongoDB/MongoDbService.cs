@@ -77,6 +77,7 @@ public class MongoDbService : IJobApplicationRepository
                 doc.AppliedDate = existing.AppliedDate;
                 doc.PersonalNotes = existing.PersonalNotes ?? "";
                 doc.Interviews = existing.Interviews ?? [];
+                doc.Notes = existing.Notes ?? [];
                 doc.Salary = existing.Salary ?? new SalaryDocument();
                 doc.Recruiter = existing.Recruiter ?? new RecruiterDocument();
                 doc.FollowUpDate = existing.FollowUpDate;
@@ -276,6 +277,37 @@ public class MongoDbService : IJobApplicationRepository
         }
     }
 
+    public async Task<JobApplication?> UpdateInterviewAsync(string companyName, int index, string? date, string? type, string? notes, string? outcome, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.CompanyName, companyName);
+            var doc = await _collection.Find(filter).FirstOrDefaultAsync(cancellationToken);
+            if (doc == null) return null;
+
+            var interviews = doc.Interviews ?? [];
+            if (index < 0 || index >= interviews.Count) return null;
+
+            var iv = interviews[index];
+            if (date != null) iv.Date = date;
+            if (type != null) iv.Type = type;
+            if (notes != null) iv.Notes = notes;
+            if (outcome != null) iv.Outcome = outcome;
+
+            var update = Builders<JobApplicationDocument>.Update
+                .Set(d => d.Interviews, interviews)
+                .Set(d => d.UpdatedAt, DateTime.UtcNow);
+
+            await _collection.UpdateOneAsync(filter, update, cancellationToken: cancellationToken);
+            return JobApplicationMapper.ToDomain(doc);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating interview for {CompanyName}", companyName);
+            return null;
+        }
+    }
+
     public async Task<bool> DeleteInterviewAsync(string companyName, int index, CancellationToken cancellationToken = default)
     {
         try
@@ -301,6 +333,106 @@ public class MongoDbService : IJobApplicationRepository
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deleting interview for {CompanyName}", companyName);
+            return false;
+        }
+    }
+
+    public async Task<JobApplication?> AddNoteAsync(string companyName, Domain.ValueObjects.ApplicationNote note, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.CompanyName, companyName);
+            var doc = await _collection.Find(filter).FirstOrDefaultAsync(cancellationToken);
+            if (doc == null) return null;
+
+            var notes = doc.Notes ?? [];
+            note.Id = notes.Count;
+
+            var noteDoc = new NoteDocument
+            {
+                Id = note.Id,
+                Category = note.Category,
+                Content = note.Content,
+                Stage = note.Stage,
+                Pinned = note.Pinned,
+                CreatedAt = note.CreatedAt,
+                UpdatedAt = note.UpdatedAt,
+            };
+
+            var update = Builders<JobApplicationDocument>.Update
+                .Push(d => d.Notes, noteDoc)
+                .Set(d => d.UpdatedAt, DateTime.UtcNow);
+
+            await _collection.UpdateOneAsync(filter, update, cancellationToken: cancellationToken);
+
+            doc.Notes ??= [];
+            doc.Notes.Add(noteDoc);
+            return JobApplicationMapper.ToDomain(doc);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error adding note for {CompanyName}", companyName);
+            return null;
+        }
+    }
+
+    public async Task<JobApplication?> UpdateNoteAsync(string companyName, int noteId, string? category, string? content, bool? pinned, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.CompanyName, companyName);
+            var doc = await _collection.Find(filter).FirstOrDefaultAsync(cancellationToken);
+            if (doc == null) return null;
+
+            var notes = doc.Notes ?? [];
+            var note = notes.FirstOrDefault(n => n.Id == noteId);
+            if (note == null) return null;
+
+            if (category != null) note.Category = category;
+            if (content != null) note.Content = content;
+            if (pinned.HasValue) note.Pinned = pinned.Value;
+            note.UpdatedAt = DateTime.UtcNow;
+
+            var update = Builders<JobApplicationDocument>.Update
+                .Set(d => d.Notes, notes)
+                .Set(d => d.UpdatedAt, DateTime.UtcNow);
+
+            await _collection.UpdateOneAsync(filter, update, cancellationToken: cancellationToken);
+            return JobApplicationMapper.ToDomain(doc);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating note for {CompanyName}", companyName);
+            return null;
+        }
+    }
+
+    public async Task<bool> DeleteNoteAsync(string companyName, int noteId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.CompanyName, companyName);
+            var doc = await _collection.Find(filter).FirstOrDefaultAsync(cancellationToken);
+            if (doc == null) return false;
+
+            var notes = doc.Notes ?? [];
+            var idx = notes.FindIndex(n => n.Id == noteId);
+            if (idx < 0) return false;
+
+            notes.RemoveAt(idx);
+            for (var i = 0; i < notes.Count; i++)
+                notes[i].Id = i;
+
+            var update = Builders<JobApplicationDocument>.Update
+                .Set(d => d.Notes, notes)
+                .Set(d => d.UpdatedAt, DateTime.UtcNow);
+
+            var result = await _collection.UpdateOneAsync(filter, update, cancellationToken: cancellationToken);
+            return result.MatchedCount > 0;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting note for {CompanyName}", companyName);
             return false;
         }
     }

@@ -114,6 +114,9 @@ internal class JobApplicationDocument
     [BsonElement("interviews")]
     public List<InterviewDocument>? Interviews { get; set; }
 
+    [BsonElement("notes")]
+    public List<NoteDocument>? Notes { get; set; }
+
     [BsonElement("salary")]
     public SalaryDocument? Salary { get; set; }
 
@@ -167,6 +170,31 @@ internal class InterviewDocument
 
     [BsonElement("outcome")]
     public string? Outcome { get; set; }
+}
+
+[BsonIgnoreExtraElements]
+internal class NoteDocument
+{
+    [BsonElement("id")]
+    public int? Id { get; set; }
+
+    [BsonElement("category")]
+    public string? Category { get; set; }
+
+    [BsonElement("content")]
+    public string? Content { get; set; }
+
+    [BsonElement("stage")]
+    public string? Stage { get; set; }
+
+    [BsonElement("pinned")]
+    public bool? Pinned { get; set; }
+
+    [BsonElement("createdAt")]
+    public DateTime? CreatedAt { get; set; }
+
+    [BsonElement("updatedAt")]
+    public DateTime? UpdatedAt { get; set; }
 }
 
 [BsonIgnoreExtraElements]

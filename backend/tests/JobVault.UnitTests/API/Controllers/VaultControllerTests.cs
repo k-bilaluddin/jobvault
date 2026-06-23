@@ -54,7 +54,7 @@ public class VaultControllerTests
     }
 
     [Fact]
-    public async Task IngestApplication_ValidationFails_Returns400WithError()
+    public async Task IngestApplication_ValidationFails_ReturnsProblemDetails()
     {
         // Arrange
         var request = new IngestApplicationRequest { CompanyName = "" };
@@ -67,11 +67,13 @@ public class VaultControllerTests
         var result = await _sut.IngestApplication(request, CancellationToken.None);
 
         // Assert
-        result.Should().BeOfType<BadRequestObjectResult>();
+        var objectResult = result.Should().BeOfType<ObjectResult>().Subject;
+        objectResult.StatusCode.Should().Be(400);
+        objectResult.Value.Should().BeOfType<ProblemDetails>();
     }
 
     [Fact]
-    public async Task IngestApplication_ServiceThrows_Returns500()
+    public async Task IngestApplication_ServiceThrows_ExceptionBubbles()
     {
         // Arrange
         var request = new IngestApplicationRequest { CompanyName = "Acme" };
@@ -79,18 +81,15 @@ public class VaultControllerTests
             .IngestAsync(request, Arg.Any<CancellationToken>())
             .ThrowsAsync(new Exception("Boom"));
 
-        // Act
-        var result = await _sut.IngestApplication(request, CancellationToken.None);
-
-        // Assert
-        var objectResult = result.Should().BeOfType<ObjectResult>().Subject;
-        objectResult.StatusCode.Should().Be(500);
+        // Act & Assert — exception bubbles to GlobalExceptionHandler middleware
+        await Assert.ThrowsAsync<Exception>(() =>
+            _sut.IngestApplication(request, CancellationToken.None));
     }
 
     // ── Ingest (legacy file upload) ──
 
     [Fact]
-    public async Task Ingest_MissingCompanyName_Returns400()
+    public async Task Ingest_MissingCompanyName_ReturnsProblemDetails()
     {
         // Arrange
         var request = new IngestRequest { CompanyName = "  ", Files = new List<IFormFile>() };
@@ -99,12 +98,13 @@ public class VaultControllerTests
         var result = await _sut.Ingest(request, CancellationToken.None);
 
         // Assert
-        var badRequest = result.Should().BeOfType<BadRequestObjectResult>().Subject;
-        badRequest.Value.Should().NotBeNull();
+        var objectResult = result.Should().BeOfType<ObjectResult>().Subject;
+        objectResult.StatusCode.Should().Be(400);
+        objectResult.Value.Should().BeOfType<ProblemDetails>();
     }
 
     [Fact]
-    public async Task Ingest_NoFiles_Returns400()
+    public async Task Ingest_NoFiles_ReturnsProblemDetails()
     {
         // Arrange
         var request = new IngestRequest { CompanyName = "Acme", Files = null! };
@@ -113,11 +113,13 @@ public class VaultControllerTests
         var result = await _sut.Ingest(request, CancellationToken.None);
 
         // Assert
-        result.Should().BeOfType<BadRequestObjectResult>();
+        var objectResult = result.Should().BeOfType<ObjectResult>().Subject;
+        objectResult.StatusCode.Should().Be(400);
+        objectResult.Value.Should().BeOfType<ProblemDetails>();
     }
 
     [Fact]
-    public async Task Ingest_EmptyFilesList_Returns400()
+    public async Task Ingest_EmptyFilesList_ReturnsProblemDetails()
     {
         // Arrange
         var request = new IngestRequest { CompanyName = "Acme", Files = new List<IFormFile>() };
@@ -126,11 +128,13 @@ public class VaultControllerTests
         var result = await _sut.Ingest(request, CancellationToken.None);
 
         // Assert
-        result.Should().BeOfType<BadRequestObjectResult>();
+        var objectResult = result.Should().BeOfType<ObjectResult>().Subject;
+        objectResult.StatusCode.Should().Be(400);
+        objectResult.Value.Should().BeOfType<ProblemDetails>();
     }
 
     [Fact]
-    public async Task Ingest_ServiceReturnsFailure_Returns500()
+    public async Task Ingest_ServiceReturnsFailure_ReturnsProblemDetails()
     {
         // Arrange
         var formFile = Substitute.For<IFormFile>();
@@ -154,10 +158,11 @@ public class VaultControllerTests
         // Assert
         var objectResult = result.Should().BeOfType<ObjectResult>().Subject;
         objectResult.StatusCode.Should().Be(500);
+        objectResult.Value.Should().BeOfType<ProblemDetails>();
     }
 
     [Fact]
-    public async Task Ingest_ServiceThrows_Returns500()
+    public async Task Ingest_ServiceThrows_ExceptionBubbles()
     {
         // Arrange
         var formFile = Substitute.For<IFormFile>();
@@ -175,11 +180,8 @@ public class VaultControllerTests
             .IngestAsync("Acme", Arg.Any<IReadOnlyCollection<IngestedFile>>(), Arg.Any<CancellationToken>())
             .ThrowsAsync(new Exception("Boom"));
 
-        // Act
-        var result = await _sut.Ingest(request, CancellationToken.None);
-
-        // Assert
-        var objectResult = result.Should().BeOfType<ObjectResult>().Subject;
-        objectResult.StatusCode.Should().Be(500);
+        // Act & Assert — exception bubbles to GlobalExceptionHandler middleware
+        await Assert.ThrowsAsync<Exception>(() =>
+            _sut.Ingest(request, CancellationToken.None));
     }
 }
