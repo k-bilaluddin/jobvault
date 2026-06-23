@@ -46,6 +46,10 @@ public static class ErrorCatalog
         ["config.missing_required"]         = new(500, "Missing Configuration",     "Required configuration '{0}' is not set"),
         ["config.invalid_value"]            = new(500, "Invalid Configuration",     "Configuration '{0}' is invalid: {1}"),
 
+        // Ingestion Auth
+        ["auth.api_key_missing"]            = new(401, "Unauthorized",              "Invalid or missing API key"),
+        ["auth.api_key_not_configured"]     = new(500, "API Key Not Configured",    "Ingestion API key is not configured on the server"),
+
         // Server
         ["server.internal_error"]           = new(500, "Internal Server Error",     "An unexpected error occurred"),
     };

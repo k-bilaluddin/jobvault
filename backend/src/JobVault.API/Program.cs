@@ -50,6 +50,7 @@ builder.Configuration.AddInMemoryCollection(
         ["DocumentGeneration:BaseUrl"]               = E("DOCUMENT_GENERATION_BASE_URL"),
         ["LibreOffice:ExecutablePath"]               = E("LIBREOFFICE_EXECUTABLE_PATH"),
         ["Vault:RootDir"]                            = E("APP_VAULT_ROOT_DIR"),
+        ["Ingestion:ApiKey"]                         = E("INGESTION_API_KEY"),
     }
     .Where(kv => kv.Value is not null)
     .ToDictionary(kv => kv.Key, kv => kv.Value));

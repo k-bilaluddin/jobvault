@@ -1,3 +1,4 @@
+using JobVault.Contracts.Errors;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 
@@ -16,15 +17,16 @@ public class ApiKeyAttribute : Attribute, IAsyncActionFilter
 
         if (string.IsNullOrWhiteSpace(expectedKey))
         {
-            context.Result = new ObjectResult("Ingestion API key is not configured on the server.")
-                { StatusCode = StatusCodes.Status500InternalServerError };
+            var problem = ErrorCatalog.ToProblem("auth.api_key_not_configured", context.HttpContext);
+            context.Result = new ObjectResult(problem) { StatusCode = problem.Status };
             return;
         }
 
         if (!context.HttpContext.Request.Headers.TryGetValue(HeaderName, out var providedKey)
             || !string.Equals(expectedKey, providedKey.ToString(), StringComparison.Ordinal))
         {
-            context.Result = new UnauthorizedObjectResult("Invalid or missing API key.");
+            var problem = ErrorCatalog.ToProblem("auth.api_key_missing", context.HttpContext);
+            context.Result = new ObjectResult(problem) { StatusCode = problem.Status };
             return;
         }
 
