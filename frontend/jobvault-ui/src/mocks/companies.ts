@@ -20,6 +20,7 @@ export const mockCompanies: Company[] = [
       { id: 0, date: '2026-04-08', type: 'HR',        notes: 'HR Call — Backend Engineer C#', outcome: 'Pass' },
       { id: 1, date: '2026-04-15', type: 'Technical', notes: 'Technical Interview',           outcome: 'Pending' },
     ],
+    notes: [],
   },
   // ── Applied ─────────────────────────────────────────────────
   {
@@ -31,7 +32,7 @@ export const mockCompanies: Company[] = [
     follow_up_date: '',
     salary: { advertised: '', target: '58000', discussed: '', offered: '' },
     recruiter: { name: 'Simone Hotz', email: 'simone.hotz@de.bosch.com', linkedin: '' },
-    interviews: [],
+    interviews: [], notes: [],
   },
   {
     name: 'Zalando', stage: 'Applied', applied: true, applied_date: '2026-06-12', synced_at: '2026-06-01T00:00:00Z',
@@ -40,7 +41,7 @@ export const mockCompanies: Company[] = [
     has_report: true, has_notes: true, has_cv_pdf: true, has_letter_pdf: true,
     personal_notes: '', follow_up_date: '',
     salary: { advertised: '', target: '', discussed: '', offered: '' },
-    recruiter: { name: '', email: '', linkedin: '' }, interviews: [],
+    recruiter: { name: '', email: '', linkedin: '' }, interviews: [], notes: [],
   },
   {
     name: 'Zendesk', stage: 'Applied', applied: true, applied_date: '2026-06-12', synced_at: '2026-06-01T00:00:00Z',
@@ -49,7 +50,7 @@ export const mockCompanies: Company[] = [
     has_report: true, has_notes: true, has_cv_pdf: true, has_letter_pdf: true,
     personal_notes: '', follow_up_date: '',
     salary: { advertised: '', target: '', discussed: '', offered: '' },
-    recruiter: { name: '', email: '', linkedin: '' }, interviews: [],
+    recruiter: { name: '', email: '', linkedin: '' }, interviews: [], notes: [],
   },
   {
     name: 'thinkcell', stage: 'Applied', applied: true, applied_date: '2026-06-12', synced_at: '2026-06-01T00:00:00Z',
@@ -58,7 +59,7 @@ export const mockCompanies: Company[] = [
     has_report: true, has_notes: true, has_cv_pdf: true, has_letter_pdf: true,
     personal_notes: '', follow_up_date: '',
     salary: { advertised: '', target: '', discussed: '', offered: '' },
-    recruiter: { name: '', email: '', linkedin: '' }, interviews: [],
+    recruiter: { name: '', email: '', linkedin: '' }, interviews: [], notes: [],
   },
   {
     name: 'RapidData', stage: 'Applied', applied: true, applied_date: '2026-06-14', synced_at: '2026-06-01T00:00:00Z',
@@ -67,7 +68,7 @@ export const mockCompanies: Company[] = [
     has_report: true, has_notes: true, has_cv_pdf: true, has_letter_pdf: true,
     personal_notes: '', follow_up_date: '',
     salary: { advertised: '', target: '', discussed: '', offered: '' },
-    recruiter: { name: '', email: '', linkedin: '' }, interviews: [],
+    recruiter: { name: '', email: '', linkedin: '' }, interviews: [], notes: [],
   },
   {
     name: 'WeMatch_J2', stage: 'Applied', applied: true, applied_date: '2026-06-14', synced_at: '2026-06-01T00:00:00Z',
@@ -76,7 +77,7 @@ export const mockCompanies: Company[] = [
     has_report: true, has_notes: true, has_cv_pdf: true, has_letter_pdf: true,
     personal_notes: '', follow_up_date: '',
     salary: { advertised: '', target: '', discussed: '', offered: '' },
-    recruiter: { name: '', email: '', linkedin: '' }, interviews: [],
+    recruiter: { name: '', email: '', linkedin: '' }, interviews: [], notes: [],
   },
   {
     name: 'WeMatch', stage: 'Applied', applied: true, applied_date: '2026-06-14', synced_at: '2026-06-01T00:00:00Z',
@@ -85,7 +86,7 @@ export const mockCompanies: Company[] = [
     has_report: true, has_notes: true, has_cv_pdf: true, has_letter_pdf: true,
     personal_notes: '', follow_up_date: '',
     salary: { advertised: '', target: '', discussed: '', offered: '' },
-    recruiter: { name: '', email: '', linkedin: '' }, interviews: [],
+    recruiter: { name: '', email: '', linkedin: '' }, interviews: [], notes: [],
   },
   {
     name: 'APISIT', stage: 'Applied', applied: true, applied_date: '2026-06-14', synced_at: '2026-06-01T00:00:00Z',
@@ -94,7 +95,7 @@ export const mockCompanies: Company[] = [
     has_report: true, has_notes: true, has_cv_pdf: true, has_letter_pdf: true,
     personal_notes: '', follow_up_date: '',
     salary: { advertised: '', target: '', discussed: '', offered: '' },
-    recruiter: { name: '', email: '', linkedin: '' }, interviews: [],
+    recruiter: { name: '', email: '', linkedin: '' }, interviews: [], notes: [],
   },
   {
     name: 'FNTIO', stage: 'Applied', applied: true, applied_date: '2026-06-13', synced_at: '2026-06-01T00:00:00Z',
@@ -103,7 +104,7 @@ export const mockCompanies: Company[] = [
     has_report: true, has_notes: true, has_cv_pdf: true, has_letter_pdf: true,
     personal_notes: '', follow_up_date: '',
     salary: { advertised: '', target: '', discussed: '', offered: '' },
-    recruiter: { name: '', email: '', linkedin: '' }, interviews: [],
+    recruiter: { name: '', email: '', linkedin: '' }, interviews: [], notes: [],
   },
   {
     name: 'everii', stage: 'Applied', applied: true, applied_date: '2026-06-13', synced_at: '2026-06-01T00:00:00Z',
@@ -112,7 +113,7 @@ export const mockCompanies: Company[] = [
     has_report: true, has_notes: true, has_cv_pdf: true, has_letter_pdf: true,
     personal_notes: '', follow_up_date: '',
     salary: { advertised: '', target: '', discussed: '', offered: '' },
-    recruiter: { name: '', email: '', linkedin: '' }, interviews: [],
+    recruiter: { name: '', email: '', linkedin: '' }, interviews: [], notes: [],
   },
   {
     name: 'Tagueri AG', stage: 'Applied', applied: true, applied_date: '2026-05-21', synced_at: '2026-06-01T00:00:00Z',
@@ -121,7 +122,7 @@ export const mockCompanies: Company[] = [
     has_report: true, has_notes: true, has_cv_pdf: true, has_letter_pdf: true,
     personal_notes: '', follow_up_date: '',
     salary: { advertised: '', target: '', discussed: '', offered: '' },
-    recruiter: { name: '', email: '', linkedin: '' }, interviews: [],
+    recruiter: { name: '', email: '', linkedin: '' }, interviews: [], notes: [],
   },
   {
     name: 'VRG GmbH', stage: 'Applied', applied: true, applied_date: '2026-05-21', synced_at: '2026-06-01T00:00:00Z',
@@ -130,7 +131,7 @@ export const mockCompanies: Company[] = [
     has_report: true, has_notes: true, has_cv_pdf: true, has_letter_pdf: true,
     personal_notes: '', follow_up_date: '',
     salary: { advertised: '', target: '', discussed: '', offered: '' },
-    recruiter: { name: '', email: '', linkedin: '' }, interviews: [],
+    recruiter: { name: '', email: '', linkedin: '' }, interviews: [], notes: [],
   },
   {
     name: 'wscad', stage: 'Applied', applied: true, applied_date: '2026-05-21', synced_at: '2026-06-01T00:00:00Z',
@@ -139,7 +140,7 @@ export const mockCompanies: Company[] = [
     has_report: true, has_notes: true, has_cv_pdf: true, has_letter_pdf: true,
     personal_notes: '', follow_up_date: '',
     salary: { advertised: '', target: '', discussed: '', offered: '' },
-    recruiter: { name: 'Vanessa Riß', email: '', linkedin: '' }, interviews: [],
+    recruiter: { name: 'Vanessa Riß', email: '', linkedin: '' }, interviews: [], notes: [],
   },
   {
     name: 'mamgo.io', stage: 'Applied', applied: true, applied_date: '2026-05-21', synced_at: '2026-06-01T00:00:00Z',
@@ -148,7 +149,7 @@ export const mockCompanies: Company[] = [
     has_report: true, has_notes: true, has_cv_pdf: true, has_letter_pdf: true,
     personal_notes: '', follow_up_date: '',
     salary: { advertised: '', target: '', discussed: '', offered: '' },
-    recruiter: { name: '', email: '', linkedin: '' }, interviews: [],
+    recruiter: { name: '', email: '', linkedin: '' }, interviews: [], notes: [],
   },
   {
     name: 'heitec', stage: 'Applied', applied: true, applied_date: '2026-05-21', synced_at: '2026-06-01T00:00:00Z',
@@ -157,7 +158,7 @@ export const mockCompanies: Company[] = [
     has_report: true, has_notes: true, has_cv_pdf: true, has_letter_pdf: true,
     personal_notes: '', follow_up_date: '',
     salary: { advertised: '', target: '', discussed: '', offered: '' },
-    recruiter: { name: '', email: '', linkedin: '' }, interviews: [],
+    recruiter: { name: '', email: '', linkedin: '' }, interviews: [], notes: [],
   },
   {
     name: 'kla', stage: 'Applied', applied: true, applied_date: '2026-05-21', synced_at: '2026-06-01T00:00:00Z',
@@ -166,7 +167,7 @@ export const mockCompanies: Company[] = [
     has_report: true, has_notes: true, has_cv_pdf: true, has_letter_pdf: true,
     personal_notes: '', follow_up_date: '',
     salary: { advertised: '', target: '', discussed: '', offered: '' },
-    recruiter: { name: '', email: '', linkedin: '' }, interviews: [],
+    recruiter: { name: '', email: '', linkedin: '' }, interviews: [], notes: [],
   },
   {
     name: 'yourMail', stage: 'Applied', applied: true, applied_date: '2026-05-21', synced_at: '2026-06-01T00:00:00Z',
@@ -175,7 +176,7 @@ export const mockCompanies: Company[] = [
     has_report: true, has_notes: true, has_cv_pdf: true, has_letter_pdf: true,
     personal_notes: '', follow_up_date: '',
     salary: { advertised: '', target: '', discussed: '', offered: '' },
-    recruiter: { name: '', email: '', linkedin: '' }, interviews: [],
+    recruiter: { name: '', email: '', linkedin: '' }, interviews: [], notes: [],
   },
   {
     name: 'Randstad-C01281753', stage: 'Applied', applied: true, applied_date: '2026-06-01', synced_at: '2026-06-01T00:00:00Z',
@@ -185,7 +186,7 @@ export const mockCompanies: Company[] = [
     personal_notes: 'Need to tweak a CV little bit, currently have Angular mentioned, but not in the bullet points, there are still React.js.\n\nThis is a bit confusing.',
     follow_up_date: '',
     salary: { advertised: '', target: '', discussed: '', offered: '' },
-    recruiter: { name: '', email: '', linkedin: '' }, interviews: [],
+    recruiter: { name: '', email: '', linkedin: '' }, interviews: [], notes: [],
   },
   {
     name: 'Ria Money Transfer', stage: 'Applied', applied: true, applied_date: '2026-05-23', synced_at: '2026-06-01T00:00:00Z',
@@ -194,7 +195,7 @@ export const mockCompanies: Company[] = [
     has_report: true, has_notes: true, has_cv_pdf: true, has_letter_pdf: true,
     personal_notes: '', follow_up_date: '',
     salary: { advertised: '', target: '', discussed: '', offered: '' },
-    recruiter: { name: '', email: '', linkedin: '' }, interviews: [],
+    recruiter: { name: '', email: '', linkedin: '' }, interviews: [], notes: [],
   },
   {
     name: 'Enpal', stage: 'Applied', applied: true, applied_date: '2026-06-10', synced_at: '2026-06-01T00:00:00Z',
@@ -203,7 +204,7 @@ export const mockCompanies: Company[] = [
     has_report: true, has_notes: true, has_cv_pdf: true, has_letter_pdf: true,
     personal_notes: '', follow_up_date: '',
     salary: { advertised: '', target: '', discussed: '', offered: '' },
-    recruiter: { name: '', email: '', linkedin: '' }, interviews: [],
+    recruiter: { name: '', email: '', linkedin: '' }, interviews: [], notes: [],
   },
   {
     name: 'FranzZiel', stage: 'Applied', applied: true, applied_date: '2026-06-10', synced_at: '2026-06-01T00:00:00Z',
@@ -212,7 +213,7 @@ export const mockCompanies: Company[] = [
     has_report: true, has_notes: true, has_cv_pdf: true, has_letter_pdf: true,
     personal_notes: '', follow_up_date: '',
     salary: { advertised: '', target: '', discussed: '', offered: '' },
-    recruiter: { name: '', email: '', linkedin: '' }, interviews: [],
+    recruiter: { name: '', email: '', linkedin: '' }, interviews: [], notes: [],
   },
   {
     name: 'Inverto', stage: 'Applied', applied: true, applied_date: '2026-06-12', synced_at: '2026-06-01T00:00:00Z',
@@ -221,7 +222,7 @@ export const mockCompanies: Company[] = [
     has_report: true, has_notes: true, has_cv_pdf: true, has_letter_pdf: true,
     personal_notes: '', follow_up_date: '',
     salary: { advertised: '', target: '', discussed: '', offered: '' },
-    recruiter: { name: '', email: '', linkedin: '' }, interviews: [],
+    recruiter: { name: '', email: '', linkedin: '' }, interviews: [], notes: [],
   },
   {
     name: 'Heidelberg', stage: 'Applied', applied: true, applied_date: '2026-06-12', synced_at: '2026-06-01T00:00:00Z',
@@ -230,7 +231,7 @@ export const mockCompanies: Company[] = [
     has_report: true, has_notes: true, has_cv_pdf: true, has_letter_pdf: true,
     personal_notes: '', follow_up_date: '',
     salary: { advertised: '', target: '', discussed: '', offered: '' },
-    recruiter: { name: '', email: '', linkedin: '' }, interviews: [],
+    recruiter: { name: '', email: '', linkedin: '' }, interviews: [], notes: [],
   },
   {
     name: 'Cleverbridge', stage: 'Applied', applied: true, applied_date: '2026-06-12', synced_at: '2026-06-01T00:00:00Z',
@@ -239,7 +240,7 @@ export const mockCompanies: Company[] = [
     has_report: true, has_notes: true, has_cv_pdf: true, has_letter_pdf: true,
     personal_notes: '', follow_up_date: '',
     salary: { advertised: '', target: '', discussed: '', offered: '' },
-    recruiter: { name: '', email: '', linkedin: '' }, interviews: [],
+    recruiter: { name: '', email: '', linkedin: '' }, interviews: [], notes: [],
   },
   {
     name: 'PACE', stage: 'Applied', applied: true, applied_date: '2026-06-14', synced_at: '2026-06-01T00:00:00Z',
@@ -248,7 +249,7 @@ export const mockCompanies: Company[] = [
     has_report: true, has_notes: true, has_cv_pdf: true, has_letter_pdf: true,
     personal_notes: '', follow_up_date: '',
     salary: { advertised: '', target: '', discussed: '', offered: '' },
-    recruiter: { name: '', email: '', linkedin: '' }, interviews: [],
+    recruiter: { name: '', email: '', linkedin: '' }, interviews: [], notes: [],
   },
   {
     name: 'Vonovia', stage: 'Applied', applied: true, applied_date: '2026-06-14', synced_at: '2026-06-01T00:00:00Z',
@@ -257,7 +258,7 @@ export const mockCompanies: Company[] = [
     has_report: true, has_notes: true, has_cv_pdf: true, has_letter_pdf: true,
     personal_notes: '', follow_up_date: '',
     salary: { advertised: '', target: '', discussed: '', offered: '' },
-    recruiter: { name: '', email: '', linkedin: '' }, interviews: [],
+    recruiter: { name: '', email: '', linkedin: '' }, interviews: [], notes: [],
   },
   {
     name: 'PartSpace', stage: 'Applied', applied: true, applied_date: '2026-06-14', synced_at: '2026-06-01T00:00:00Z',
@@ -266,7 +267,7 @@ export const mockCompanies: Company[] = [
     has_report: true, has_notes: true, has_cv_pdf: true, has_letter_pdf: true,
     personal_notes: '', follow_up_date: '',
     salary: { advertised: '', target: '', discussed: '', offered: '' },
-    recruiter: { name: '', email: '', linkedin: '' }, interviews: [],
+    recruiter: { name: '', email: '', linkedin: '' }, interviews: [], notes: [],
   },
   {
     name: 'Vesterling', stage: 'Applied', applied: true, applied_date: '2026-06-14', synced_at: '2026-06-01T00:00:00Z',
@@ -275,7 +276,7 @@ export const mockCompanies: Company[] = [
     has_report: false, has_notes: false, has_cv_pdf: true, has_letter_pdf: false,
     personal_notes: '', follow_up_date: '',
     salary: { advertised: '', target: '', discussed: '', offered: '' },
-    recruiter: { name: '', email: '', linkedin: '' }, interviews: [],
+    recruiter: { name: '', email: '', linkedin: '' }, interviews: [], notes: [],
   },
   {
     name: 'ADVERGY', stage: 'Applied', applied: true, applied_date: '2026-06-14', synced_at: '2026-06-01T00:00:00Z',
@@ -284,7 +285,7 @@ export const mockCompanies: Company[] = [
     has_report: true, has_notes: true, has_cv_pdf: true, has_letter_pdf: true,
     personal_notes: '', follow_up_date: '',
     salary: { advertised: '', target: '', discussed: '', offered: '' },
-    recruiter: { name: '', email: '', linkedin: '' }, interviews: [],
+    recruiter: { name: '', email: '', linkedin: '' }, interviews: [], notes: [],
   },
   {
     name: 'IntReal', stage: 'Applied', applied: true, applied_date: '2026-06-14', synced_at: '2026-06-01T00:00:00Z',
@@ -293,7 +294,7 @@ export const mockCompanies: Company[] = [
     has_report: true, has_notes: true, has_cv_pdf: true, has_letter_pdf: true,
     personal_notes: '', follow_up_date: '',
     salary: { advertised: '', target: '', discussed: '', offered: '' },
-    recruiter: { name: '', email: '', linkedin: '' }, interviews: [],
+    recruiter: { name: '', email: '', linkedin: '' }, interviews: [], notes: [],
   },
   {
     name: 'Gruehn', stage: 'Applied', applied: true, applied_date: '2026-06-14', synced_at: '2026-06-01T00:00:00Z',
@@ -302,7 +303,7 @@ export const mockCompanies: Company[] = [
     has_report: true, has_notes: true, has_cv_pdf: true, has_letter_pdf: true,
     personal_notes: '', follow_up_date: '',
     salary: { advertised: '', target: '', discussed: '', offered: '' },
-    recruiter: { name: '', email: '', linkedin: '' }, interviews: [],
+    recruiter: { name: '', email: '', linkedin: '' }, interviews: [], notes: [],
   },
   {
     name: 'CODERSTEIN', stage: 'Applied', applied: true, applied_date: '2026-05-30', synced_at: '2026-06-01T00:00:00Z',
@@ -311,7 +312,7 @@ export const mockCompanies: Company[] = [
     has_report: true, has_notes: true, has_cv_pdf: true, has_letter_pdf: true,
     personal_notes: '', follow_up_date: '',
     salary: { advertised: '', target: '', discussed: '', offered: '' },
-    recruiter: { name: '', email: '', linkedin: '' }, interviews: [],
+    recruiter: { name: '', email: '', linkedin: '' }, interviews: [], notes: [],
   },
   {
     name: 'IRIS', stage: 'Applied', applied: true, applied_date: '2026-05-30', synced_at: '2026-06-01T00:00:00Z',
@@ -320,7 +321,7 @@ export const mockCompanies: Company[] = [
     has_report: true, has_notes: true, has_cv_pdf: true, has_letter_pdf: true,
     personal_notes: '', follow_up_date: '',
     salary: { advertised: '', target: '', discussed: '', offered: '' },
-    recruiter: { name: '', email: '', linkedin: '' }, interviews: [],
+    recruiter: { name: '', email: '', linkedin: '' }, interviews: [], notes: [],
   },
   {
     name: 'Revolent Group', stage: 'Applied', applied: true, applied_date: '2026-06-01', synced_at: '2026-06-01T00:00:00Z',
@@ -329,7 +330,7 @@ export const mockCompanies: Company[] = [
     has_report: false, has_notes: false, has_cv_pdf: true, has_letter_pdf: false,
     personal_notes: '', follow_up_date: '',
     salary: { advertised: '', target: '', discussed: '', offered: '' },
-    recruiter: { name: '', email: '', linkedin: '' }, interviews: [],
+    recruiter: { name: '', email: '', linkedin: '' }, interviews: [], notes: [],
   },
   {
     name: 'Harvey Nash', stage: 'Applied', applied: true, applied_date: '2026-06-01', synced_at: '2026-06-01T00:00:00Z',
@@ -338,7 +339,7 @@ export const mockCompanies: Company[] = [
     has_report: false, has_notes: false, has_cv_pdf: true, has_letter_pdf: false,
     personal_notes: '', follow_up_date: '',
     salary: { advertised: '', target: '', discussed: '', offered: '' },
-    recruiter: { name: '', email: '', linkedin: '' }, interviews: [],
+    recruiter: { name: '', email: '', linkedin: '' }, interviews: [], notes: [],
   },
   {
     name: 'HeadQuest GmbH', stage: 'Applied', applied: true, applied_date: '2026-06-01', synced_at: '2026-06-01T00:00:00Z',
@@ -347,7 +348,7 @@ export const mockCompanies: Company[] = [
     has_report: false, has_notes: false, has_cv_pdf: true, has_letter_pdf: false,
     personal_notes: '', follow_up_date: '',
     salary: { advertised: '', target: '', discussed: '', offered: '' },
-    recruiter: { name: '', email: '', linkedin: '' }, interviews: [],
+    recruiter: { name: '', email: '', linkedin: '' }, interviews: [], notes: [],
   },
   // ── Ready to Apply ──────────────────────────────────────────
   {
@@ -357,7 +358,7 @@ export const mockCompanies: Company[] = [
     has_report: true, has_notes: true, has_cv_pdf: false, has_letter_pdf: false,
     personal_notes: '', follow_up_date: '',
     salary: { advertised: '', target: '', discussed: '', offered: '' },
-    recruiter: { name: '', email: '', linkedin: '' }, interviews: [],
+    recruiter: { name: '', email: '', linkedin: '' }, interviews: [], notes: [],
   },
   // ── Rejected ─────────────────────────────────────────────────
   {
@@ -367,7 +368,7 @@ export const mockCompanies: Company[] = [
     has_report: true, has_notes: true, has_cv_pdf: true, has_letter_pdf: true,
     personal_notes: '', follow_up_date: '',
     salary: { advertised: '', target: '', discussed: '', offered: '' },
-    recruiter: { name: '', email: '', linkedin: '' }, interviews: [],
+    recruiter: { name: '', email: '', linkedin: '' }, interviews: [], notes: [],
   },
   {
     name: 'Dymatrix', stage: 'Rejected', applied: true, applied_date: '2026-05-21', synced_at: '2026-06-01T00:00:00Z',
@@ -376,7 +377,7 @@ export const mockCompanies: Company[] = [
     has_report: true, has_notes: true, has_cv_pdf: true, has_letter_pdf: true,
     personal_notes: '', follow_up_date: '',
     salary: { advertised: '', target: '', discussed: '', offered: '' },
-    recruiter: { name: '', email: '', linkedin: '' }, interviews: [],
+    recruiter: { name: '', email: '', linkedin: '' }, interviews: [], notes: [],
   },
   {
     name: 'DNV', stage: 'Rejected', applied: true, applied_date: '2026-05-21', synced_at: '2026-06-01T00:00:00Z',
@@ -386,7 +387,7 @@ export const mockCompanies: Company[] = [
     personal_notes: 'Rejected on Sunday - Seems the ATS does not pass for this CV.',
     follow_up_date: '',
     salary: { advertised: '', target: '', discussed: '', offered: '' },
-    recruiter: { name: '', email: '', linkedin: '' }, interviews: [],
+    recruiter: { name: '', email: '', linkedin: '' }, interviews: [], notes: [],
   },
   {
     name: 'SAG Digital', stage: 'Rejected', applied: true, applied_date: '2026-05-21', synced_at: '2026-06-01T00:00:00Z',
@@ -395,7 +396,7 @@ export const mockCompanies: Company[] = [
     has_report: true, has_notes: true, has_cv_pdf: true, has_letter_pdf: true,
     personal_notes: '', follow_up_date: '',
     salary: { advertised: '', target: '', discussed: '', offered: '' },
-    recruiter: { name: '', email: '', linkedin: '' }, interviews: [],
+    recruiter: { name: '', email: '', linkedin: '' }, interviews: [], notes: [],
   },
   {
     name: 'Dennemeyer', stage: 'Rejected', applied: true, applied_date: '2026-05-21', synced_at: '2026-06-01T00:00:00Z',
@@ -404,7 +405,7 @@ export const mockCompanies: Company[] = [
     has_report: true, has_notes: true, has_cv_pdf: true, has_letter_pdf: true,
     personal_notes: '', follow_up_date: '',
     salary: { advertised: '', target: '', discussed: '', offered: '' },
-    recruiter: { name: '', email: '', linkedin: '' }, interviews: [],
+    recruiter: { name: '', email: '', linkedin: '' }, interviews: [], notes: [],
   },
   {
     name: 'Halvotec', stage: 'Rejected', applied: true, applied_date: '2026-05-21', synced_at: '2026-06-01T00:00:00Z',
@@ -413,7 +414,7 @@ export const mockCompanies: Company[] = [
     has_report: true, has_notes: true, has_cv_pdf: true, has_letter_pdf: true,
     personal_notes: '', follow_up_date: '',
     salary: { advertised: '', target: '', discussed: '', offered: '' },
-    recruiter: { name: '', email: '', linkedin: '' }, interviews: [],
+    recruiter: { name: '', email: '', linkedin: '' }, interviews: [], notes: [],
   },
   {
     name: 'ep-group', stage: 'Rejected', applied: true, applied_date: '2026-05-21', synced_at: '2026-06-01T00:00:00Z',
@@ -422,7 +423,7 @@ export const mockCompanies: Company[] = [
     has_report: true, has_notes: true, has_cv_pdf: true, has_letter_pdf: true,
     personal_notes: '', follow_up_date: '',
     salary: { advertised: '', target: '', discussed: '', offered: '' },
-    recruiter: { name: '', email: '', linkedin: '' }, interviews: [],
+    recruiter: { name: '', email: '', linkedin: '' }, interviews: [], notes: [],
   },
   {
     name: 'imaschelling', stage: 'Rejected', applied: true, applied_date: '2026-05-21', synced_at: '2026-06-01T00:00:00Z',
@@ -431,7 +432,7 @@ export const mockCompanies: Company[] = [
     has_report: true, has_notes: true, has_cv_pdf: true, has_letter_pdf: true,
     personal_notes: '', follow_up_date: '',
     salary: { advertised: '', target: '', discussed: '', offered: '' },
-    recruiter: { name: '', email: '', linkedin: '' }, interviews: [],
+    recruiter: { name: '', email: '', linkedin: '' }, interviews: [], notes: [],
   },
   {
     name: 'YER', stage: 'Rejected', applied: true, applied_date: '2026-05-21', synced_at: '2026-06-01T00:00:00Z',
@@ -441,7 +442,7 @@ export const mockCompanies: Company[] = [
     personal_notes: 'Staffing Agency, Uzair recently faced issue in ABH due to staffing agency Hiring issue. Still should apply.\n\nRegenerated the cover letter, since its making an issue.',
     follow_up_date: '',
     salary: { advertised: '', target: '', discussed: '', offered: '' },
-    recruiter: { name: '', email: '', linkedin: '' }, interviews: [],
+    recruiter: { name: '', email: '', linkedin: '' }, interviews: [], notes: [],
   },
   {
     name: 'Logistikbude', stage: 'Rejected', applied: true, applied_date: '2026-05-30', synced_at: '2026-06-01T00:00:00Z',
@@ -450,7 +451,7 @@ export const mockCompanies: Company[] = [
     has_report: true, has_notes: true, has_cv_pdf: true, has_letter_pdf: true,
     personal_notes: '', follow_up_date: '',
     salary: { advertised: '', target: '', discussed: '', offered: '' },
-    recruiter: { name: '', email: '', linkedin: '' }, interviews: [],
+    recruiter: { name: '', email: '', linkedin: '' }, interviews: [], notes: [],
   },
   {
     name: 'SIG Global', stage: 'Rejected', applied: false, applied_date: '', synced_at: '2026-06-01T00:00:00Z',
@@ -459,7 +460,7 @@ export const mockCompanies: Company[] = [
     has_report: false, has_notes: false, has_cv_pdf: false, has_letter_pdf: false,
     personal_notes: '', follow_up_date: '',
     salary: { advertised: '', target: '', discussed: '', offered: '' },
-    recruiter: { name: '', email: '', linkedin: '' }, interviews: [],
+    recruiter: { name: '', email: '', linkedin: '' }, interviews: [], notes: [],
   },
   // ── With interviews (Rejected) ───────────────────────────────
   {
@@ -476,6 +477,7 @@ export const mockCompanies: Company[] = [
       { id: 2, date: '2025-10-09', type: 'HR',        notes: 'Hiring Manager Interview',                           outcome: 'Pass' },
       { id: 3, date: '2025-10-15', type: 'Final',     notes: 'Impact Interview',                                   outcome: 'Fail' },
     ],
+    notes: [],
   },
   {
     name: 'MegaDev GmbH', stage: 'Rejected', applied: true, applied_date: '2025-11-06', synced_at: '2026-06-01T00:00:00Z',
@@ -490,6 +492,7 @@ export const mockCompanies: Company[] = [
       { id: 1, date: '2025-11-11', type: 'Technical', notes: 'Take-home Case Study — submitted',               outcome: 'Pass' },
       { id: 2, date: '2025-11-14', type: 'Technical', notes: 'Technical Interview Second Round',                outcome: 'Fail' },
     ],
+    notes: [],
   },
   {
     name: 'Apaleo GmbH', stage: 'Rejected', applied: true, applied_date: '2025-04-09', synced_at: '2026-06-01T00:00:00Z',
@@ -503,6 +506,7 @@ export const mockCompanies: Company[] = [
       { id: 0, date: '2025-04-09', type: 'HR',        notes: 'Senior Software Developer .NET — HR Runde', outcome: 'Pass' },
       { id: 1, date: '2025-04-23', type: 'Technical', notes: 'Case Study Interview',                      outcome: 'Fail' },
     ],
+    notes: [],
   },
   {
     name: 'DIRS21 GmbH', stage: 'Rejected', applied: true, applied_date: '2025-06-25', synced_at: '2026-06-01T00:00:00Z',
@@ -517,6 +521,7 @@ export const mockCompanies: Company[] = [
       { id: 1, date: '2025-06-28', type: 'Technical', notes: 'Technical Assessment',                   outcome: 'Fail' },
       { id: 2, date: '',           type: 'Onsite',    notes: 'Trial Day (Probearbeitstag) — ended there', outcome: 'Fail' },
     ],
+    notes: [],
   },
   {
     name: 'MOIA GmbH', stage: 'Rejected', applied: true, applied_date: '2026-01-06', synced_at: '2026-06-01T00:00:00Z',
@@ -529,6 +534,7 @@ export const mockCompanies: Company[] = [
     interviews: [
       { id: 0, date: '2026-01-06', type: 'HR', notes: 'Senior Full Stack Engineer — Initial Interview', outcome: 'Fail' },
     ],
+    notes: [],
   },
   {
     name: 'Verivox GmbH', stage: 'Rejected', applied: false, applied_date: '', synced_at: '2026-06-01T00:00:00Z',
@@ -541,6 +547,7 @@ export const mockCompanies: Company[] = [
     interviews: [
       { id: 0, date: '2025-02-04', type: 'HR', notes: 'Senior Software Engineer Backend C# .NET NodeJs', outcome: 'Fail' },
     ],
+    notes: [],
   },
   {
     name: 'Karat', stage: 'Rejected', applied: false, applied_date: '', synced_at: '2026-06-01T00:00:00Z',
@@ -554,6 +561,7 @@ export const mockCompanies: Company[] = [
       { id: 0, date: '2025-09-29', type: 'Technical', notes: 'Interview Engineer — General Coding Logic', outcome: 'Pass' },
       { id: 1, date: '2025-10-07', type: 'Technical', notes: 'Technical Interview — completed',            outcome: 'Fail' },
     ],
+    notes: [],
   },
   // ── Not Interested ───────────────────────────────────────────
   {
@@ -563,7 +571,7 @@ export const mockCompanies: Company[] = [
     has_report: false, has_notes: false, has_cv_pdf: false, has_letter_pdf: false,
     personal_notes: '', follow_up_date: '',
     salary: { advertised: '', target: '', discussed: '', offered: '' },
-    recruiter: { name: '', email: '', linkedin: '' }, interviews: [],
+    recruiter: { name: '', email: '', linkedin: '' }, interviews: [], notes: [],
   },
   {
     name: 'autodesk', stage: 'Not Interested', applied: false, applied_date: '', synced_at: '2026-06-01T00:00:00Z',
@@ -572,7 +580,7 @@ export const mockCompanies: Company[] = [
     has_report: false, has_notes: false, has_cv_pdf: false, has_letter_pdf: false,
     personal_notes: '', follow_up_date: '',
     salary: { advertised: '', target: '', discussed: '', offered: '' },
-    recruiter: { name: '', email: '', linkedin: '' }, interviews: [],
+    recruiter: { name: '', email: '', linkedin: '' }, interviews: [], notes: [],
   },
   {
     name: 'TeamViewer', stage: 'Not Interested', applied: false, applied_date: '', synced_at: '2026-06-01T00:00:00Z',
@@ -581,7 +589,7 @@ export const mockCompanies: Company[] = [
     has_report: false, has_notes: false, has_cv_pdf: false, has_letter_pdf: false,
     personal_notes: '', follow_up_date: '',
     salary: { advertised: '', target: '', discussed: '', offered: '' },
-    recruiter: { name: '', email: '', linkedin: '' }, interviews: [],
+    recruiter: { name: '', email: '', linkedin: '' }, interviews: [], notes: [],
   },
   // ── Archived ─────────────────────────────────────────────────
   {
@@ -596,6 +604,7 @@ export const mockCompanies: Company[] = [
     interviews: [
       { id: 0, date: '2025-09-23', type: 'Technical', notes: 'Software Engineer — Technical Interview', outcome: 'Pass' },
     ],
+    notes: [],
   },
   {
     name: 'SimonsVoss Technologies', stage: 'Archived', applied: false, applied_date: '', synced_at: '2026-06-01T00:00:00Z',
@@ -604,6 +613,6 @@ export const mockCompanies: Company[] = [
     has_report: false, has_notes: false, has_cv_pdf: false, has_letter_pdf: false,
     personal_notes: 'Unable to re-apply here.', follow_up_date: '',
     salary: { advertised: '', target: '', discussed: '', offered: '' },
-    recruiter: { name: '', email: '', linkedin: '' }, interviews: [],
+    recruiter: { name: '', email: '', linkedin: '' }, interviews: [], notes: [],
   },
 ]

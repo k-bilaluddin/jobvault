@@ -6,9 +6,9 @@ import CompanyAvatar from '@/components/common/CompanyAvatar.vue'
 import RecommendBadge from '@/components/common/RecommendBadge.vue'
 import MatchRing from '@/components/common/MatchRing.vue'
 import { useCompanies } from '@/composables/useCompanies'
-import { OUTCOME_COLORS, STAGE_COLORS } from '@/utils/score'
-import { PIPELINE_STAGES } from '@/types'
-import type { ApplicationStage } from '@/types'
+import { STAGE_COLORS } from '@/utils/score'
+import { PIPELINE_STAGES, NOTE_CATEGORIES } from '@/types'
+import type { ApplicationStage, ApplicationNote, NoteCategory } from '@/types'
 import { api, API_BASE } from '@/api'
 
 const route  = useRoute()
@@ -18,7 +18,7 @@ const { getByName, loading } = useCompanies()
 const companyName = computed(() => decodeURIComponent(route.params.name as string))
 const company     = computed(() => getByName(companyName.value))
 
-const TABS = ['Analysis', 'Strategy', 'Details', 'My Notes', 'Files', 'Interviews', 'Pipeline'] as const
+const TABS = ['Analysis', 'Strategy', 'Details', 'My Notes', 'Files', 'Interviews', 'Journey'] as const
 type Tab = typeof TABS[number]
 const activeTab = ref<Tab>('Analysis')
 
@@ -101,6 +101,7 @@ watch(companyName, () => {
   notesLoaded.value = false
   notesHtml.value = ''
   noteInit.value = false
+  notesInit.value = false
   interviewsInit.value = false
   if (activeTab.value === 'Analysis') loadReport()
   if (activeTab.value === 'Strategy') loadNotes()
@@ -205,19 +206,33 @@ const ivSaving        = ref(false)
 const ivError         = ref('')
 
 async function saveInterview() {
-  if (!newInterview.value.notes.trim()) { ivError.value = 'Please add notes'; return }
+  const resolvedType = newInterview.value.type === 'Other'
+    ? (customInterviewType.value.trim() || 'Other')
+    : newInterview.value.type
   ivSaving.value = true
   ivError.value  = ''
   try {
-    const { data } = await api.post(`/api/applications/${encodeURIComponent(companyName.value)}/interviews`, newInterview.value)
+    const payload = { ...newInterview.value, type: resolvedType }
+    const { data } = await api.post(`/api/applications/${encodeURIComponent(companyName.value)}/interviews`, payload)
     if (data.ok) {
       localInterviews.value = data.interviews
       if (company.value) company.value.interviews = data.interviews
       addingInterview.value = false
       newInterview.value = { date: new Date().toISOString().split('T')[0], type: 'HR', notes: '', outcome: 'Pending' }
+      customInterviewType.value = ''
     }
   } catch { ivError.value = 'Failed to save' }
   finally  { ivSaving.value = false }
+}
+
+async function updateInterviewOutcome(idx: number, outcome: string) {
+  try {
+    const { data } = await api.put(`/api/applications/${encodeURIComponent(companyName.value)}/interviews/${idx}`, { outcome })
+    if (data.ok) {
+      localInterviews.value = data.interviews
+      if (company.value) company.value.interviews = data.interviews
+    }
+  } catch { /* ignore */ }
 }
 
 async function deleteInterview(idx: number) {
@@ -230,7 +245,139 @@ async function deleteInterview(idx: number) {
   } catch { /* ignore */ }
 }
 
-const INTERVIEW_TYPES = ['HR', 'Technical', 'Phone', 'Onsite', 'Final']
+// ── Notes ────────────────────────────────────────────────────
+const localNotes = ref<ApplicationNote[]>([])
+const notesInit  = ref(false)
+
+watch(() => company.value?.notes, (ns) => {
+  if (ns && !notesInit.value) {
+    localNotes.value = JSON.parse(JSON.stringify(ns))
+    notesInit.value = true
+  }
+}, { immediate: true })
+
+const addingNote     = ref(false)
+const noteSavingNew  = ref(false)
+const noteError      = ref('')
+const noteFilterCat  = ref<NoteCategory | 'All'>('All')
+
+const newNote = ref({
+  category: 'General' as NoteCategory,
+  content: '',
+  pinned: false,
+  stage: '',
+})
+
+const filteredNotes = computed(() => {
+  let list = localNotes.value
+  if (noteFilterCat.value !== 'All')
+    list = list.filter(n => n.category === noteFilterCat.value)
+  return [...list].sort((a, b) => {
+    if (a.pinned !== b.pinned) return a.pinned ? -1 : 1
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  })
+})
+
+async function saveNewNote() {
+  if (!newNote.value.content.trim()) { noteError.value = 'Please add content'; return }
+  noteSavingNew.value = true
+  noteError.value = ''
+  try {
+    const { data } = await api.post(`/api/applications/${encodeURIComponent(companyName.value)}/notes`, newNote.value)
+    if (data.ok) {
+      localNotes.value = data.notes
+      if (company.value) company.value.notes = data.notes
+      addingNote.value = false
+      newNote.value = { category: 'General', content: '', pinned: false, stage: '' }
+    }
+  } catch { noteError.value = 'Failed to save' }
+  finally  { noteSavingNew.value = false }
+}
+
+async function togglePin(note: ApplicationNote) {
+  try {
+    const { data } = await api.put(`/api/applications/${encodeURIComponent(companyName.value)}/notes/${note.id}`, { pinned: !note.pinned })
+    if (data.ok) {
+      localNotes.value = data.notes
+      if (company.value) company.value.notes = data.notes
+    }
+  } catch { /* ignore */ }
+}
+
+async function deleteNote(noteId: number) {
+  try {
+    const { data } = await api.delete(`/api/applications/${encodeURIComponent(companyName.value)}/notes/${noteId}`)
+    if (data.ok) {
+      localNotes.value = localNotes.value.filter(n => n.id !== noteId)
+      if (company.value) company.value.notes = localNotes.value
+    }
+  } catch { /* ignore */ }
+}
+
+const NOTE_STYLE: Record<string, { icon: string; color: string; bg: string; border: string }> = {
+  Application: { icon: '📄', color: 'text-blue-400',    bg: 'bg-blue-500/5',    border: 'border-blue-500/20'    },
+  Interview:   { icon: '🎤', color: 'text-violet-400',  bg: 'bg-violet-500/5',  border: 'border-violet-500/20'  },
+  'Follow-up': { icon: '📬', color: 'text-emerald-400', bg: 'bg-emerald-500/5', border: 'border-emerald-500/20' },
+  Rejection:   { icon: '📋', color: 'text-red-400',     bg: 'bg-red-500/5',     border: 'border-red-500/20'     },
+  General:     { icon: '💡', color: 'text-indigo-400',  bg: 'bg-indigo-500/5',  border: 'border-indigo-500/20'  },
+}
+
+// Pipeline stages for timeline
+const TIMELINE_STAGES = ['Ready to Apply', 'Applied', 'Interview', 'Offer'] as const
+
+const timelineStages = computed(() => {
+  const stages = [...TIMELINE_STAGES] as string[]
+  if (currentStage.value === 'Rejected') stages.push('Rejected')
+  return stages
+})
+
+function notesForStage(stage: string) {
+  return localNotes.value
+    .filter(n => n.stage === stage)
+    .sort((a, b) => {
+      if (a.pinned !== b.pinned) return a.pinned ? -1 : 1
+      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    })
+}
+
+function isStageCompleted(stage: string) {
+  if (stage === 'Rejected') return currentStage.value === 'Rejected'
+  if (stage === 'Offer') return currentStage.value === 'Offer'
+  const order = ['Ready to Apply', 'Applied', 'Interview', 'Offer']
+  const current = currentStage.value === 'Rejected'
+    ? lastReachedStage.value
+    : currentStage.value
+  return order.indexOf(current) >= order.indexOf(stage)
+}
+
+const lastReachedStage = computed(() => {
+  if (company.value?.interviews?.length) return 'Interview'
+  if (company.value?.applied) return 'Applied'
+  return 'Ready to Apply'
+})
+
+function formatNoteDate(iso: string) {
+  const d = new Date(iso)
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
+const daysInPipeline = computed(() => {
+  const created = company.value?.applied_date || company.value?.synced_at
+  if (!created) return null
+  const start = new Date(created)
+  const now = new Date()
+  return Math.max(0, Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)))
+})
+
+const noteCountsByCategory = computed(() => {
+  const counts: Record<string, number> = {}
+  for (const cat of NOTE_CATEGORIES) counts[cat] = 0
+  for (const n of localNotes.value) counts[n.category] = (counts[n.category] ?? 0) + 1
+  return counts
+})
+
+const INTERVIEW_TYPES = ['HR', 'Technical', 'Phone', 'Onsite', 'Final', 'Other']
+const customInterviewType = ref('')
 const INTERVIEW_OUTCOMES = ['Pending', 'Pass', 'Fail']
 
 const TYPE_STYLE: Record<string, { dot: string; badge: string }> = {
@@ -323,6 +470,8 @@ const OUTCOME_STYLE: Record<string, { selected: string; unselected: string }> = 
           {{ tab }}
           <span v-if="tab === 'Interviews' && (company.interviews?.length ?? 0) > 0"
             class="ml-1 text-[10px] bg-violet-500/20 text-violet-400 px-1 rounded">{{ company.interviews.length }}</span>
+          <span v-if="tab === 'My Notes' && localNotes.length > 0"
+            class="ml-1 text-[10px] bg-indigo-500/20 text-indigo-400 px-1 rounded">{{ localNotes.length }}</span>
         </button>
       </div>
 
@@ -533,25 +682,153 @@ const OUTCOME_STYLE: Record<string, { selected: string; unselected: string }> = 
         </div>
 
         <!-- ── MY NOTES ── -->
-        <div v-else-if="activeTab === 'My Notes'" class="max-w-2xl space-y-3">
-          <div class="flex items-center justify-between">
-            <p class="text-sm font-semibold text-text-primary">Personal Notes</p>
-            <div class="flex items-center gap-2">
-              <span v-if="noteSaved" class="text-xs text-emerald-400">Saved ✓</span>
-              <button v-if="!noteEditing" @click="noteEditing = true" class="text-xs text-accent hover:underline">Edit</button>
-              <button v-else @click="saveNote" :disabled="noteSaving"
-                class="text-xs bg-accent text-white px-3 py-1 rounded-lg hover:bg-accent/90 disabled:opacity-50">
-                {{ noteSaving ? 'Saving…' : 'Save' }}
+        <div v-else-if="activeTab === 'My Notes'" class="max-w-2xl space-y-4">
+
+          <!-- Filter + Add bar -->
+          <div class="flex items-center gap-3 mb-4">
+            <div class="flex gap-1.5 flex-1 overflow-x-auto min-w-0">
+              <button @click="noteFilterCat = 'All'"
+                :class="['px-2.5 py-1 text-xs font-medium rounded-full border transition-colors whitespace-nowrap',
+                  noteFilterCat === 'All' ? 'bg-accent/15 text-accent border-accent/30' : 'bg-surface-overlay text-text-muted border-border hover:border-accent/40']">
+                All ({{ localNotes.length }})
               </button>
-              <button v-if="noteEditing" @click="noteEditing = false; noteText = company.personal_notes ?? ''"
-                class="text-xs text-text-muted hover:underline">Cancel</button>
+              <button v-for="cat in NOTE_CATEGORIES" :key="cat" @click="noteFilterCat = cat"
+                :class="['px-2.5 py-1 text-xs font-medium rounded-full border transition-colors whitespace-nowrap',
+                  noteFilterCat === cat
+                    ? `${NOTE_STYLE[cat].bg} ${NOTE_STYLE[cat].color} ${NOTE_STYLE[cat].border}`
+                    : 'bg-surface-overlay text-text-muted border-border hover:border-accent/40']">
+                {{ NOTE_STYLE[cat].icon }} {{ cat }} ({{ localNotes.filter(n => n.category === cat).length }})
+              </button>
+            </div>
+            <button @click="addingNote = !addingNote"
+              :class="['flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex-shrink-0',
+                addingNote ? 'bg-surface-overlay text-text-muted' : 'bg-accent/15 text-accent hover:bg-accent/25 border border-accent/30']">
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              {{ addingNote ? 'Cancel' : 'Add Note' }}
+            </button>
+          </div>
+
+          <!-- Add note form -->
+          <Transition enter-active-class="transition-all duration-200 ease-out" enter-from-class="opacity-0 -translate-y-2" enter-to-class="opacity-100 translate-y-0">
+            <div v-if="addingNote" class="bg-surface-raised border border-accent/40 rounded-xl p-5 space-y-4">
+              <p class="text-sm font-semibold text-text-primary">New Note</p>
+              <div>
+                <label class="block text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-1.5">Stage</label>
+                <div class="flex flex-wrap gap-1.5">
+                  <button v-for="s in TIMELINE_STAGES" :key="s" @click="newNote.stage = s"
+                    :class="['px-2.5 py-1 text-xs font-medium rounded-full border transition-colors',
+                      newNote.stage === s
+                        ? `${STAGE_COLORS[s as ApplicationStage]?.bg ?? 'bg-accent/15'} ${STAGE_COLORS[s as ApplicationStage]?.text ?? 'text-accent'} border-transparent`
+                        : 'bg-surface-overlay text-text-muted border-border hover:border-accent/40']">
+                    {{ s }}
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label class="block text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-1.5">Category</label>
+                <div class="flex flex-wrap gap-1.5">
+                  <button v-for="cat in NOTE_CATEGORIES" :key="cat" @click="newNote.category = cat"
+                    :class="['px-2.5 py-1 text-xs font-medium rounded-full border transition-colors',
+                      newNote.category === cat
+                        ? `${NOTE_STYLE[cat].bg} ${NOTE_STYLE[cat].color} ${NOTE_STYLE[cat].border}`
+                        : 'bg-surface-overlay text-text-muted border-border hover:border-accent/40']">
+                    {{ NOTE_STYLE[cat].icon }} {{ cat }}
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label class="block text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-1.5">Content</label>
+                <textarea v-model="newNote.content" rows="3"
+                  placeholder="What happened, what's important to remember..."
+                  class="w-full bg-surface-overlay border border-border rounded-lg px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted outline-none focus:border-accent transition-colors resize-none"/>
+              </div>
+              <div class="flex items-center gap-3">
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" v-model="newNote.pinned" class="accent-accent w-3.5 h-3.5"/>
+                  <span class="text-xs text-text-muted">Pin this note</span>
+                </label>
+              </div>
+              <div class="flex items-center justify-between gap-3 pt-1">
+                <p v-if="noteError" class="text-xs text-red-400">{{ noteError }}</p>
+                <div v-else/>
+                <div class="flex gap-2">
+                  <button @click="addingNote = false; noteError = ''" class="px-4 py-2 text-xs text-text-muted hover:text-text-primary bg-surface-overlay rounded-lg transition-colors">Cancel</button>
+                  <button @click="saveNewNote" :disabled="noteSavingNew"
+                    class="flex items-center gap-2 px-4 py-2 text-xs font-semibold bg-accent text-white rounded-lg hover:bg-accent/90 disabled:opacity-50 transition-colors">
+                    <svg v-if="noteSavingNew" class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                    {{ noteSavingNew ? 'Saving…' : 'Save Note' }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </Transition>
+
+          <!-- Notes list -->
+          <div v-if="filteredNotes.length" class="space-y-2">
+            <div v-for="note in filteredNotes" :key="note.id"
+              :class="['flex gap-3 p-3.5 rounded-xl border group transition-colors',
+                NOTE_STYLE[note.category]?.bg ?? 'bg-surface-raised',
+                NOTE_STYLE[note.category]?.border ?? 'border-border']">
+              <span class="text-sm flex-shrink-0 mt-0.5">{{ NOTE_STYLE[note.category]?.icon ?? '💡' }}</span>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-1.5 flex-wrap">
+                  <span :class="['text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded',
+                    `${NOTE_STYLE[note.category]?.bg} ${NOTE_STYLE[note.category]?.color}`]">
+                    {{ note.category }}
+                  </span>
+                  <span class="text-[9px] text-text-muted">{{ formatNoteDate(note.created_at) }}</span>
+                  <span class="text-[9px] text-text-muted px-1.5 py-0.5 bg-surface-overlay rounded">{{ note.stage }}</span>
+                  <span v-if="note.pinned" class="text-[9px] px-1.5 py-0.5 bg-amber-500/10 text-amber-400 rounded font-medium">📌 Pinned</span>
+                </div>
+                <p class="text-sm text-text-secondary leading-relaxed whitespace-pre-wrap">{{ note.content }}</p>
+              </div>
+              <div class="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                <button @click="togglePin(note)" class="p-1 rounded hover:bg-surface-overlay text-text-muted hover:text-amber-400 transition-colors" :title="note.pinned ? 'Unpin' : 'Pin'">
+                  <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>
+                </button>
+                <button @click="deleteNote(note.id)" class="p-1 rounded hover:bg-red-500/15 text-text-muted hover:text-red-400 transition-colors" title="Delete">
+                  <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                </button>
+              </div>
             </div>
           </div>
-          <textarea v-if="noteEditing" v-model="noteText" rows="10"
-            class="w-full bg-surface-raised border border-accent rounded-xl p-4 text-sm text-text-primary outline-none resize-none font-mono"/>
-          <div v-else class="bg-surface-raised border border-border rounded-xl p-5 min-h-[120px]">
-            <p v-if="noteText" class="text-sm text-text-secondary leading-relaxed whitespace-pre-wrap">{{ noteText }}</p>
-            <p v-else class="text-sm text-text-muted italic">No personal notes. Click Edit to add.</p>
+
+          <!-- Empty state -->
+          <div v-else-if="!addingNote" class="flex flex-col items-center justify-center py-16 text-center border border-dashed border-border rounded-xl">
+            <div class="w-12 h-12 rounded-full bg-surface-overlay flex items-center justify-center mb-3">
+              <svg class="w-6 h-6 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+              </svg>
+            </div>
+            <p class="text-sm font-medium text-text-secondary mb-1">No notes yet</p>
+            <p class="text-xs text-text-muted mb-4">Add notes to track your application journey</p>
+            <button @click="addingNote = true"
+              class="flex items-center gap-2 px-4 py-2 bg-accent text-white text-sm font-medium rounded-lg hover:bg-accent/90 transition-colors">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              Add First Note
+            </button>
+          </div>
+
+          <!-- Legacy personal notes (read-only if exists) -->
+          <div v-if="noteText" class="mt-6">
+            <div class="flex items-center justify-between mb-2">
+              <p class="text-xs font-semibold text-text-muted uppercase tracking-wider">Legacy Notes</p>
+              <div class="flex items-center gap-2">
+                <span v-if="noteSaved" class="text-xs text-emerald-400">Saved ✓</span>
+                <button v-if="!noteEditing" @click="noteEditing = true" class="text-xs text-accent hover:underline">Edit</button>
+                <button v-else @click="saveNote" :disabled="noteSaving"
+                  class="text-xs bg-accent text-white px-3 py-1 rounded-lg hover:bg-accent/90 disabled:opacity-50">
+                  {{ noteSaving ? 'Saving…' : 'Save' }}
+                </button>
+                <button v-if="noteEditing" @click="noteEditing = false; noteText = company.personal_notes ?? ''"
+                  class="text-xs text-text-muted hover:underline">Cancel</button>
+              </div>
+            </div>
+            <textarea v-if="noteEditing" v-model="noteText" rows="6"
+              class="w-full bg-surface-raised border border-accent rounded-xl p-4 text-sm text-text-primary outline-none resize-none font-mono"/>
+            <div v-else class="bg-surface-raised border border-border rounded-xl p-4">
+              <p class="text-sm text-text-secondary leading-relaxed whitespace-pre-wrap">{{ noteText }}</p>
+            </div>
           </div>
         </div>
 
@@ -659,11 +936,16 @@ const OUTCOME_STYLE: Record<string, { selected: string; unselected: string }> = 
                       <!-- Date -->
                       <span v-if="iv.date" class="text-xs text-text-muted font-mono">{{ iv.date }}</span>
                     </div>
-                    <div class="flex items-center gap-2 flex-shrink-0">
-                      <!-- Outcome badge -->
-                      <span :class="['text-xs font-semibold px-2.5 py-1 rounded-full', OUTCOME_COLORS[iv.outcome] ?? 'bg-slate-500/15 text-slate-400']">
-                        {{ iv.outcome }}
-                      </span>
+                    <div class="flex items-center gap-1.5 flex-shrink-0">
+                      <!-- Clickable outcome buttons -->
+                      <button v-for="o in INTERVIEW_OUTCOMES" :key="o"
+                        @click="updateInterviewOutcome(idx, o)"
+                        :class="['text-[10px] font-semibold px-2 py-0.5 rounded-full transition-all',
+                          iv.outcome === o
+                            ? (OUTCOME_STYLE[o]?.selected ?? 'bg-slate-500 text-white')
+                            : 'bg-transparent text-text-muted opacity-0 group-hover:opacity-60 hover:!opacity-100 ' + (OUTCOME_STYLE[o]?.unselected ?? '')]">
+                        {{ o === 'Pass' ? '✓' : o === 'Fail' ? '✗' : '⏳' }}
+                      </button>
                       <!-- Delete -->
                       <button @click="deleteInterview(idx)"
                         class="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-lg hover:bg-red-500/15 text-text-muted hover:text-red-400">
@@ -718,6 +1000,9 @@ const OUTCOME_STYLE: Record<string, { selected: string; unselected: string }> = 
                       {{ t }}
                     </button>
                   </div>
+                  <input v-if="newInterview.type === 'Other'" v-model="customInterviewType" type="text"
+                    placeholder="e.g. Hiring Manager, Impact Day..."
+                    class="mt-2 w-full bg-surface-overlay border border-border rounded-lg px-3 py-2 text-sm text-text-primary placeholder:text-text-muted outline-none focus:border-accent transition-colors"/>
                 </div>
               </div>
 
@@ -766,32 +1051,179 @@ const OUTCOME_STYLE: Record<string, { selected: string; unselected: string }> = 
         </div>
 
         <!-- ── PIPELINE ── -->
-        <div v-else-if="activeTab === 'Pipeline'" class="max-w-sm">
-          <div class="bg-surface-raised border border-border rounded-xl p-5">
-            <p class="text-xs font-semibold text-text-muted uppercase tracking-wider mb-4">Application Timeline</p>
-            <ol class="space-y-0">
-              <li v-for="(stage, i) in (['Ready to Apply','Applied','Interview','Offer'] as ApplicationStage[])" :key="stage" class="flex items-start gap-3">
-                <div class="flex flex-col items-center">
-                  <div :class="['w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0',
-                    PIPELINE_STAGES.indexOf(currentStage) >= PIPELINE_STAGES.indexOf(stage)
-                      ? 'bg-accent border-accent' : 'bg-surface-overlay border-border']">
-                    <svg v-if="PIPELINE_STAGES.indexOf(currentStage) >= PIPELINE_STAGES.indexOf(stage)" class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
-                    </svg>
+        <div v-else-if="activeTab === 'Journey'" class="grid grid-cols-3 gap-6">
+
+          <!-- LEFT: Timeline (2 cols) -->
+          <div class="col-span-2 space-y-5">
+            <!-- Header + Progress -->
+            <div>
+              <div class="flex items-center justify-between mb-4">
+                <p class="text-xs font-semibold text-text-muted uppercase tracking-wider">Application Journey</p>
+                <div class="flex items-center gap-2">
+                  <div :class="['w-2 h-2 rounded-full', currentStage === 'Rejected' ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]' : currentStage === 'Offer' ? 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.4)]' : 'bg-accent shadow-[0_0_8px_rgba(99,102,241,0.4)]']"/>
+                  <span :class="['text-xs font-semibold', STAGE_COLORS[currentStage]?.text ?? 'text-text-muted']">{{ currentStage }}</span>
+                </div>
+              </div>
+              <div class="h-1 bg-surface-overlay rounded-full overflow-hidden">
+                <div class="h-full rounded-full transition-all duration-500"
+                  :class="currentStage === 'Rejected' ? 'bg-gradient-to-r from-indigo-500 via-violet-500 to-red-500' : 'bg-gradient-to-r from-indigo-500 to-violet-500'"
+                  :style="{ width: `${Math.min(100, ((timelineStages.indexOf(currentStage) + 1) / timelineStages.length) * 100)}%` }"/>
+              </div>
+            </div>
+
+            <!-- Timeline -->
+            <div class="relative ml-3">
+              <div class="absolute left-[10px] top-3 bottom-3 w-0.5 rounded-full"
+                :class="currentStage === 'Rejected' ? 'bg-gradient-to-b from-indigo-500 via-violet-500 to-red-500' : 'bg-gradient-to-b from-indigo-500 to-violet-500/30'"/>
+
+              <div v-for="stage in timelineStages" :key="stage" class="relative pb-6 last:pb-0">
+                <div class="flex items-center gap-4">
+                  <div class="relative z-10 flex-shrink-0">
+                    <div v-if="stage === 'Rejected'"
+                      class="w-[22px] h-[22px] rounded-full bg-red-500 border-[3px] border-surface flex items-center justify-center shadow-[0_0_12px_rgba(239,68,68,0.3)]">
+                      <svg class="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </div>
+                    <div v-else-if="isStageCompleted(stage)"
+                      :class="['w-[22px] h-[22px] rounded-full border-[3px] border-surface flex items-center justify-center',
+                        stage === currentStage ? 'bg-accent shadow-[0_0_12px_rgba(99,102,241,0.4)]' : 'bg-indigo-500']">
+                      <svg class="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                    </div>
+                    <div v-else class="w-[22px] h-[22px] rounded-full bg-surface-overlay border-2 border-border"/>
                   </div>
-                  <div v-if="i < 3" class="w-px h-8 mt-1" :class="PIPELINE_STAGES.indexOf(currentStage) > PIPELINE_STAGES.indexOf(stage) ? 'bg-accent/40' : 'bg-border'"/>
+
+                  <div class="flex items-center gap-2.5">
+                    <span :class="['text-sm font-bold', stage === 'Rejected' ? 'text-red-400' : isStageCompleted(stage) ? 'text-text-primary' : 'text-text-muted']">
+                      {{ stage }}
+                    </span>
+                    <span v-if="notesForStage(stage).length" :class="['text-[10px] px-1.5 py-0.5 rounded-full font-medium',
+                      stage === 'Interview' ? 'bg-violet-500/15 text-violet-400'
+                        : stage === 'Rejected' ? 'bg-red-500/15 text-red-400'
+                        : 'bg-accent/15 text-accent']">
+                      {{ notesForStage(stage).length }} note{{ notesForStage(stage).length > 1 ? 's' : '' }}
+                    </span>
+                  </div>
                 </div>
-                <div class="pb-8">
-                  <p class="text-sm font-medium" :class="PIPELINE_STAGES.indexOf(currentStage) >= PIPELINE_STAGES.indexOf(stage) ? 'text-text-primary' : 'text-text-muted'">{{ stage }}</p>
+
+                <div v-if="notesForStage(stage).length" class="ml-[38px] mt-2 space-y-1.5">
+                  <div v-for="note in notesForStage(stage)" :key="note.id"
+                    :class="['flex gap-2.5 items-start p-3 rounded-xl border transition-colors',
+                      NOTE_STYLE[note.category]?.bg ?? 'bg-surface-raised',
+                      NOTE_STYLE[note.category]?.border ?? 'border-border']">
+                    <span class="text-sm flex-shrink-0 mt-0.5">{{ NOTE_STYLE[note.category]?.icon ?? '💡' }}</span>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-2 mb-1">
+                        <span :class="['text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded',
+                          `${NOTE_STYLE[note.category]?.bg} ${NOTE_STYLE[note.category]?.color}`]">
+                          {{ note.category }}
+                        </span>
+                        <span class="text-[9px] text-text-muted">{{ formatNoteDate(note.created_at) }}</span>
+                        <span v-if="note.pinned" class="text-[9px] px-1.5 py-0.5 bg-amber-500/10 text-amber-400 rounded font-medium">📌 Pinned</span>
+                      </div>
+                      <p class="text-xs text-text-secondary leading-relaxed whitespace-pre-wrap">{{ note.content }}</p>
+                    </div>
+                  </div>
                 </div>
-              </li>
-              <li v-if="currentStage === 'Rejected'" class="flex items-start gap-3">
-                <div class="w-6 h-6 rounded-full bg-red-500/20 border-2 border-red-500 flex items-center justify-center flex-shrink-0">
-                  <svg class="w-3 h-3 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- RIGHT: Summary panel (1 col) -->
+          <div class="col-span-1 space-y-4">
+
+            <!-- Status card -->
+            <div class="bg-surface-raised border border-border rounded-xl p-5">
+              <p class="text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-4">Status</p>
+              <div class="flex items-center gap-3 mb-4">
+                <div :class="['w-10 h-10 rounded-full flex items-center justify-center',
+                  currentStage === 'Rejected' ? 'bg-red-500/15' : currentStage === 'Offer' ? 'bg-amber-500/15' : 'bg-accent/15']">
+                  <span :class="['text-lg font-bold', STAGE_COLORS[currentStage]?.text ?? 'text-text-muted']">
+                    {{ currentStage === 'Rejected' ? '✗' : currentStage === 'Offer' ? '★' : '→' }}
+                  </span>
                 </div>
-                <p class="text-sm font-medium text-red-400">Rejected</p>
-              </li>
-            </ol>
+                <div>
+                  <p :class="['text-sm font-bold', STAGE_COLORS[currentStage]?.text ?? 'text-text-muted']">{{ currentStage }}</p>
+                  <p class="text-[10px] text-text-muted">Current stage</p>
+                </div>
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <div class="p-3 rounded-lg bg-surface-overlay border border-border">
+                  <p class="text-xl font-bold text-text-primary">{{ daysInPipeline ?? '—' }}</p>
+                  <p class="text-[10px] text-text-muted uppercase tracking-wider mt-0.5">Days in pipeline</p>
+                </div>
+                <div class="p-3 rounded-lg bg-surface-overlay border border-border">
+                  <p class="text-xl font-bold text-text-primary">{{ localNotes.length }}</p>
+                  <p class="text-[10px] text-text-muted uppercase tracking-wider mt-0.5">Total notes</p>
+                </div>
+                <div class="p-3 rounded-lg bg-surface-overlay border border-border">
+                  <p class="text-xl font-bold text-violet-400">{{ company.interviews?.length ?? 0 }}</p>
+                  <p class="text-[10px] text-text-muted uppercase tracking-wider mt-0.5">Interviews</p>
+                </div>
+                <div class="p-3 rounded-lg bg-surface-overlay border border-border">
+                  <p class="text-xl font-bold text-text-primary">{{ company.match_pct ?? '—' }}<span v-if="company.match_pct" class="text-xs text-text-muted">%</span></p>
+                  <p class="text-[10px] text-text-muted uppercase tracking-wider mt-0.5">Match score</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Key dates -->
+            <div class="bg-surface-raised border border-border rounded-xl p-5">
+              <p class="text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-3">Key Dates</p>
+              <div class="space-y-2.5">
+                <div v-if="company.applied_date" class="flex items-center justify-between">
+                  <span class="text-xs text-text-muted">Applied</span>
+                  <span class="text-xs font-medium text-text-primary font-mono">{{ company.applied_date }}</span>
+                </div>
+                <div v-for="iv in [...(company.interviews ?? [])].sort((a, b) => a.date.localeCompare(b.date))" :key="iv.id" class="flex items-center justify-between">
+                  <div class="flex items-center gap-1.5">
+                    <span :class="['w-1.5 h-1.5 rounded-full flex-shrink-0', TYPE_STYLE[iv.type]?.dot ?? 'bg-slate-500']"/>
+                    <span class="text-xs text-text-muted">{{ iv.type }} Interview</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs font-medium text-text-primary font-mono">{{ iv.date }}</span>
+                    <span :class="['text-[9px] font-semibold', iv.outcome === 'Pass' ? 'text-emerald-400' : iv.outcome === 'Fail' ? 'text-red-400' : 'text-amber-400']">
+                      {{ iv.outcome === 'Pass' ? '✓' : iv.outcome === 'Fail' ? '✗' : '⏳' }}
+                    </span>
+                  </div>
+                </div>
+                <div v-if="company.follow_up_date" class="flex items-center justify-between">
+                  <span class="text-xs text-text-muted">Follow-up</span>
+                  <span :class="['text-xs font-medium font-mono',
+                    company.follow_up_date <= new Date().toISOString().split('T')[0] ? 'text-amber-400' : 'text-text-primary']">
+                    {{ company.follow_up_date }}
+                  </span>
+                </div>
+                <div v-if="currentStage === 'Rejected'" class="flex items-center justify-between">
+                  <span class="text-xs text-red-400">Rejected</span>
+                  <span class="text-xs font-medium text-red-400 font-mono">{{ company.synced_at?.split('T')[0] ?? '—' }}</span>
+                </div>
+                <div v-if="salaryDisplay" class="flex items-center justify-between pt-1 border-t border-border">
+                  <span class="text-xs text-text-muted">{{ salaryDisplay.label }}</span>
+                  <span class="text-xs font-medium text-emerald-400 font-mono">{{ salaryDisplay.value }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Notes breakdown -->
+            <div class="bg-surface-raised border border-border rounded-xl p-5">
+              <p class="text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-3">Notes by Category</p>
+              <div class="space-y-2">
+                <div v-for="cat in NOTE_CATEGORIES" :key="cat" class="flex items-center gap-2.5">
+                  <span class="text-sm flex-shrink-0">{{ NOTE_STYLE[cat]?.icon }}</span>
+                  <span class="text-xs text-text-secondary flex-1">{{ cat }}</span>
+                  <span :class="['text-xs font-bold tabular-nums', noteCountsByCategory[cat] ? (NOTE_STYLE[cat]?.color ?? 'text-text-primary') : 'text-text-muted']">
+                    {{ noteCountsByCategory[cat] }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Quick add note -->
+            <button @click="activeTab = 'My Notes'; addingNote = true"
+              class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-accent/10 text-accent text-sm font-medium rounded-xl border border-accent/20 hover:bg-accent/20 transition-colors">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              Add Note
+            </button>
+
           </div>
         </div>
 

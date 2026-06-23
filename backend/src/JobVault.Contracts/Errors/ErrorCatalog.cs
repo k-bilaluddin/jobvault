@@ -17,7 +17,11 @@ public static class ErrorCatalog
         ["application.stage_update_failed"] = new(404, "Stage Update Failed",       "Failed to update stage for '{0}'"),
         ["application.notes_update_failed"] = new(404, "Notes Update Failed",       "Failed to update notes for '{0}'"),
         ["application.interview_add_failed"]= new(404, "Interview Add Failed",      "Failed to add interview for '{0}'"),
+        ["application.interview_update_failed"]= new(404, "Interview Update Failed", "Failed to update interview for '{0}'"),
         ["application.interview_del_failed"]= new(404, "Interview Delete Failed",   "Failed to delete interview for '{0}'"),
+        ["application.note_add_failed"]     = new(404, "Note Add Failed",           "Failed to add note for '{0}'"),
+        ["application.note_update_failed"]  = new(404, "Note Update Failed",        "Failed to update note for '{0}'"),
+        ["application.note_del_failed"]     = new(404, "Note Delete Failed",        "Failed to delete note for '{0}'"),
 
         // Ingest
         ["ingest.validation_failed"]        = new(400, "Validation Failed",         "Required field '{0}' is missing"),

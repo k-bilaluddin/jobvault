@@ -44,6 +44,9 @@ const userMessages: Record<string, string> = {
   'application.not_found': 'Application not found.',
   'vault.file_not_found': 'This file is not available yet.',
   'vault.company_required': 'Company name is required.',
+  'application.note_add_failed': 'Failed to add note.',
+  'application.note_update_failed': 'Failed to update note.',
+  'application.note_del_failed': 'Failed to delete note.',
   'vault.no_files_uploaded': 'Please upload at least one file.',
   'vault.empty_files': 'All uploaded files are empty.',
 }

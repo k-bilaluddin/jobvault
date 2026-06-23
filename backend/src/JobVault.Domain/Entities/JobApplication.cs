@@ -47,6 +47,7 @@ public class JobApplication
     public DateTime? AppliedDate { get; set; }
     public string PersonalNotes { get; set; } = string.Empty;
     public List<InterviewRecord> Interviews { get; set; } = [];
+    public List<ApplicationNote> Notes { get; set; } = [];
     public SalaryInfo Salary { get; set; } = new();
     public RecruiterInfo Recruiter { get; set; } = new();
     public DateTime? FollowUpDate { get; set; }

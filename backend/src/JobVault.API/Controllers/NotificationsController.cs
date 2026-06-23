@@ -1,7 +1,7 @@
 using System.Text.Json;
 using JobVault.API.Logging;
 using JobVault.Application.Interfaces;
-using JobVault.Domain.Entities;
+using JobVault.Contracts.Responses;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -12,7 +12,7 @@ namespace JobVault.API.Controllers;
 public class NotificationsController : ApiControllerBase
 {
     private readonly INotificationHub _notificationHub;
-    private readonly INotificationRepository _notificationRepository;
+    private readonly INotificationQueryService _queryService;
     private readonly ILogger<NotificationsController> _logger;
     private readonly ITokenService _tokenService;
 
@@ -23,17 +23,16 @@ public class NotificationsController : ApiControllerBase
 
     public NotificationsController(
         INotificationHub notificationHub,
-        INotificationRepository notificationRepository,
+        INotificationQueryService queryService,
         ILogger<NotificationsController> logger,
         ITokenService tokenService)
     {
         _notificationHub = notificationHub;
-        _notificationRepository = notificationRepository;
+        _queryService = queryService;
         _logger = logger;
         _tokenService = tokenService;
     }
 
-    // EventSource cannot send Authorization headers — accept token via query param for SSE only.
     [HttpGet("stream")]
     [AllowAnonymous]
     public async Task StreamNotifications([FromQuery] string? token, CancellationToken cancellationToken)
@@ -86,25 +85,23 @@ public class NotificationsController : ApiControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<AppNotification>>> GetNotifications()
+    public async Task<ActionResult<IEnumerable<NotificationResponse>>> GetNotifications(CancellationToken cancellationToken)
     {
-        var notifications = await _notificationRepository.GetRecentAsync(50);
-        return Ok(notifications);
+        var result = await _queryService.GetRecentAsync(50, cancellationToken);
+        return Ok(result);
     }
 
     [HttpPost("read-all")]
-    public async Task<ActionResult> MarkAllRead()
+    public async Task<ActionResult> MarkAllRead(CancellationToken cancellationToken)
     {
-        var count = await _notificationRepository.MarkAllReadAsync();
-        _logger.LogInformation(LogEvents.NotificationsMarkedRead, "Marked {Count} notifications as read", count);
+        await _queryService.MarkAllReadAsync(cancellationToken);
         return Ok();
     }
 
     [HttpPost("{id:guid}/read")]
-    public async Task<ActionResult> MarkRead(Guid id)
+    public async Task<ActionResult> MarkRead(Guid id, CancellationToken cancellationToken)
     {
-        await _notificationRepository.MarkReadAsync(id);
-        _logger.LogInformation(LogEvents.NotificationMarkedRead, "Marked notification {Id} as read", id);
+        await _queryService.MarkReadAsync(id, cancellationToken);
         return Ok();
     }
 

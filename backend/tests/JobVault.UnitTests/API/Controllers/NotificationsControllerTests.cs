@@ -1,6 +1,6 @@
 using JobVault.API.Controllers;
 using JobVault.Application.Interfaces;
-using JobVault.Domain.Entities;
+using JobVault.Contracts.Responses;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -10,17 +10,17 @@ namespace JobVault.UnitTests.API.Controllers;
 public class NotificationsControllerTests
 {
     private readonly INotificationHub _notificationHub;
-    private readonly INotificationRepository _notificationRepository;
+    private readonly INotificationQueryService _queryService;
     private readonly ILogger<NotificationsController> _logger;
     private readonly NotificationsController _sut;
 
     public NotificationsControllerTests()
     {
         _notificationHub = Substitute.For<INotificationHub>();
-        _notificationRepository = Substitute.For<INotificationRepository>();
+        _queryService = Substitute.For<INotificationQueryService>();
         _logger = Substitute.For<ILogger<NotificationsController>>();
         var tokenService = Substitute.For<ITokenService>();
-        _sut = new NotificationsController(_notificationHub, _notificationRepository, _logger, tokenService)
+        _sut = new NotificationsController(_notificationHub, _queryService, _logger, tokenService)
         {
             ControllerContext = new ControllerContext
             {
@@ -33,45 +33,45 @@ public class NotificationsControllerTests
     public async Task GetNotifications_ReturnsOkWithNotifications()
     {
         // Arrange
-        var notifications = new List<AppNotification>
+        var notifications = new List<NotificationResponse>
         {
             new() { Title = "Job processed", Body = "Acme application ready" },
             new() { Title = "New match", Body = "85% match found" }
         };
-        _notificationRepository.GetRecentAsync(50).Returns(notifications);
+        _queryService.GetRecentAsync(50, Arg.Any<CancellationToken>()).Returns(notifications);
 
         // Act
-        var result = await _sut.GetNotifications();
+        var result = await _sut.GetNotifications(CancellationToken.None);
 
         // Assert
         var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
-        var returned = okResult.Value.Should().BeAssignableTo<IEnumerable<AppNotification>>().Subject;
+        var returned = okResult.Value.Should().BeAssignableTo<IReadOnlyList<NotificationResponse>>().Subject;
         returned.Should().HaveCount(2);
     }
 
     [Fact]
-    public async Task GetNotifications_RepositoryThrows_ExceptionBubbles()
+    public async Task GetNotifications_ServiceThrows_ExceptionBubbles()
     {
         // Arrange
-        _notificationRepository.GetRecentAsync(50).ThrowsAsync(new Exception("DB down"));
+        _queryService.GetRecentAsync(50, Arg.Any<CancellationToken>()).ThrowsAsync(new Exception("DB down"));
 
-        // Act & Assert — exception bubbles to GlobalExceptionHandler middleware
+        // Act & Assert
         await Assert.ThrowsAsync<Exception>(() =>
-            _sut.GetNotifications());
+            _sut.GetNotifications(CancellationToken.None));
     }
 
     [Fact]
     public async Task MarkAllRead_ReturnsOk()
     {
         // Arrange
-        _notificationRepository.MarkAllReadAsync().Returns(Task.FromResult(3L));
+        _queryService.MarkAllReadAsync(Arg.Any<CancellationToken>()).Returns(Task.FromResult(3L));
 
         // Act
-        var result = await _sut.MarkAllRead();
+        var result = await _sut.MarkAllRead(CancellationToken.None);
 
         // Assert
         result.Should().BeOfType<OkResult>();
-        await _notificationRepository.Received(1).MarkAllReadAsync();
+        await _queryService.Received(1).MarkAllReadAsync(Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -79,13 +79,13 @@ public class NotificationsControllerTests
     {
         // Arrange
         var id = Guid.NewGuid();
-        _notificationRepository.MarkReadAsync(id).Returns(Task.CompletedTask);
+        _queryService.MarkReadAsync(id, Arg.Any<CancellationToken>()).Returns(Task.CompletedTask);
 
         // Act
-        var result = await _sut.MarkRead(id);
+        var result = await _sut.MarkRead(id, CancellationToken.None);
 
         // Assert
         result.Should().BeOfType<OkResult>();
-        await _notificationRepository.Received(1).MarkReadAsync(id);
+        await _queryService.Received(1).MarkReadAsync(id, Arg.Any<CancellationToken>());
     }
 }

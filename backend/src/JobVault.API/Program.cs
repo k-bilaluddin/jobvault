@@ -126,6 +126,7 @@ builder.Services.AddScoped<IApplicationQueryService, ApplicationQueryService>();
 // Notification services
 builder.Services.AddSingleton<INotificationHub, NotificationHub>();
 builder.Services.AddSingleton<INotificationRepository, NotificationRepository>();
+builder.Services.AddSingleton<INotificationQueryService, NotificationQueryService>();
 builder.Services.AddHostedService<SseNotificationConsumer>();
 
 var app = builder.Build();
