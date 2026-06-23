@@ -1,3 +1,4 @@
+using JobVault.API.Filters;
 using JobVault.API.Models.Requests;
 using JobVault.Application.Interfaces;
 using JobVault.Application.Models;
@@ -31,6 +32,8 @@ public class VaultController : ApiControllerBase
     /// status "Processing", publishes job.application.received, and returns 202 immediately.
     /// The Worker handles PDF conversion and GitHub commit.
     /// </summary>
+    [AllowAnonymous]
+    [ApiKey]
     [HttpPost("ingest/applications")]
     [Consumes("application/json")]
     [ProducesResponseType(typeof(IngestApplicationResponse), StatusCodes.Status202Accepted)]
@@ -51,6 +54,8 @@ public class VaultController : ApiControllerBase
     // LEGACY: remove after async ingestion is confirmed stable.
     // This endpoint accepted multipart/form-data file uploads and committed them directly
     // to GitHub synchronously. Replaced by POST /api/ingest/applications + Worker pipeline.
+    [AllowAnonymous]
+    [ApiKey]
     [HttpPost("ingest")]
     [Consumes("multipart/form-data")]
     [ProducesResponseType(typeof(IngestResponse), StatusCodes.Status200OK)]
