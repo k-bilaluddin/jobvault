@@ -60,8 +60,8 @@ public class VaultFileService : IVaultFileService
             client.DefaultRequestHeaders.UserAgent.ParseAdd("JobVault.API/1.0");
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github.raw+json"));
 
-            var path = $"{companyName}/{fileName}.pdf";
-            var url = $"https://api.github.com/repos/{settings.GitHubOwner}/{settings.GitHubRepository}/contents/{Uri.EscapeDataString(path)}?ref={settings.GitHubBranch}";
+            var path = $"{Uri.EscapeDataString(companyName)}/{Uri.EscapeDataString($"{fileName}.pdf")}";
+            var url = $"https://api.github.com/repos/{settings.GitHubOwner}/{settings.GitHubRepository}/contents/{path}?ref={settings.GitHubBranch}";
 
             var response = await client.GetAsync(url, cancellationToken);
             if (!response.IsSuccessStatusCode)
