@@ -18,4 +18,7 @@ public interface IApplicationQueryService
     Task<NoteListResponse?> AddNoteAsync(string companyName, AddNoteRequest request, CancellationToken cancellationToken = default);
     Task<NoteListResponse?> UpdateNoteAsync(string companyName, int noteId, UpdateNoteRequest request, CancellationToken cancellationToken = default);
     Task<bool> DeleteNoteAsync(string companyName, int noteId, CancellationToken cancellationToken = default);
+    Task<ContentResponse?> GetContentAsync(string companyName, CancellationToken cancellationToken = default);
+    Task<bool> UpdateContentAsync(string companyName, UpdateContentRequest request, CancellationToken cancellationToken = default);
+    Task<string?> RegenerateAsync(string companyName, UpdateContentRequest? contentUpdate, CancellationToken cancellationToken = default);
 }

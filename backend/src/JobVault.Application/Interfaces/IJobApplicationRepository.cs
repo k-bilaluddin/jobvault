@@ -45,4 +45,16 @@ public interface IJobApplicationRepository
     Task<JobApplication?> AddNoteAsync(string companyName, ApplicationNote note, CancellationToken cancellationToken = default);
     Task<JobApplication?> UpdateNoteAsync(string companyName, int noteId, string? category, string? content, bool? pinned, CancellationToken cancellationToken = default);
     Task<bool> DeleteNoteAsync(string companyName, int noteId, CancellationToken cancellationToken = default);
+
+    Task<bool> UpdateContentAsync(
+        string companyName,
+        string? headline,
+        string? summary,
+        List<Domain.ValueObjects.SkillRow>? skills,
+        List<Domain.ValueObjects.RolePayload>? roles,
+        string? recipient,
+        List<string>? coverLetterParagraphs,
+        List<string>? strengths,
+        List<string>? gaps,
+        CancellationToken cancellationToken = default);
 }
