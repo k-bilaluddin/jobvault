@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using JobVault.Application.Interfaces;
+using JobVault.Application.Services;
 using JobVault.Infrastructure.Generation;
 using JobVault.Infrastructure.GitHub;
 using JobVault.Infrastructure.Messaging.RabbitMQ;
@@ -73,6 +74,8 @@ public class Program
 
         // Persistence
         builder.Services.AddSingleton<IJobApplicationRepository, MongoDbService>();
+        builder.Services.AddSingleton<ISettingsRepository, SettingsRepository>();
+        builder.Services.AddSingleton<ISettingsService, SettingsService>();
 
         // GitHub
         builder.Services.AddSingleton<IGitHubFileService, GitHubFileService>();

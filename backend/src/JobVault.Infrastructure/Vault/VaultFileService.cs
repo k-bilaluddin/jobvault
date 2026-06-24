@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 using System.Net.Http.Headers;
-using System.Text.Json;
 using JobVault.Application.Interfaces;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -11,16 +10,19 @@ public class VaultFileService : IVaultFileService
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IConfiguration _configuration;
+    private readonly ISettingsService _settingsService;
     private readonly ILogger<VaultFileService> _logger;
     private readonly ConcurrentDictionary<string, byte[]> _pdfCache = new();
 
     public VaultFileService(
         IHttpClientFactory httpClientFactory,
         IConfiguration configuration,
+        ISettingsService settingsService,
         ILogger<VaultFileService> logger)
     {
         _httpClientFactory = httpClientFactory;
         _configuration = configuration;
+        _settingsService = settingsService;
         _logger = logger;
     }
 
@@ -36,10 +38,9 @@ public class VaultFileService : IVaultFileService
 
     public async Task<byte[]?> GetPdfBytesAsync(string companyName, string type, CancellationToken cancellationToken = default)
     {
-        var fileName = type == "cv"
-            ? _configuration["GitHub:CvFileName"] ?? "KhawajaBilal_Uddin_CV"
-            : _configuration["GitHub:CoverLetterFileName"] ?? "KhawajaBilal_Uddin_CoverLetter";
+        var settings = await _settingsService.GetAsync(cancellationToken);
 
+        var fileName = type == "cv" ? settings.GitHubCvFileName : settings.GitHubCoverLetterFileName;
         var cacheKey = $"{companyName}/{fileName}.pdf";
 
         if (_pdfCache.TryGetValue(cacheKey, out var cached))
@@ -48,10 +49,6 @@ public class VaultFileService : IVaultFileService
         try
         {
             var token = _configuration["GitHub:Token"];
-            var owner = _configuration["GitHub:Owner"] ?? "k-bilaluddin";
-            var repo = _configuration["GitHub:Repository"] ?? "job-applications-vault";
-            var branch = _configuration["GitHub:Branch"] ?? "master";
-
             if (string.IsNullOrWhiteSpace(token))
             {
                 _logger.LogError("GitHub token not configured");
@@ -64,7 +61,7 @@ public class VaultFileService : IVaultFileService
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github.raw+json"));
 
             var path = $"{companyName}/{fileName}.pdf";
-            var url = $"https://api.github.com/repos/{owner}/{repo}/contents/{Uri.EscapeDataString(path)}?ref={branch}";
+            var url = $"https://api.github.com/repos/{settings.GitHubOwner}/{settings.GitHubRepository}/contents/{Uri.EscapeDataString(path)}?ref={settings.GitHubBranch}";
 
             var response = await client.GetAsync(url, cancellationToken);
             if (!response.IsSuccessStatusCode)

@@ -15,6 +15,7 @@ public class ApplicationProcessorService : IApplicationProcessorService
     private readonly IDocumentGenerationClient _generationClient;
     private readonly IFileIngestService _fileIngestService;
     private readonly IVaultFileService _vaultFileService;
+    private readonly ISettingsService _settingsService;
     private readonly IRabbitMqPublisher _publisher;
     private readonly IConfiguration _configuration;
     private readonly ILogger<ApplicationProcessorService> _logger;
@@ -24,6 +25,7 @@ public class ApplicationProcessorService : IApplicationProcessorService
         IDocumentGenerationClient generationClient,
         IFileIngestService fileIngestService,
         IVaultFileService vaultFileService,
+        ISettingsService settingsService,
         IRabbitMqPublisher publisher,
         IConfiguration configuration,
         ILogger<ApplicationProcessorService> logger)
@@ -32,6 +34,7 @@ public class ApplicationProcessorService : IApplicationProcessorService
         _generationClient = generationClient;
         _fileIngestService = fileIngestService;
         _vaultFileService = vaultFileService;
+        _settingsService = settingsService;
         _publisher = publisher;
         _configuration = configuration;
         _logger = logger;
@@ -59,8 +62,9 @@ public class ApplicationProcessorService : IApplicationProcessorService
             return;
         }
 
-        var cvBaseName = _configuration["GitHub:CvFileName"] ?? "KhawajaBilal_Uddin_CV";
-        var coverLetterBaseName = _configuration["GitHub:CoverLetterFileName"] ?? "KhawajaBilal_Uddin_CoverLetter";
+        var settings = await _settingsService.GetAsync(cancellationToken);
+        var cvBaseName = settings.GitHubCvFileName;
+        var coverLetterBaseName = settings.GitHubCoverLetterFileName;
 
         // Generate CV and cover letter in parallel — both are independent HTTP calls.
         // Exceptions propagate so the consumer can retry (transient) or fast-fail (4xx permanent).
