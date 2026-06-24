@@ -10,6 +10,7 @@ import { STAGE_COLORS } from '@/utils/score'
 import { PIPELINE_STAGES, NOTE_CATEGORIES } from '@/types'
 import type { ApplicationStage, ApplicationNote, NoteCategory } from '@/types'
 import { api, API_BASE } from '@/api'
+import ContentEditor from '@/components/company/ContentEditor.vue'
 
 const route  = useRoute()
 const router = useRouter()
@@ -141,6 +142,7 @@ async function saveNote() {
 
 // ── PDF viewer ────────────────────────────────────────────────
 const pdfViewer  = ref<'cv' | 'letter' | null>(null)
+const showEditor = ref(false)
 const pdfUrl = computed(() => {
   if (!pdfViewer.value) return ''
   const token = localStorage.getItem('jv_token') ?? ''
@@ -833,8 +835,8 @@ const OUTCOME_STYLE: Record<string, { selected: string; unselected: string }> = 
         </div>
 
         <!-- ── FILES ── -->
-        <div v-else-if="activeTab === 'Files'" class="max-w-xl">
-          <div class="bg-surface-raised border border-border rounded-xl p-5">
+        <div v-else-if="activeTab === 'Files'" :class="showEditor || company.status === 'Regenerating' ? 'flex gap-5 items-start' : 'max-w-xl'">
+          <div class="bg-surface-raised border border-border rounded-xl p-5 flex-shrink-0" :class="showEditor || company.status === 'Regenerating' ? 'w-80' : ''">
             <p class="text-xs font-semibold text-text-muted uppercase tracking-wider mb-4">Vault Files</p>
             <div class="space-y-2">
               <!-- CV PDF — opens in browser -->
@@ -889,6 +891,24 @@ const OUTCOME_STYLE: Record<string, { selected: string; unselected: string }> = 
                 </div>
               </div>
             </div>
+
+            <!-- Edit button -->
+            <div v-if="company.has_content && company.status !== 'Regenerating'" class="mt-4 pt-4 border-t border-border flex justify-end">
+              <button @click="showEditor = !showEditor"
+                :class="['flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors', showEditor ? 'bg-surface-overlay text-text-muted' : 'bg-accent/15 text-accent hover:bg-accent/25 border border-accent/30']">
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                {{ showEditor ? 'Close Editor' : 'Edit Content' }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Content Editor -->
+          <div v-if="showEditor || company.status === 'Regenerating'" class="flex-1 min-w-0">
+            <ContentEditor
+              :company-name="company.name"
+              :is-regenerating="company.status === 'Regenerating'"
+              @regenerated="company.status = 'Regenerating'; showEditor = false"
+            />
           </div>
         </div>
 

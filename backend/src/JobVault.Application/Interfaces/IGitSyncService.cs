@@ -4,5 +4,5 @@ namespace JobVault.Application.Interfaces;
 
 public interface IGitSyncService
 {
-    GitSyncResponse Sync();
+    Task<GitSyncResponse> SyncAsync(CancellationToken cancellationToken = default);
 }

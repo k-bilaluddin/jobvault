@@ -28,6 +28,7 @@ export function matchPctBar(pct: number | null): string {
 
 export const STAGE_COLORS: Record<ApplicationStage, { dot: string; text: string; bg: string }> = {
   'Processing':     { dot: 'bg-blue-400',   text: 'text-blue-400',   bg: 'bg-blue-400/15'   },
+  'Regenerating':   { dot: 'bg-indigo-400', text: 'text-indigo-400', bg: 'bg-indigo-400/15' },
   'Failed':         { dot: 'bg-red-600',    text: 'text-red-500',    bg: 'bg-red-600/15'    },
   'Not Interested': { dot: 'bg-slate-500',  text: 'text-slate-400',  bg: 'bg-slate-500/15'  },
   'Archived':       { dot: 'bg-slate-600',  text: 'text-slate-500',  bg: 'bg-slate-600/15'  },

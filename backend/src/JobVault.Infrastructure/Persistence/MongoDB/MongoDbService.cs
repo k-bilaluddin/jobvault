@@ -134,21 +134,6 @@ public class MongoDbService : IJobApplicationRepository
             if (errorDetails != null)
                 updateDef = updateDef.Set(d => d.ErrorDetails, errorDetails);
 
-            // Clear generation payload once processing is done
-            // Keep compatibilityReportMarkdown and tailoringNotesMarkdown for API serving
-            if (status is "Ready to Apply" or "Failed")
-            {
-                updateDef = updateDef
-                    .Unset(d => d.JdSource)
-                    .Unset(d => d.Headline)
-                    .Unset(d => d.Summary)
-                    .Unset(d => d.Skills)
-                    .Unset(d => d.Roles)
-                    .Unset(d => d.Recipient)
-                    .Unset(d => d.CoverLetterParagraphs)
-                    .Unset(d => d.TailoringNotes);
-            }
-
             var result = await _collection.UpdateOneAsync(filter, updateDef, cancellationToken: cancellationToken);
 
             _logger.LogInformation("Updated status to {Status} for id={Id}", status, id);
@@ -404,6 +389,42 @@ public class MongoDbService : IJobApplicationRepository
         {
             _logger.LogError(ex, "Error updating note for {CompanyName}", companyName);
             return null;
+        }
+    }
+
+    public async Task<bool> UpdateContentAsync(
+        string companyName,
+        string? headline,
+        string? summary,
+        List<Domain.ValueObjects.SkillRow>? skills,
+        List<Domain.ValueObjects.RolePayload>? roles,
+        string? recipient,
+        List<string>? coverLetterParagraphs,
+        List<string>? strengths,
+        List<string>? gaps,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.CompanyName, companyName);
+            var update = Builders<JobApplicationDocument>.Update.Set(d => d.UpdatedAt, DateTime.UtcNow);
+
+            if (headline != null) update = update.Set(d => d.Headline, headline);
+            if (summary != null) update = update.Set(d => d.Summary, summary);
+            if (skills != null) update = update.Set(d => d.Skills, skills.Select(s => new SkillRowDocument { Label = s.Label, Value = s.Value }).ToList());
+            if (roles != null) update = update.Set(d => d.Roles, roles.Select(r => new RolePayloadDocument { Id = r.Id, Bullets = r.Bullets }).ToList());
+            if (recipient != null) update = update.Set(d => d.Recipient, recipient);
+            if (coverLetterParagraphs != null) update = update.Set(d => d.CoverLetterParagraphs, coverLetterParagraphs);
+            if (strengths != null) update = update.Set(d => d.Strengths, strengths);
+            if (gaps != null) update = update.Set(d => d.Gaps, gaps);
+
+            var result = await _collection.UpdateOneAsync(filter, update, cancellationToken: cancellationToken);
+            return result.MatchedCount > 0;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating content for {CompanyName}", companyName);
+            return false;
         }
     }
 

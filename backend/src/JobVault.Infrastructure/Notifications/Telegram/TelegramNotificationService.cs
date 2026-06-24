@@ -1,9 +1,8 @@
-﻿using JobVault.Application.Interfaces;
+using JobVault.Application.Interfaces;
 using JobVault.Contracts.Events;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Telegram.Bot;
-using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 
 namespace JobVault.Infrastructure.Notifications.Telegram;
@@ -11,17 +10,20 @@ namespace JobVault.Infrastructure.Notifications.Telegram;
 public class TelegramNotificationService : ITelegramNotificationService
 {
     private readonly IConfiguration _configuration;
+    private readonly ISettingsService _settingsService;
     private readonly ILogger<TelegramNotificationService> _logger;
     private readonly TelegramBotClient? _botClient;
-    private readonly long? _chatId;
 
-    public TelegramNotificationService(IConfiguration configuration, ILogger<TelegramNotificationService> logger)
+    public TelegramNotificationService(
+        IConfiguration configuration,
+        ISettingsService settingsService,
+        ILogger<TelegramNotificationService> logger)
     {
         _configuration = configuration;
+        _settingsService = settingsService;
         _logger = logger;
 
         var botToken = _configuration["Telegram:BotToken"];
-        var chatIdString = _configuration["Telegram:ChatId"];
 
         if (string.IsNullOrWhiteSpace(botToken))
         {
@@ -29,16 +31,9 @@ public class TelegramNotificationService : ITelegramNotificationService
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(chatIdString) || !long.TryParse(chatIdString, out var parsedChatId))
-        {
-            _logger.LogWarning("Telegram chat ID not configured or invalid. Notifications will be disabled.");
-            return;
-        }
-
         try
         {
             _botClient = new TelegramBotClient(botToken);
-            _chatId = parsedChatId;
             _logger.LogInformation("Telegram notification service initialized successfully");
         }
         catch (Exception ex)
@@ -49,9 +44,18 @@ public class TelegramNotificationService : ITelegramNotificationService
 
     public async Task SendNotificationAsync(JobApplicationEvent jobEvent)
     {
-        if (_botClient == null || _chatId == null)
+        if (_botClient == null)
         {
             _logger.LogWarning("Telegram notification service not initialized. Skipping notification.");
+            return;
+        }
+
+        var settings = await _settingsService.GetAsync();
+        var chatIdString = settings.TelegramChatId;
+
+        if (string.IsNullOrWhiteSpace(chatIdString) || !long.TryParse(chatIdString, out var chatId))
+        {
+            _logger.LogWarning("Telegram chat ID not configured or invalid. Skipping notification.");
             return;
         }
 
@@ -60,7 +64,7 @@ public class TelegramNotificationService : ITelegramNotificationService
             var message = FormatMessage(jobEvent);
 
             await _botClient.SendTextMessageAsync(
-                chatId: _chatId.Value,
+                chatId: chatId,
                 text: message,
                 parseMode: ParseMode.Html,
                 disableNotification: false);

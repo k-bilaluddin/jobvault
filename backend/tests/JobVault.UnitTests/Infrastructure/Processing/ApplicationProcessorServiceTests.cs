@@ -14,6 +14,8 @@ public class ApplicationProcessorServiceTests
     private readonly IJobApplicationRepository _repository = Substitute.For<IJobApplicationRepository>();
     private readonly IDocumentGenerationClient _generationClient = Substitute.For<IDocumentGenerationClient>();
     private readonly IFileIngestService _fileIngestService = Substitute.For<IFileIngestService>();
+    private readonly IVaultFileService _vaultFileService = Substitute.For<IVaultFileService>();
+    private readonly ISettingsService _settingsService = Substitute.For<ISettingsService>();
     private readonly IRabbitMqPublisher _publisher = Substitute.For<IRabbitMqPublisher>();
     private readonly ILogger<ApplicationProcessorService> _logger = Substitute.For<ILogger<ApplicationProcessorService>>();
     private readonly ApplicationProcessorService _sut;
@@ -27,10 +29,15 @@ public class ApplicationProcessorServiceTests
         _generationClient.GenerateCoverLetterAsync(Arg.Any<JobApplication>(), Arg.Any<CancellationToken>())
             .Returns(new byte[] { 1, 2, 3 });
 
+        _settingsService.GetAsync(Arg.Any<CancellationToken>())
+            .Returns(new JobVault.Domain.Entities.AppSettings());
+
         _sut = new ApplicationProcessorService(
             _repository,
             _generationClient,
             _fileIngestService,
+            _vaultFileService,
+            _settingsService,
             _publisher,
             config,
             _logger);

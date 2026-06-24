@@ -13,15 +13,18 @@ public class FileIngestService : IFileIngestService
 {
     private readonly IConfiguration _configuration;
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly ISettingsService _settingsService;
     private readonly ILogger<FileIngestService> _logger;
 
     public FileIngestService(
         IConfiguration configuration,
         IHttpClientFactory httpClientFactory,
+        ISettingsService settingsService,
         ILogger<FileIngestService> logger)
     {
         _configuration = configuration;
         _httpClientFactory = httpClientFactory;
+        _settingsService = settingsService;
         _logger = logger;
     }
 
@@ -39,9 +42,10 @@ public class FileIngestService : IFileIngestService
                 return FileIngestResult.Failure("GitHub token not configured");
             }
 
-            var owner = _configuration["GitHub:Owner"] ?? "k-bilaluddin";
-            var repo = _configuration["GitHub:Repository"] ?? "job-applications-vault";
-            var branch = _configuration["GitHub:Branch"] ?? "master";
+            var settings = await _settingsService.GetAsync(cancellationToken);
+            var owner = settings.GitHubOwner;
+            var repo = settings.GitHubRepository;
+            var branch = settings.GitHubBranch;
 
             var uploadedFiles = new List<string>();
             var client = _httpClientFactory.CreateClient();
