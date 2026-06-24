@@ -109,23 +109,6 @@ export interface ApplicationNote {
   updated_at: string
 }
 
-// ─── Categorized application note ─────────────────────────────
-export type NoteCategory = 'Application' | 'Interview' | 'Follow-up' | 'Rejection' | 'General'
-
-export const NOTE_CATEGORIES: NoteCategory[] = [
-  'Application', 'Interview', 'Follow-up', 'Rejection', 'General',
-]
-
-export interface ApplicationNote {
-  id: number
-  category: NoteCategory
-  content: string
-  stage: string
-  pinned: boolean
-  created_at: string
-  updated_at: string
-}
-
 // ─── In-app notification ──────────────────────────────────────
 export type NotificationType = 'new_application' | 'stage_changed' | 'score_computed' | 'sync_completed'
 
