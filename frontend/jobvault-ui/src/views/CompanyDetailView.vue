@@ -893,7 +893,7 @@ const OUTCOME_STYLE: Record<string, { selected: string; unselected: string }> = 
             </div>
 
             <!-- Edit button -->
-            <div v-if="company.has_content && company.status !== 'Regenerating'" class="mt-4 pt-4 border-t border-border">
+            <div v-if="company.has_content && company.status !== 'Regenerating'" class="mt-4 pt-4 border-t border-border flex justify-end">
               <button @click="showEditor = !showEditor"
                 :class="['flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors', showEditor ? 'bg-surface-overlay text-text-muted' : 'bg-accent/15 text-accent hover:bg-accent/25 border border-accent/30']">
                 <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
