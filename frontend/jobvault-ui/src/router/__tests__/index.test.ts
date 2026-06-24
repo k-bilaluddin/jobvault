@@ -19,7 +19,7 @@ function makeRouter() {
   })
 
   router.beforeEach((to, _from, next) => {
-    const isAuth = localStorage.getItem('jv_auth') === 'true'
+    const isAuth = !!localStorage.getItem('jv_token')
     const isPublic = to.meta.public === true
     if (!isAuth && !isPublic) next('/login')
     else if (isAuth && to.path === '/login') next('/dashboard')
@@ -68,35 +68,35 @@ describe('router', () => {
   describe('auth guard', () => {
     it('redirects unauthenticated users to login', async () => {
       const router = makeRouter()
-      localStorage.removeItem('jv_auth')
+      localStorage.removeItem('jv_token')
       await router.push('/dashboard')
       expect(router.currentRoute.value.path).toBe('/login')
     })
 
     it('allows authenticated users to access dashboard', async () => {
       const router = makeRouter()
-      localStorage.setItem('jv_auth', 'true')
+      localStorage.setItem('jv_token', 'true')
       await router.push('/dashboard')
       expect(router.currentRoute.value.path).toBe('/dashboard')
     })
 
     it('redirects authenticated users away from login', async () => {
       const router = makeRouter()
-      localStorage.setItem('jv_auth', 'true')
+      localStorage.setItem('jv_token', 'true')
       await router.push('/login')
       expect(router.currentRoute.value.path).toBe('/dashboard')
     })
 
     it('allows unauthenticated users to access login', async () => {
       const router = makeRouter()
-      localStorage.removeItem('jv_auth')
+      localStorage.removeItem('jv_token')
       await router.push('/login')
       expect(router.currentRoute.value.path).toBe('/login')
     })
 
     it('redirects unknown paths to dashboard (if authed)', async () => {
       const router = makeRouter()
-      localStorage.setItem('jv_auth', 'true')
+      localStorage.setItem('jv_token', 'true')
       await router.push('/nonexistent-route')
       expect(router.currentRoute.value.path).toBe('/dashboard')
     })
