@@ -7,6 +7,7 @@ using JobVault.Infrastructure.Notifications;
 using JobVault.Infrastructure.Notifications.Telegram;
 using JobVault.Infrastructure.Persistence.MongoDB;
 using JobVault.Infrastructure.Processing;
+using JobVault.Infrastructure.Vault;
 
 namespace JobVault.Worker;
 
@@ -83,6 +84,9 @@ public class Program
         // Notifications
         builder.Services.AddScoped<ITelegramNotificationService, TelegramNotificationService>();
         builder.Services.AddSingleton<INotificationHub, NotificationHub>();
+
+        // Vault
+        builder.Services.AddSingleton<IVaultFileService, VaultFileService>();
 
         // Processing — scoped so each consumer message gets an isolated instance
         builder.Services.AddScoped<IApplicationProcessorService, ApplicationProcessorService>();

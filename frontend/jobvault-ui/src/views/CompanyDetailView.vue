@@ -835,8 +835,8 @@ const OUTCOME_STYLE: Record<string, { selected: string; unselected: string }> = 
         </div>
 
         <!-- ── FILES ── -->
-        <div v-else-if="activeTab === 'Files'" class="max-w-xl space-y-5">
-          <div class="bg-surface-raised border border-border rounded-xl p-5">
+        <div v-else-if="activeTab === 'Files'" :class="showEditor || company.status === 'Regenerating' ? 'flex gap-5 max-w-5xl items-start' : 'max-w-xl'">
+          <div class="bg-surface-raised border border-border rounded-xl p-5 flex-shrink-0" :class="showEditor || company.status === 'Regenerating' ? 'w-80' : ''">
             <p class="text-xs font-semibold text-text-muted uppercase tracking-wider mb-4">Vault Files</p>
             <div class="space-y-2">
               <!-- CV PDF — opens in browser -->
@@ -903,12 +903,13 @@ const OUTCOME_STYLE: Record<string, { selected: string; unselected: string }> = 
           </div>
 
           <!-- Content Editor -->
-          <ContentEditor
-            v-if="showEditor || company.status === 'Regenerating'"
-            :company-name="company.name"
-            :is-regenerating="company.status === 'Regenerating'"
-            @regenerated="company.status = 'Regenerating'; showEditor = false"
-          />
+          <div v-if="showEditor || company.status === 'Regenerating'" class="flex-1 min-w-0">
+            <ContentEditor
+              :company-name="company.name"
+              :is-regenerating="company.status === 'Regenerating'"
+              @regenerated="company.status = 'Regenerating'; showEditor = false"
+            />
+          </div>
         </div>
 
         <!-- ── INTERVIEWS ── -->

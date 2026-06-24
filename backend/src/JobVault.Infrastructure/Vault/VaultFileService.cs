@@ -1,87 +1,98 @@
-using System.Text.RegularExpressions;
+using System.Collections.Concurrent;
+using System.Net.Http.Headers;
+using System.Text.Json;
 using JobVault.Application.Interfaces;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace JobVault.Infrastructure.Vault;
 
 public class VaultFileService : IVaultFileService
 {
-    private readonly string? _rootDir;
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IConfiguration _configuration;
+    private readonly ILogger<VaultFileService> _logger;
+    private readonly ConcurrentDictionary<string, byte[]> _pdfCache = new();
 
-    private static readonly Regex CvPattern = new(
-        @"(?<![a-zA-Z])(cv|resume|lebenslauf)(?![a-zA-Z])", RegexOptions.IgnoreCase | RegexOptions.Compiled);
-
-    private static readonly Regex LetterPattern = new(
-        @"cover.?letter|coverletter|anschreiben", RegexOptions.IgnoreCase | RegexOptions.Compiled);
-
-    private static readonly HashSet<string> ReportNames = ["compatibility_report", "report"];
-    private static readonly HashSet<string> NotesNames = ["tailoring_notes", "notes"];
-
-    public VaultFileService(IConfiguration configuration)
+    public VaultFileService(
+        IHttpClientFactory httpClientFactory,
+        IConfiguration configuration,
+        ILogger<VaultFileService> logger)
     {
-        _rootDir = configuration["Vault:RootDir"];
+        _httpClientFactory = httpClientFactory;
+        _configuration = configuration;
+        _logger = logger;
     }
 
     public (bool HasCvPdf, bool HasLetterPdf, bool HasReport, bool HasNotes) CheckFiles(string companyName)
     {
-        if (string.IsNullOrEmpty(_rootDir)) return (false, false, false, false);
-
-        var folder = Path.Combine(_rootDir, companyName);
-        if (!Directory.Exists(folder)) return (false, false, false, false);
-
-        bool hasCv = false, hasLetter = false, hasReport = false, hasNotes = false;
-
-        foreach (var file in Directory.EnumerateFiles(folder))
-        {
-            var ext = Path.GetExtension(file).ToLowerInvariant();
-            var name = Path.GetFileName(file);
-            var stem = Path.GetFileNameWithoutExtension(file).ToLowerInvariant().Replace("-", "_");
-
-            if (ext == ".pdf")
-            {
-                if (CvPattern.IsMatch(name)) hasCv = true;
-                if (LetterPattern.IsMatch(name)) hasLetter = true;
-            }
-            else if (ext is ".md" or ".txt")
-            {
-                if (ReportNames.Contains(stem)) hasReport = true;
-                if (NotesNames.Contains(stem)) hasNotes = true;
-            }
-        }
-
-        return (hasCv, hasLetter, hasReport, hasNotes);
+        return (false, false, false, false);
     }
 
     public string? ReadMarkdown(string companyName, string[] fileNames)
     {
-        if (string.IsNullOrEmpty(_rootDir)) return null;
-
-        var folder = Path.Combine(_rootDir, companyName);
-        if (!Directory.Exists(folder)) return null;
-
-        foreach (var file in Directory.EnumerateFiles(folder))
-        {
-            var stem = Path.GetFileNameWithoutExtension(file).ToLowerInvariant().Replace("-", "_");
-            var ext = Path.GetExtension(file).ToLowerInvariant();
-
-            if (ext is ".md" or ".txt" && fileNames.Any(n => n.Replace("-", "_") == stem))
-                return File.ReadAllText(file);
-        }
-
         return null;
     }
 
-    public string? GetPdfPath(string companyName, string type)
+    public async Task<byte[]?> GetPdfBytesAsync(string companyName, string type, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrEmpty(_rootDir)) return null;
+        var fileName = type == "cv"
+            ? _configuration["GitHub:CvFileName"] ?? "KhawajaBilal_Uddin_CV"
+            : _configuration["GitHub:CoverLetterFileName"] ?? "KhawajaBilal_Uddin_CoverLetter";
 
-        var folder = Path.Combine(_rootDir, companyName);
-        if (!Directory.Exists(folder)) return null;
+        var cacheKey = $"{companyName}/{fileName}.pdf";
 
-        var pattern = type == "cv" ? CvPattern : LetterPattern;
+        if (_pdfCache.TryGetValue(cacheKey, out var cached))
+            return cached;
 
-        return Directory.EnumerateFiles(folder)
-            .Where(f => Path.GetExtension(f).Equals(".pdf", StringComparison.OrdinalIgnoreCase))
-            .FirstOrDefault(f => pattern.IsMatch(Path.GetFileName(f)));
+        try
+        {
+            var token = _configuration["GitHub:Token"];
+            var owner = _configuration["GitHub:Owner"] ?? "k-bilaluddin";
+            var repo = _configuration["GitHub:Repository"] ?? "job-applications-vault";
+            var branch = _configuration["GitHub:Branch"] ?? "master";
+
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                _logger.LogError("GitHub token not configured");
+                return null;
+            }
+
+            var client = _httpClientFactory.CreateClient();
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("JobVault.API/1.0");
+            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github.raw+json"));
+
+            var path = $"{companyName}/{fileName}.pdf";
+            var url = $"https://api.github.com/repos/{owner}/{repo}/contents/{Uri.EscapeDataString(path)}?ref={branch}";
+
+            var response = await client.GetAsync(url, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("GitHub API returned {StatusCode} for {Path}", response.StatusCode, path);
+                return null;
+            }
+
+            var bytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
+            _pdfCache[cacheKey] = bytes;
+
+            _logger.LogInformation("Fetched and cached PDF from GitHub: {Path} ({Bytes} bytes)", path, bytes.Length);
+            return bytes;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching PDF from GitHub for {CompanyName}/{Type}", companyName, type);
+            return null;
+        }
+    }
+
+    public void EvictCache(string companyName)
+    {
+        var keysToRemove = _pdfCache.Keys.Where(k => k.StartsWith($"{companyName}/")).ToList();
+        foreach (var key in keysToRemove)
+            _pdfCache.TryRemove(key, out _);
+
+        if (keysToRemove.Count > 0)
+            _logger.LogInformation("Evicted {Count} cached PDF(s) for {CompanyName}", keysToRemove.Count, companyName);
     }
 }

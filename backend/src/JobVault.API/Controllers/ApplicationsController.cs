@@ -113,14 +113,14 @@ public class ApplicationsController : ApiControllerBase
 
     [AllowAnonymous]
     [HttpGet("{name}/pdf/{type}")]
-    public IActionResult GetPdf(string name, string type, [FromQuery] string? token)
+    public async Task<IActionResult> GetPdf(string name, string type, [FromQuery] string? token, CancellationToken cancellationToken)
     {
         if (!_tokenService.ValidateToken(token)) return Unauthorized();
 
-        var path = _vaultFileService.GetPdfPath(name, type);
-        if (path == null) return ErrorResponse("vault.file_not_found", type, name);
+        var bytes = await _vaultFileService.GetPdfBytesAsync(name, type, cancellationToken);
+        if (bytes == null) return ErrorResponse("vault.file_not_found", type, name);
 
-        return PhysicalFile(path, "application/pdf");
+        return File(bytes, "application/pdf");
     }
 
     [HttpGet("skills-gap")]
@@ -163,9 +163,9 @@ public class ApplicationsController : ApiControllerBase
     }
 
     [HttpPost("sync-vault")]
-    public IActionResult SyncVault()
+    public async Task<IActionResult> SyncVault(CancellationToken cancellationToken)
     {
-        var result = _gitSyncService.Sync();
+        var result = await _gitSyncService.SyncAsync(cancellationToken);
         return Ok(result);
     }
 }
