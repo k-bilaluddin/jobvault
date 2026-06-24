@@ -14,6 +14,7 @@ public class ApplicationProcessorService : IApplicationProcessorService
     private readonly IJobApplicationRepository _repository;
     private readonly IDocumentGenerationClient _generationClient;
     private readonly IFileIngestService _fileIngestService;
+    private readonly IVaultFileService _vaultFileService;
     private readonly IRabbitMqPublisher _publisher;
     private readonly IConfiguration _configuration;
     private readonly ILogger<ApplicationProcessorService> _logger;
@@ -22,6 +23,7 @@ public class ApplicationProcessorService : IApplicationProcessorService
         IJobApplicationRepository repository,
         IDocumentGenerationClient generationClient,
         IFileIngestService fileIngestService,
+        IVaultFileService vaultFileService,
         IRabbitMqPublisher publisher,
         IConfiguration configuration,
         ILogger<ApplicationProcessorService> logger)
@@ -29,6 +31,7 @@ public class ApplicationProcessorService : IApplicationProcessorService
         _repository = repository;
         _generationClient = generationClient;
         _fileIngestService = fileIngestService;
+        _vaultFileService = vaultFileService;
         _publisher = publisher;
         _configuration = configuration;
         _logger = logger;
@@ -92,6 +95,8 @@ public class ApplicationProcessorService : IApplicationProcessorService
         var ingestResult = await _fileIngestService.IngestAsync(application.CompanyName, files, cancellationToken);
         if (!ingestResult.IsSuccess)
             throw new InvalidOperationException(ingestResult.ErrorMessage ?? "GitHub commit returned failure");
+
+        _vaultFileService.EvictCache(application.CompanyName);
 
         await _repository.UpdateStatusAsync(
             applicationId,

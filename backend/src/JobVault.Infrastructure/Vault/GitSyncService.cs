@@ -1,53 +1,41 @@
-using System.Diagnostics;
 using JobVault.Application.Interfaces;
 using JobVault.Contracts.Responses;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace JobVault.Infrastructure.Vault;
 
 public class GitSyncService : IGitSyncService
 {
-    private readonly string? _rootDir;
+    private readonly IVaultFileService _vaultFileService;
+    private readonly IJobApplicationRepository _repository;
+    private readonly ILogger<GitSyncService> _logger;
 
-    public GitSyncService(IConfiguration configuration)
+    public GitSyncService(
+        IVaultFileService vaultFileService,
+        IJobApplicationRepository repository,
+        ILogger<GitSyncService> logger)
     {
-        _rootDir = configuration["Vault:RootDir"];
+        _vaultFileService = vaultFileService;
+        _repository = repository;
+        _logger = logger;
     }
 
-    public GitSyncResponse Sync()
+    public async Task<GitSyncResponse> SyncAsync(CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrEmpty(_rootDir))
-            return new GitSyncResponse { Ok = false, Message = "Vault root directory not configured" };
-
-        if (!Directory.Exists(_rootDir))
-            return new GitSyncResponse { Ok = false, Message = "Vault directory not found" };
-
         try
         {
-            var psi = new ProcessStartInfo("git", "pull origin master")
-            {
-                WorkingDirectory = _rootDir,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-            };
+            var applications = await _repository.GetAllApplicationsAsync(cancellationToken);
 
-            using var process = Process.Start(psi);
-            if (process == null)
-                return new GitSyncResponse { Ok = false, Message = "Failed to start git process" };
+            foreach (var app in applications)
+                _vaultFileService.EvictCache(app.CompanyName);
 
-            process.WaitForExit(30000);
+            _logger.LogInformation("Cache evicted for {Count} applications", applications.Count);
 
-            var stdout = process.StandardOutput.ReadToEnd().Trim();
-            var stderr = process.StandardError.ReadToEnd().Trim();
-
-            return process.ExitCode == 0
-                ? new GitSyncResponse { Ok = true, Message = string.IsNullOrEmpty(stdout) ? "Already up to date." : stdout }
-                : new GitSyncResponse { Ok = false, Message = stderr };
+            return new GitSyncResponse { Ok = true, Message = $"Cache cleared for {applications.Count} applications. PDFs will be re-fetched from GitHub on next view." };
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Error during sync/cache eviction");
             return new GitSyncResponse { Ok = false, Message = ex.Message };
         }
     }
