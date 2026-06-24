@@ -40,11 +40,11 @@ public class SettingsRepository : ISettingsRepository
             return new AppSettings
             {
                 Id = doc.Id,
-                GitHubOwner = Resolve(doc.GitHubOwner, _configuration["GitHub:Owner"], "k-bilaluddin"),
-                GitHubRepository = Resolve(doc.GitHubRepository, _configuration["GitHub:Repository"], "job-applications-vault"),
+                GitHubOwner = Resolve(doc.GitHubOwner, _configuration["GitHub:Owner"], ""),
+                GitHubRepository = Resolve(doc.GitHubRepository, _configuration["GitHub:Repository"], ""),
                 GitHubBranch = Resolve(doc.GitHubBranch, _configuration["GitHub:Branch"], "master"),
-                GitHubCvFileName = Resolve(doc.GitHubCvFileName, _configuration["GitHub:CvFileName"], "KhawajaBilal_Uddin_CV"),
-                GitHubCoverLetterFileName = Resolve(doc.GitHubCoverLetterFileName, _configuration["GitHub:CoverLetterFileName"], "KhawajaBilal_Uddin_CoverLetter"),
+                GitHubCvFileName = Resolve(doc.GitHubCvFileName, _configuration["GitHub:CvFileName"], ""),
+                GitHubCoverLetterFileName = Resolve(doc.GitHubCoverLetterFileName, _configuration["GitHub:CoverLetterFileName"], ""),
                 TelegramChatId = Resolve(doc.TelegramChatId, _configuration["Telegram:ChatId"], ""),
             };
         }

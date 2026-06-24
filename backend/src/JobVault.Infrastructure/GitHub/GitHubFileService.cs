@@ -33,8 +33,8 @@ public class GitHubFileService : IGitHubFileService
                 return null;
             }
 
-            var owner = _configuration["GitHub:Owner"] ?? "k-bilaluddin";
-            var repo = _configuration["GitHub:Repository"] ?? "job-applications-vault";
+            var owner = _configuration["GitHub:Owner"] ?? "";
+            var repo = _configuration["GitHub:Repository"] ?? "";
 
             var client = _httpClientFactory.CreateClient();
             client.DefaultRequestHeaders.Authorization = 
