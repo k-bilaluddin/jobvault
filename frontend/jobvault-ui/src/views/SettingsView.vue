@@ -5,7 +5,7 @@ import AppSidebar from '@/components/layout/AppSidebar.vue'
 import { api } from '@/api'
 
 interface Settings {
-  github: {
+  gitHub: {
     owner: string
     repository: string
     branch: string
@@ -23,7 +23,7 @@ const saved = ref(false)
 const error = ref('')
 
 const form = ref<Settings>({
-  github: {
+  gitHub: {
     owner: 'k-bilaluddin',
     repository: 'job-applications-vault',
     branch: 'master',
@@ -93,17 +93,17 @@ onMounted(loadSettings)
             <div class="grid grid-cols-2 gap-4">
               <div>
                 <label class="block text-xs font-medium text-text-muted uppercase tracking-wider mb-1">Owner</label>
-                <input v-model="form.github.owner"
+                <input v-model="form.gitHub.owner"
                   class="w-full bg-surface-overlay border border-border rounded-lg px-3 py-2 text-sm text-text-primary outline-none focus:border-accent"/>
               </div>
               <div>
                 <label class="block text-xs font-medium text-text-muted uppercase tracking-wider mb-1">Repository</label>
-                <input v-model="form.github.repository"
+                <input v-model="form.gitHub.repository"
                   class="w-full bg-surface-overlay border border-border rounded-lg px-3 py-2 text-sm text-text-primary outline-none focus:border-accent"/>
               </div>
               <div>
                 <label class="block text-xs font-medium text-text-muted uppercase tracking-wider mb-1">Branch</label>
-                <input v-model="form.github.branch"
+                <input v-model="form.gitHub.branch"
                   class="w-full bg-surface-overlay border border-border rounded-lg px-3 py-2 text-sm text-text-primary outline-none focus:border-accent"/>
               </div>
               <div class="col-span-2 border-t border-border pt-4 mt-1">
@@ -111,13 +111,13 @@ onMounted(loadSettings)
               </div>
               <div>
                 <label class="block text-xs font-medium text-text-muted uppercase tracking-wider mb-1">CV File Name</label>
-                <input v-model="form.github.cvFileName"
+                <input v-model="form.gitHub.cvFileName"
                   class="w-full bg-surface-overlay border border-border rounded-lg px-3 py-2 text-sm text-text-primary outline-none focus:border-accent"/>
                 <p class="text-[11px] text-text-muted mt-1">.docx and .pdf extensions added automatically</p>
               </div>
               <div>
                 <label class="block text-xs font-medium text-text-muted uppercase tracking-wider mb-1">Cover Letter File Name</label>
-                <input v-model="form.github.coverLetterFileName"
+                <input v-model="form.gitHub.coverLetterFileName"
                   class="w-full bg-surface-overlay border border-border rounded-lg px-3 py-2 text-sm text-text-primary outline-none focus:border-accent"/>
                 <p class="text-[11px] text-text-muted mt-1">.docx and .pdf extensions added automatically</p>
               </div>
