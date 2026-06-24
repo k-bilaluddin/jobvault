@@ -22,6 +22,8 @@ public class ApplicationResponse
     public RecruiterResponse Recruiter { get; init; } = new();
     public string Follow_up_date { get; init; } = "";
     public string Source { get; init; } = "";
+    public string Status { get; init; } = "";
+    public bool Has_content { get; init; }
 }
 
 public class InterviewResponse

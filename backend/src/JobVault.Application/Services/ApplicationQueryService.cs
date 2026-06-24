@@ -1,9 +1,11 @@
 using System.Text.RegularExpressions;
 using JobVault.Application.Interfaces;
+using JobVault.Contracts.Events;
 using JobVault.Contracts.Requests;
 using JobVault.Contracts.Responses;
 using JobVault.Domain.Entities;
 using JobVault.Domain.ValueObjects;
+using Microsoft.Extensions.Logging;
 
 namespace JobVault.Application.Services;
 
@@ -12,15 +14,21 @@ public class ApplicationQueryService : IApplicationQueryService
     private readonly IJobApplicationRepository _repository;
     private readonly IVaultFileService _vaultFileService;
     private readonly IMarkdownRenderService _markdownRenderService;
+    private readonly IRabbitMqPublisher _publisher;
+    private readonly ILogger<ApplicationQueryService> _logger;
 
     public ApplicationQueryService(
         IJobApplicationRepository repository,
         IVaultFileService vaultFileService,
-        IMarkdownRenderService markdownRenderService)
+        IMarkdownRenderService markdownRenderService,
+        IRabbitMqPublisher publisher,
+        ILogger<ApplicationQueryService> logger)
     {
         _repository = repository;
         _vaultFileService = vaultFileService;
         _markdownRenderService = markdownRenderService;
+        _publisher = publisher;
+        _logger = logger;
     }
 
     public async Task<IReadOnlyList<ApplicationResponse>> GetAllAsync(CancellationToken cancellationToken = default)
@@ -31,7 +39,7 @@ public class ApplicationQueryService : IApplicationQueryService
             .Where(a => !a.IsHistorical)
             .Select(a =>
             {
-                var stage = a.Status is "Processing" or "Failed"
+                var stage = a.Status is "Processing" or "Failed" or "Regenerating"
                     ? a.Status
                     : string.IsNullOrEmpty(a.Stage) ? "Ready to Apply" : a.Stage;
 
@@ -75,6 +83,8 @@ public class ApplicationQueryService : IApplicationQueryService
                     },
                     Follow_up_date = a.FollowUpDate?.ToString("yyyy-MM-dd") ?? "",
                     Source = a.Source,
+                    Status = a.Status,
+                    Has_content = !string.IsNullOrEmpty(a.Headline),
                 };
             })
             .ToList();
@@ -321,4 +331,77 @@ public class ApplicationQueryService : IApplicationQueryService
             Updated_at = n.UpdatedAt.ToString("o"),
         }).ToList(),
     };
+
+    public async Task<ContentResponse?> GetContentAsync(string companyName, CancellationToken cancellationToken = default)
+    {
+        var app = await _repository.GetByCompanyNameAsync(companyName, cancellationToken);
+        if (app == null) return null;
+
+        return new ContentResponse
+        {
+            Headline = app.Headline ?? "",
+            Summary = app.Summary ?? "",
+            Skills = app.Skills,
+            Roles = app.Roles,
+            Recipient = app.Recipient ?? "",
+            CoverLetterParagraphs = app.CoverLetterParagraphs,
+            Strengths = app.Strengths,
+            Gaps = app.Gaps,
+        };
+    }
+
+    public async Task<bool> UpdateContentAsync(string companyName, UpdateContentRequest request, CancellationToken cancellationToken = default)
+    {
+        return await _repository.UpdateContentAsync(
+            companyName,
+            request.Headline,
+            request.Summary,
+            request.Skills,
+            request.Roles,
+            request.Recipient,
+            request.CoverLetterParagraphs,
+            request.Strengths,
+            request.Gaps,
+            cancellationToken);
+    }
+
+    public async Task<string?> RegenerateAsync(string companyName, UpdateContentRequest? contentUpdate, CancellationToken cancellationToken = default)
+    {
+        var app = await _repository.GetByCompanyNameAsync(companyName, cancellationToken);
+        if (app == null) return null;
+
+        if (contentUpdate != null)
+        {
+            await _repository.UpdateContentAsync(
+                companyName,
+                contentUpdate.Headline,
+                contentUpdate.Summary,
+                contentUpdate.Skills,
+                contentUpdate.Roles,
+                contentUpdate.Recipient,
+                contentUpdate.CoverLetterParagraphs,
+                contentUpdate.Strengths,
+                contentUpdate.Gaps,
+                cancellationToken);
+        }
+
+        await _repository.UpdateStatusAsync(app.Id!, "Regenerating", cancellationToken: cancellationToken);
+
+        var jobEvent = new JobApplicationEvent
+        {
+            ApplicationId = app.Id,
+            CompanyName = app.CompanyName,
+            JobTitle = app.JobTitle,
+            MatchScore = app.MatchScore,
+            Recommendation = app.Recommendation,
+            Status = "Regenerating",
+            URL = app.JobUrl,
+            EventType = "received",
+            Timestamp = DateTime.UtcNow
+        };
+
+        await _publisher.PublishJobApplicationEventAsync(jobEvent);
+
+        return app.Id;
+    }
 }

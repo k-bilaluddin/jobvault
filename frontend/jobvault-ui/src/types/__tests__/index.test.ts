@@ -5,6 +5,7 @@ describe('types', () => {
   describe('PIPELINE_STAGES', () => {
     it('contains all expected stages', () => {
       expect(PIPELINE_STAGES).toContain('Processing')
+      expect(PIPELINE_STAGES).toContain('Regenerating')
       expect(PIPELINE_STAGES).toContain('Failed')
       expect(PIPELINE_STAGES).toContain('Not Interested')
       expect(PIPELINE_STAGES).toContain('Archived')
@@ -16,8 +17,8 @@ describe('types', () => {
       expect(PIPELINE_STAGES).toContain('Rejected')
     })
 
-    it('has exactly 10 stages', () => {
-      expect(PIPELINE_STAGES).toHaveLength(10)
+    it('has exactly 11 stages', () => {
+      expect(PIPELINE_STAGES).toHaveLength(11)
     })
 
     it('starts with Processing', () => {

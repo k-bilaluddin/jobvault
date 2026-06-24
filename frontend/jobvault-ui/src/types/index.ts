@@ -1,6 +1,7 @@
 // ─── Mirrors backend ApplicationStatus values ─────────────────
 export type ApplicationStage =
   | 'Processing'     // Transient — async ingestion accepted, Worker not yet done
+  | 'Regenerating'   // Documents being regenerated after content edit
   | 'Failed'         // Worker encountered an unrecoverable error
   | 'Not Interested'
   | 'Archived'
@@ -12,10 +13,31 @@ export type ApplicationStage =
   | 'Rejected'
 
 export const PIPELINE_STAGES: ApplicationStage[] = [
-  'Processing', 'Failed',
+  'Processing', 'Regenerating', 'Failed',
   'Not Interested', 'Archived', 'Researching',
   'Ready to Apply', 'Applied', 'Interview', 'Offer', 'Rejected',
 ]
+
+export interface SkillRow {
+  label: string
+  value: string
+}
+
+export interface RolePayload {
+  id: string
+  bullets: string[]
+}
+
+export interface ApplicationContent {
+  headline: string
+  summary: string
+  skills: SkillRow[]
+  roles: RolePayload[]
+  recipient: string
+  coverLetterParagraphs: string[]
+  strengths: string[]
+  gaps: string[]
+}
 
 // Mirrors tracker_data.json interview shape
 export interface Interview {
@@ -66,6 +88,8 @@ export interface Company {
   recruiter: Recruiter
   follow_up_date: string
   source: string
+  status?: string
+  has_content?: boolean
 }
 
 // ─── Categorized application note ─────────────────────────────

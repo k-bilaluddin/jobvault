@@ -137,6 +137,31 @@ public class ApplicationsController : ApiControllerBase
         return Ok(result);
     }
 
+    [HttpGet("{name}/content")]
+    public async Task<IActionResult> GetContent(string name, CancellationToken cancellationToken)
+    {
+        var result = await _queryService.GetContentAsync(name, cancellationToken);
+        if (result == null) return ErrorResponse("application.not_found", name);
+        return Ok(result);
+    }
+
+    [HttpPatch("{name}/content")]
+    public async Task<IActionResult> UpdateContent(string name, [FromBody] UpdateContentRequest request, CancellationToken cancellationToken)
+    {
+        var success = await _queryService.UpdateContentAsync(name, request, cancellationToken);
+        if (!success) return ErrorResponse("application.not_found", name);
+        return Ok(new { ok = true });
+    }
+
+    [HttpPost("{name}/regenerate")]
+    [ProducesResponseType(StatusCodes.Status202Accepted)]
+    public async Task<IActionResult> Regenerate(string name, [FromBody] UpdateContentRequest? request, CancellationToken cancellationToken)
+    {
+        var applicationId = await _queryService.RegenerateAsync(name, request, cancellationToken);
+        if (applicationId == null) return ErrorResponse("application.not_found", name);
+        return Accepted(new { ok = true, applicationId });
+    }
+
     [HttpPost("sync-vault")]
     public IActionResult SyncVault()
     {
