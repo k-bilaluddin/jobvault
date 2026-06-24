@@ -835,7 +835,7 @@ const OUTCOME_STYLE: Record<string, { selected: string; unselected: string }> = 
         </div>
 
         <!-- ── FILES ── -->
-        <div v-else-if="activeTab === 'Files'" :class="showEditor || company.status === 'Regenerating' ? 'flex gap-5 max-w-5xl items-start' : 'max-w-xl'">
+        <div v-else-if="activeTab === 'Files'" :class="showEditor || company.status === 'Regenerating' ? 'flex gap-5 items-start' : 'max-w-xl'">
           <div class="bg-surface-raised border border-border rounded-xl p-5 flex-shrink-0" :class="showEditor || company.status === 'Regenerating' ? 'w-80' : ''">
             <p class="text-xs font-semibold text-text-muted uppercase tracking-wider mb-4">Vault Files</p>
             <div class="space-y-2">

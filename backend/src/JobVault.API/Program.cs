@@ -118,6 +118,8 @@ builder.Services.AddSingleton<IVaultFileService, VaultFileService>();
 builder.Services.AddSingleton<IMarkdownRenderService, MarkdownRenderService>();
 builder.Services.AddSingleton<IGitSyncService, GitSyncService>();
 builder.Services.AddSingleton<ITokenService, TokenService>();
+builder.Services.AddSingleton<ISettingsRepository, SettingsRepository>();
+builder.Services.AddSingleton<ISettingsService, SettingsService>();
 builder.Services.AddSingleton<IAuthenticationService, AuthenticationService>();
 builder.Services.AddScoped<IWebhookHandler, WebhookHandler>();
 builder.Services.AddScoped<IFileIngestService, FileIngestService>();
