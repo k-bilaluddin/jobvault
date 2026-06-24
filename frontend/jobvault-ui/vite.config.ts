@@ -47,7 +47,7 @@ export default defineConfig({
             },
           },
           {
-            urlPattern: /^http:\/\/localhost:5100\/.*/i,
+            urlPattern: /^http:\/\/localhost:\d+\/.*/i,
             handler: 'NetworkFirst',
             options: {
               cacheName: 'local-api-cache',

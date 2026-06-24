@@ -76,7 +76,7 @@ function notificationIconClass(type: string): string {
 }
 
 function logout() {
-  localStorage.removeItem('jv_auth')
+  localStorage.removeItem('jv_token')
   router.push('/login')
 }
 
