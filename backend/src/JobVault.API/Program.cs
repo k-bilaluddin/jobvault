@@ -110,6 +110,7 @@ builder.Services.AddAuthorization();
 
 // Register application services
 builder.Services.AddSingleton<IJobApplicationRepository, MongoDbService>();
+builder.Services.AddSingleton<IPendingJobRepository, PendingJobRepository>();
 builder.Services.AddSingleton<IGitHubFileService, GitHubFileService>();
 builder.Services.AddSingleton<IMarkdownParserService, MarkdownParserService>();
 builder.Services.AddSingleton<IRabbitMqPublisher, RabbitMqPublisher>();
@@ -125,6 +126,7 @@ builder.Services.AddScoped<IWebhookHandler, WebhookHandler>();
 builder.Services.AddScoped<IFileIngestService, FileIngestService>();
 builder.Services.AddScoped<IApplicationIngestionService, ApplicationIngestionService>();
 builder.Services.AddScoped<IApplicationQueryService, ApplicationQueryService>();
+builder.Services.AddScoped<IPendingJobService, PendingJobService>();
 
 // Notification services
 builder.Services.AddSingleton<INotificationHub, NotificationHub>();

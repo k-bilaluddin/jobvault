@@ -10,15 +10,18 @@ namespace JobVault.Application.Services;
 public class ApplicationIngestionService : IApplicationIngestionService
 {
     private readonly IJobApplicationRepository _repository;
+    private readonly IPendingJobRepository _pendingJobRepository;
     private readonly IRabbitMqPublisher _publisher;
     private readonly ILogger<ApplicationIngestionService> _logger;
 
     public ApplicationIngestionService(
         IJobApplicationRepository repository,
+        IPendingJobRepository pendingJobRepository,
         IRabbitMqPublisher publisher,
         ILogger<ApplicationIngestionService> logger)
     {
         _repository = repository;
+        _pendingJobRepository = pendingJobRepository;
         _publisher = publisher;
         _logger = logger;
     }
@@ -90,6 +93,19 @@ public class ApplicationIngestionService : IApplicationIngestionService
             {
                 // Application is already persisted — don't fail the request over RabbitMQ
                 _logger.LogError(ex, "Failed to publish received event for {CompanyName}; returning 202 anyway", request.CompanyName);
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.JobId))
+            {
+                try
+                {
+                    await _pendingJobRepository.SetStatusAsync(request.JobId, "done");
+                    _logger.LogInformation("Marked pending job {JobId} as done", request.JobId);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to mark pending job {JobId} as done; ingestion succeeded anyway", request.JobId);
+                }
             }
 
             _logger.LogInformation("Ingested application for {CompanyName}, id={Id}", request.CompanyName, upsertResult.Id);

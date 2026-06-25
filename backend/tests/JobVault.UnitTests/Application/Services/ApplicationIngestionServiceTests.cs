@@ -12,6 +12,7 @@ namespace JobVault.UnitTests.Application.Services;
 public class ApplicationIngestionServiceTests
 {
     private readonly IJobApplicationRepository _repository;
+    private readonly IPendingJobRepository _pendingJobRepository;
     private readonly IRabbitMqPublisher _publisher;
     private readonly ILogger<ApplicationIngestionService> _logger;
     private readonly ApplicationIngestionService _sut;
@@ -19,6 +20,7 @@ public class ApplicationIngestionServiceTests
     public ApplicationIngestionServiceTests()
     {
         _repository = Substitute.For<IJobApplicationRepository>();
+        _pendingJobRepository = Substitute.For<IPendingJobRepository>();
         _publisher = Substitute.For<IRabbitMqPublisher>();
         _logger = Substitute.For<ILogger<ApplicationIngestionService>>();
 
@@ -26,7 +28,7 @@ public class ApplicationIngestionServiceTests
             .UpsertApplicationAsync(Arg.Any<JobApplication>())
             .Returns(UpsertResult.Success(true, "abc123"));
 
-        _sut = new ApplicationIngestionService(_repository, _publisher, _logger);
+        _sut = new ApplicationIngestionService(_repository, _pendingJobRepository, _publisher, _logger);
     }
 
     private static IngestApplicationRequest CreateValidRequest() => new()

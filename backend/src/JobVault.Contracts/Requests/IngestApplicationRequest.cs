@@ -29,6 +29,9 @@ public class IngestApplicationRequest
     public List<string> Gaps { get; set; } = [];
     public string? TailoringNotes { get; set; }
 
+    // Optional: links this ingestion to a pending job queue entry
+    public string? JobId { get; set; }
+
     // Full markdown reports committed as-is to GitHub
     public string CompatibilityReportMarkdown { get; set; } = string.Empty;
     public string TailoringNotesMarkdown { get; set; } = string.Empty;
