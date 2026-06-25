@@ -49,6 +49,8 @@ const userMessages: Record<string, string> = {
   'application.note_del_failed': 'Failed to delete note.',
   'vault.no_files_uploaded': 'Please upload at least one file.',
   'vault.empty_files': 'All uploaded files are empty.',
+  'queue.url_required': 'Job URL is required.',
+  'queue.not_found': 'Job not found.',
 }
 
 const fallbackMessage = 'Something went wrong. Please try again later.'

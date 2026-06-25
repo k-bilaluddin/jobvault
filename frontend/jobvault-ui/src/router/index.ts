@@ -13,6 +13,7 @@ const router = createRouter({
     { path: '/interviews',     name: 'interviews',   component: () => import('@/views/InterviewsView.vue') },
     { path: '/skills-gap',     name: 'skills-gap',   component: () => import('@/views/SkillsGapView.vue') },
     { path: '/historical',     name: 'historical',   component: () => import('@/views/HistoricalView.vue') },
+    { path: '/job-queue',      name: 'job-queue',    component: () => import('@/views/JobQueueView.vue') },
     { path: '/settings',       name: 'settings',     component: () => import('@/views/SettingsView.vue') },
     { path: '/:pathMatch(.*)*', redirect: '/dashboard' },
   ],
