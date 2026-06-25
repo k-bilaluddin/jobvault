@@ -50,6 +50,10 @@ public static class ErrorCatalog
         ["auth.api_key_missing"]            = new(401, "Unauthorized",              "Invalid or missing API key"),
         ["auth.api_key_not_configured"]     = new(500, "API Key Not Configured",    "Ingestion API key is not configured on the server"),
 
+        // Queue
+        ["queue.url_required"]              = new(400, "URL Required",              "Job URL is required"),
+        ["queue.not_found"]                 = new(404, "Job Not Found",             "No pending job found for '{0}'"),
+
         // Server
         ["server.internal_error"]           = new(500, "Internal Server Error",     "An unexpected error occurred"),
     };
