@@ -7,7 +7,7 @@
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat-square&logo=docker)
 ![GitHub Actions](https://img.shields.io/badge/CI%2FCD-GitHub_Actions-2088FF?style=flat-square&logo=githubactions)
 
-**Live:** [Frontend](https://jobvault.kbilaluddin.dev) · [API / Swagger](https://api.kbilaluddin.dev/swagger/index.html)
+**Live:** [Frontend](https://prd.kbilaluddin.dev) · [API](https://api.kbilaluddin.dev)
 
 ---
 
@@ -280,7 +280,7 @@ All variables use `SCREAMING_SNAKE_CASE`. Copy `.env.example` and fill in your v
 
 ## API Reference
 
-Full spec: [Swagger UI](https://api.kbilaluddin.dev/swagger/index.html) · [Postman Collection](JobVault.postman_collection.json)
+Full spec: [Postman Collection](JobVault.postman_collection.json)
 
 | Method | Endpoint | Description |
 |---|---|---|
