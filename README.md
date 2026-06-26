@@ -337,9 +337,9 @@ cd frontend/jobvault-ui && npm test
 - [x] GitHub Actions CI/CD + self-hosted deployment
 - [x] Job queue with scheduled Claude Routine
 - [x] Claude Agent for automated JD evaluation and payload generation
-- [ ] DLQ management UI (list failed messages, retry button)
-- [ ] Interview scheduling and tracking improvements
-- [ ] Expanded dashboard analytics and history views
+- [x] DLQ management UI (list failed messages, retry button)
+- [x] Interview scheduling and tracking improvements
+- [x] Expanded dashboard analytics and history views
 - [ ] Health checks and observability
 - [ ] Multi-user support and configurable bullet-point libraries
 
