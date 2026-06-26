@@ -29,36 +29,38 @@ I hit all three problems and built JobVault to close the gap.
 
 The idea is simple: **AI generates the content, machines handle everything else.**
 
-**1. A curated bullet-point library**
-As a software engineer, I work across different tech stacks, but not every stack belongs on every CV. So I maintain `.md` files that list all my real accomplishments, grouped by technology and domain. When Claude sees a job description, it picks the relevant bullet points from this library instead of inventing them. Nothing fabricated, nothing generic.
+*Scrolling LinkedIn on the train? Copy the URL, paste it into the queue. By the time you're home, your tailored CV, cover letter, and analysis are ready.*
 
-**2. Content-only handoff**
-Claude doesn't generate files. It evaluates the JD, selects the right bullets, writes a tailored cover letter, and sends the **content as structured data** to the JobVault API. No tokens wasted on formatting or file generation.
+![JobVault Flow](docs/job-queue-flow.svg)
 
-**3. Automated document pipeline**
-The API takes over from there:
-- Generates properly formatted CV and cover letter (DOCX)
-- Converts both to PDF
-- Commits all files to a private GitHub repository (your vault)
-- Updates the database and live dashboard
-- Sends a Telegram notification
+*AI generates the first draft. You review, edit any content, and regenerate in seconds. Nothing ships without your approval.*
 
-**4. Everything is tracked**
-Every application, the company, the role, match score, documents, status, all of it lives in the dashboard. When a recruiter calls, you pull up the company and see exactly what you sent. No spreadsheet required.
+### Two Paths to the Same Pipeline
 
-```
-Paste a job URL into Claude
-        ↓
-Claude picks bullets from your library, builds a structured payload
-        ↓
-Payload hits the JobVault API
-        ↓
-Worker generates DOCX → converts to PDF → commits to GitHub vault
-        ↓
-Dashboard updates. Telegram notifies you. Done.
-```
+**Manual:** Paste a job URL directly into the Claude Agent. It evaluates the JD, picks the right bullet points from your library, writes a tailored cover letter, and sends everything as structured data to the JobVault API.
 
-The only manual step is deciding which jobs to apply to. Everything after pasting the JD runs on its own.
+**Automated:** Add job URLs to the queue from the dashboard — on the train, between meetings, wherever. A scheduled Claude Routine picks them up hourly, feeds each one to the same Agent, and the pipeline runs without you touching it.
+
+### What You Get
+
+Every application produces four files:
+
+| File | Format | What It Contains |
+|---|---|---|
+| **Tailored CV** | DOCX + PDF | Role-specific bullets selected from your library — nothing fabricated |
+| **Cover Letter** | DOCX + PDF | 4-paragraph, company-tailored letter |
+| **Compatibility Report** | Markdown | Match score, strengths, gaps — Claude's analysis of the fit |
+| **Tailoring Notes** | Markdown | What was customized and why — your strategy document |
+
+All four are committed to a private GitHub repository (your vault), the dashboard updates in real time, and Telegram notifies you. When you're ready, open the dashboard, review the files, and apply.
+
+### The Bullet-Point Library
+
+Claude doesn't write bullet points from scratch. It selects from a curated `.md` library of real accomplishments grouped by technology and domain. The prompt constrains it to pick, not invent, so every line on the CV maps to actual experience.
+
+### Claude Agent (Private Repo)
+
+The Claude Agent lives in a [separate private repository](https://github.com/k-bilaluddin/jobvault-claude-agent). It contains the prompt logic, evaluation criteria, bullet-point library, and skills rules — all tightly coupled to my profile. Keeping it separate isolates personal data from the public infrastructure code.
 
 ---
 
@@ -74,12 +76,13 @@ The API handles 20 concurrent users at **11ms average response time** with **0% 
 
 | Service | Technology | Responsibility |
 |---|---|---|
-| **API** | .NET 9 / ASP.NET Core | Ingestion endpoint, persistence, event publishing |
+| **API** | .NET 9 / ASP.NET Core | Ingestion endpoint, persistence, event publishing, SSE notifications |
 | **Worker** | .NET 9 Worker Service | Consumes RabbitMQ events, orchestrates processing pipeline |
-| **Generation Service** | Node.js / TypeScript | Generates `.docx` CV and cover letter from structured payload |
-| **Frontend** | Vue 3 / TypeScript / Pinia | Dashboard, pipeline board, interviews, skills gap, real-time SSE |
-| **MongoDB** | Atlas | Stores application records |
-| **RabbitMQ** | CloudAMQP | Async event bus with dead-letter queue |
+| **Document Generation** | Node.js / TypeScript | Generates `.docx` CV and cover letter from structured payload |
+| **Claude Agent** | Claude Code / Routine | Evaluates JDs, selects bullets, builds payload (private repo) |
+| **Frontend** | Vue 3 / TypeScript / Pinia | Dashboard, pipeline board, job queue, interviews, skills gap, real-time SSE |
+| **MongoDB** | Atlas | Stores application records and job queue |
+| **RabbitMQ** | CloudAMQP | Async event bus with topic exchange and dead-letter queue |
 | **GitHub** | REST API | Stores final application files (DOCX + PDF + reports) |
 | **Telegram** | Bot API | Push notifications on application events |
 
@@ -87,17 +90,34 @@ The API handles 20 concurrent users at **11ms average response time** with **0% 
 
 ## End-to-End Flow
 
-1. **Claude** evaluates a job posting and POSTs a structured JSON payload to `POST /api/ingest/applications`
-2. **API** validates the payload, persists the application to MongoDB with status `Processing`, and publishes a `received` event to RabbitMQ — returns `202 Accepted` immediately
-3. **Worker** consumes the event, fetches the application, and calls the Generation Service in parallel for CV and cover letter
-4. **Generation Service** renders Word documents from the payload (role bullets, skills, cover letter paragraphs)
+1. **Claude Agent** evaluates a job posting and POSTs a structured JSON payload to `POST /api/ingest/applications`
+2. **API** validates the payload, persists the application to MongoDB with status `Processing`, and publishes a `job.application.received` event to RabbitMQ — returns `202 Accepted` immediately
+3. **IngestionConsumer** (Worker) consumes the event, fetches the application, and calls the Document Generation Service for CV and cover letter
+4. **Document Generation Service** renders Word documents from the payload (role bullets, skills, cover letter paragraphs)
 5. **Worker** converts both DOCX files to PDF via LibreOffice
 6. **Worker** commits all six files to the GitHub vault repository: `{CV}.docx`, `{CV}.pdf`, `{CoverLetter}.docx`, `{CoverLetter}.pdf`, `compatibility-report.md`, `tailoring-notes.md`
 7. **MongoDB** status is updated to `Ready to Apply` with the commit URL
-8. **RabbitMQ** fan-out notifies the Telegram bot and SSE stream simultaneously
-9. **Frontend** receives the SSE event and updates in real time; **Telegram** delivers the push notification
+8. **Worker** publishes `job.application.created` and `notification.new` events back to RabbitMQ (feedback loop)
+9. **NotificationConsumer** (Worker) sends a Telegram push notification
+10. **SseNotificationConsumer** (API) persists the notification and broadcasts via SSE to the dashboard in real time
 
 **Failure handling:** transient failures (generation service down, GitHub network error) retry 3× with exponential backoff. After exhausting retries the message is dead-lettered and the application is marked `Failed`. Permanent failures (invalid payload, 4xx from generation service) skip retries and dead-letter immediately.
+
+---
+
+## Design Decisions
+
+**Why a modular monolith, not microservices**
+The API and Worker run as separate processes but share the same codebase. Clean Architecture with architecture tests enforces the same layer boundaries that microservices would, without the network overhead, deployment complexity, or operational burden. At this scale, microservices would add complexity without value.
+
+**Why event-driven in a monolith**
+RabbitMQ decouples the ingestion path from the processing path. The API returns `202 Accepted` in 11ms while the Worker handles the heavy lifting (DOCX generation, PDF conversion, GitHub commits) asynchronously. This keeps the API fast regardless of how long processing takes.
+
+**Why the Claude Agent is a separate repo**
+The agent contains prompt logic, evaluation criteria, and a curated bullet-point library — all personal data. Keeping it in a private repo separates credentials and personal content from the public infrastructure code.
+
+**Currently a single-user system, designed to generalize**
+The architecture is modular (Clean Architecture with enforced layer isolation), but the current deployment serves one user with a single shared dataset. The bullet-point library, prompt logic, and Claude Agent are tightly coupled to my profile — decoupling these into a configurable, multi-user system is the next step.
 
 ---
 
@@ -111,11 +131,13 @@ The API handles 20 concurrent users at **11ms average response time** with **0% 
 - LibreOffice DOCX → PDF conversion in the Worker container
 - GitHub vault commit via Git Trees API (6-file atomic commit)
 - Telegram notifications with application details
+- Job queue with scheduled Claude Routine for automated processing
 
 ### Frontend
 - **Dashboard** — stats cards, applications-over-time chart, pipeline funnel, score distribution
 - **Pipeline board** — Kanban across Processing → Ready to Apply → Applied → Interview → Offer → Rejected
 - **Applications list** — searchable and filterable by stage
+- **Job Queue** — add URLs, track pending/processing/completed jobs
 - **Company detail** — match score, role bullets, interview history, files
 - **Interviews view** — all interviews across applications grouped by company
 - **Skills gap** — identifies missing skills across job postings with severity indicators
@@ -131,17 +153,19 @@ The API handles 20 concurrent users at **11ms average response time** with **0% 
 jobvault/
 ├── backend/
 │   ├── src/
-│   │   ├── JobVault.API/               # Controllers, Program.cs, Swagger
+│   │   ├── JobVault.API/               # Controllers, Program.cs, Swagger, SSE
 │   │   ├── JobVault.Application/       # Interfaces, use cases, service contracts
 │   │   ├── JobVault.Domain/            # Entities and value objects
 │   │   ├── JobVault.Infrastructure/    # MongoDB, RabbitMQ, GitHub, Telegram, Generation client
 │   │   ├── JobVault.Contracts/         # Request/response DTOs, events
-│   │   └── JobVault.Worker/            # Background consumer, hosted services
+│   │   └── JobVault.Worker/            # Background consumers, hosted services
 │   └── tests/
+│       ├── JobVault.UnitTests/         # Service, controller, and domain tests
 │       └── JobVault.ArchitectureTests/ # Enforces Clean Architecture layer rules
 ├── frontend/
 │   └── jobvault-ui/                    # Vue 3 / TypeScript / Pinia SPA
-├── generation-service/ → [jobvault-generation-service](https://github.com/k-bilaluddin/jobvault-generation-service)  # Node.js DOCX generation service (separate repo)
+├── jobvault-claude-agent/ → [private repo](https://github.com/k-bilaluddin/jobvault-claude-agent)  # Claude Agent + bullet library
+├── generation-service/ → [jobvault-generation-service](https://github.com/k-bilaluddin/jobvault-generation-service)  # Node.js DOCX generation
 ├── docker/
 │   ├── api.Dockerfile
 │   ├── worker.Dockerfile
@@ -177,6 +201,7 @@ Not all failures deserve retries. Transient errors (network timeout, generation 
 |---|---|
 | API | .NET 9, ASP.NET Core, Clean Architecture |
 | Worker | .NET 9 Worker Service |
+| AI Agent | Claude Code, Claude Routines |
 | Document Generation | Node.js, TypeScript, `docx` library |
 | PDF Conversion | LibreOffice (headless, in Worker container) |
 | Frontend | Vue 3, TypeScript, Pinia, Vue Router, Tailwind CSS |
@@ -288,8 +313,11 @@ Push to master
 ## Testing
 
 ```bash
-# Architecture enforcement tests
-cd backend/tests/JobVault.ArchitectureTests && dotnet test
+# Backend tests (unit + architecture)
+cd backend/src/JobVault.API && dotnet test JobVault.sln
+
+# Frontend tests
+cd frontend/jobvault-ui && npm test
 ```
 
 ---
@@ -307,15 +335,17 @@ cd backend/tests/JobVault.ArchitectureTests && dotnet test
 - [x] PWA support
 - [x] Telegram notifications
 - [x] GitHub Actions CI/CD + self-hosted deployment
+- [x] Job queue with scheduled Claude Routine
+- [x] Claude Agent for automated JD evaluation and payload generation
 - [ ] DLQ management UI (list failed messages, retry button)
-- [ ] Job discovery inside JobVault (remove the Claude manual step)
 - [ ] Interview scheduling and tracking improvements
 - [ ] Expanded dashboard analytics and history views
 - [ ] Health checks and observability
+- [ ] Multi-user support and configurable bullet-point libraries
 
 ---
 
 ## Author
 
-**Khawaja Bilal Uddin** — Senior Full Stack Developer, Frankfurt am Main  
+**Khawaja Bilal Uddin** — Senior Full Stack Developer, Frankfurt am Main
 [kbilaluddin.dev](https://kbilaluddin.dev) · [GitHub](https://github.com/k-bilaluddin) · [LinkedIn](https://www.linkedin.com/in/kbilaluddin/)
