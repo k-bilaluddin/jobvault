@@ -62,6 +62,29 @@ Claude doesn't write bullet points from scratch. It selects from a curated `.md`
 
 The Claude Agent lives in a [separate private repository](https://github.com/k-bilaluddin/jobvault-claude-agent). It contains the prompt logic, evaluation criteria, bullet-point library, and skills rules — all tightly coupled to my profile. Keeping it separate isolates personal data from the public infrastructure code.
 
+### Screenshots
+
+![Dashboard](docs/screenshots/dashboard.png)
+*Dashboard — stats, pipeline funnel, top matches, recent activity*
+
+![Pipeline](docs/screenshots/pipeline.png)
+*Pipeline — Kanban board across all application stages*
+
+![Applications](docs/screenshots/applications.png)
+*Applications — searchable list with match scores and verdicts*
+
+![Edit Content](docs/screenshots/edit-content.png)
+*Company Detail — edit CV/cover letter content and regenerate in seconds*
+
+![Skills Gap](docs/screenshots/skills-gap.png)
+*Skills Gap — identifies missing skills across all job postings*
+
+![Interviews](docs/screenshots/interviews.png)
+*Interviews — all rounds grouped by company with outcomes*
+
+![Job Queue](docs/screenshots/job-queue.png)
+*Job Queue — paste URLs, the Routine picks them up automatically*
+
 ---
 
 ## Architecture
@@ -118,31 +141,6 @@ The agent contains prompt logic, evaluation criteria, and a curated bullet-point
 
 **Currently a single-user system, designed to generalize**
 The architecture is modular (Clean Architecture with enforced layer isolation), but the current deployment serves one user with a single shared dataset. The bullet-point library, prompt logic, and Claude Agent are tightly coupled to my profile — decoupling these into a configurable, multi-user system is the next step.
-
----
-
-## Screenshots
-
-![Dashboard](docs/screenshots/dashboard.png)
-*Dashboard — stats, pipeline funnel, top matches, recent activity*
-
-![Pipeline](docs/screenshots/pipeline.png)
-*Pipeline — Kanban board across all application stages*
-
-![Applications](docs/screenshots/applications.png)
-*Applications — searchable list with match scores and verdicts*
-
-![Edit Content](docs/screenshots/edit-content.png)
-*Company Detail — edit CV/cover letter content and regenerate in seconds*
-
-![Skills Gap](docs/screenshots/skills-gap.png)
-*Skills Gap — identifies missing skills across all job postings*
-
-![Interviews](docs/screenshots/interviews.png)
-*Interviews — all rounds grouped by company with outcomes*
-
-![Job Queue](docs/screenshots/job-queue.png)
-*Job Queue — paste URLs, the Routine picks them up automatically*
 
 ---
 
