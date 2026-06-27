@@ -239,7 +239,7 @@ Not all failures deserve retries. Transient errors (network timeout, generation 
 | Containers | Docker, Docker Compose |
 | Registry | GitHub Container Registry (GHCR) |
 | CI/CD | GitHub Actions |
-| Hosting | Self-hosted (Windows → Hetzner), Cloudflare Tunnel |
+| Hosting | GitHub Actions self-hosted runner, Cloudflare Tunnel |
 
 ---
 
