@@ -1,0 +1,289 @@
+<svg viewBox="0 0 1100 700" xmlns="http://www.w3.org/2000/svg" role="img">
+<title>JobVault — How It Works</title>
+<desc>Two input paths converge at the JobVault pipeline, which outputs four documents to the dashboard where you apply.</desc>
+
+<defs>
+<style>
+  text { font-family: "Segoe UI", system-ui, Arial, sans-serif; }
+  .node-label { font-size: 11.5px; font-weight: 600; fill: #1e293b; text-anchor: middle; }
+  .node-sub { font-size: 9px; fill: #64748b; text-anchor: middle; }
+  .edge-label { font-size: 8.5px; fill: #475569; text-anchor: middle; }
+  .zone-label { font-size: 9px; font-weight: 700; fill: #94a3b8; letter-spacing: 1px; }
+  .badge { font-size: 7.5px; font-weight: 700; letter-spacing: 0.5px; text-anchor: middle; }
+  .file-title { font-size: 10px; font-weight: 600; fill: #1e293b; text-anchor: middle; }
+  .file-sub { font-size: 8px; fill: #64748b; text-anchor: middle; }
+  .pipe-step { font-size: 8.5px; fill: #92400e; }
+  .pipe-num { font-size: 8px; font-weight: 700; fill: #d97706; }
+</style>
+<marker id="a1" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><path d="M0,0 L0,7 L7,3.5z" fill="#94a3b8"/></marker>
+<marker id="a2" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><path d="M0,0 L0,7 L7,3.5z" fill="#6366f1"/></marker>
+<marker id="a3" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><path d="M0,0 L0,7 L7,3.5z" fill="#3b82f6"/></marker>
+<marker id="a4" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><path d="M0,0 L0,7 L7,3.5z" fill="#16a34a"/></marker>
+<marker id="a5" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><path d="M0,0 L0,7 L7,3.5z" fill="#0284c7"/></marker>
+<filter id="sh"><feDropShadow dx="0" dy="1.5" stdDeviation="2" flood-color="#00000010"/></filter>
+<filter id="sh2"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#00000012"/></filter>
+</defs>
+
+<!-- Background -->
+<rect width="1100" height="700" fill="#f8fafc"/>
+
+<!-- Header -->
+<rect width="1100" height="42" fill="#0f172a"/>
+<text x="20" y="23" style="font-size:15px;font-weight:700;fill:#f8fafc">JobVault</text>
+<text x="105" y="24" style="font-size:11px;fill:#94a3b8">— How it works</text>
+<text x="20" y="37" style="font-size:9px;fill:#475569">Two paths to the same pipeline: paste a URL manually, or queue URLs and let the Routine handle it</text>
+
+<!-- ═══ YOU NODE ═══ -->
+<g transform="translate(55,195)" filter="url(#sh)">
+  <circle r="26" fill="#6366f1"/>
+  <circle cx="0" cy="-7" r="7" fill="white"/>
+  <path d="M-11,11 Q-11,2 0,2 Q11,2 11,11Z" fill="white"/>
+</g>
+<text x="55" y="232" class="node-label">You</text>
+<text x="55" y="244" class="node-sub">Find jobs to apply</text>
+
+<!-- ═══ MANUAL PATH ═══ -->
+<rect x="115" y="58" width="370" height="80" rx="10" fill="#eef2ff" stroke="#c7d2fe" stroke-width="1"/>
+<text x="128" y="73" class="zone-label">MANUAL PATH</text>
+<rect x="410" y="61" width="48" height="15" rx="3" fill="#6366f1" opacity="0.12"/>
+<text x="434" y="71" class="badge" style="fill:#6366f1">MANUAL</text>
+
+<!-- Arrow: You → Agent (manual) -->
+<path d="M78,178 L155,105" fill="none" stroke="#6366f1" stroke-width="1.5" marker-end="url(#a2)"/>
+<text x="100" y="133" class="edge-label" style="fill:#6366f1">paste URL</text>
+
+<!-- Claude Agent -->
+<g transform="translate(190,100)" filter="url(#sh)">
+  <circle r="22" fill="#6366f1"/>
+  <path d="M0,-10 L2.5,-2 L10,0 L2.5,2 L0,10 L-2.5,2 L-10,0 L-2.5,-2Z" fill="white"/>
+</g>
+<text x="190" y="133" class="node-label">Claude Agent</text>
+<text x="190" y="145" class="node-sub">Evaluate · score · build payload</text>
+
+<!-- Arrow: Agent → API -->
+<line x1="212" y1="100" x2="300" y2="100" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#a3)"/>
+<text x="256" y="93" class="edge-label">POST /ingest</text>
+
+<!-- API -->
+<g transform="translate(330,100)" filter="url(#sh)">
+  <circle r="22" fill="#3b82f6"/>
+  <rect x="-10" y="-9" width="20" height="5.5" rx="1.5" fill="white"/>
+  <rect x="-10" y="-1" width="20" height="5.5" rx="1.5" fill="white"/>
+  <rect x="-10" y="6" width="20" height="5.5" rx="1.5" fill="white"/>
+</g>
+<text x="330" y="133" class="node-label">JobVault API</text>
+<text x="330" y="145" class="node-sub">.NET 9 · 202 Accepted</text>
+
+<!-- Arrow: API → Pipeline -->
+<line x1="352" y1="100" x2="498" y2="100" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#a3)"/>
+
+<!-- ═══ AUTOMATED PATH ═══ -->
+<rect x="115" y="170" width="370" height="100" rx="10" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1"/>
+<text x="128" y="185" class="zone-label">AUTOMATED PATH</text>
+<rect x="398" y="173" width="72" height="15" rx="3" fill="#16a34a" opacity="0.12"/>
+<text x="434" y="183" class="badge" style="fill:#16a34a">AUTOMATED</text>
+
+<!-- Arrow: You → Dashboard -->
+<path d="M78,210 L138,230" fill="none" stroke="#16a34a" stroke-width="1.5" marker-end="url(#a4)"/>
+<text x="95" y="230" class="edge-label" style="fill:#16a34a">add URLs</text>
+
+<!-- Dashboard (input) -->
+<g transform="translate(170,232)" filter="url(#sh)">
+  <circle r="20" fill="#16a34a"/>
+  <rect x="-10" y="-8" width="20" height="14" rx="2" fill="none" stroke="white" stroke-width="1.6"/>
+  <line x1="-4" y1="6" x2="-2" y2="10" stroke="white" stroke-width="1.4"/>
+  <line x1="4" y1="6" x2="2" y2="10" stroke="white" stroke-width="1.4"/>
+  <line x1="-5" y1="10" x2="5" y2="10" stroke="white" stroke-width="1.4"/>
+</g>
+<text x="170" y="263" class="node-label">Dashboard</text>
+<text x="170" y="274" class="node-sub">Job Queue page</text>
+
+<!-- Arrow: Dashboard → Queue -->
+<line x1="190" y1="232" x2="248" y2="232" stroke="#16a34a" stroke-width="1.5" marker-end="url(#a4)"/>
+
+<!-- Job Queue -->
+<g transform="translate(278,232)" filter="url(#sh)">
+  <circle r="20" fill="#10b981"/>
+  <ellipse cx="0" cy="-5" rx="8" ry="3" fill="none" stroke="white" stroke-width="1.6"/>
+  <line x1="-8" y1="-5" x2="-8" y2="5" stroke="white" stroke-width="1.6"/>
+  <line x1="8" y1="-5" x2="8" y2="5" stroke="white" stroke-width="1.6"/>
+  <ellipse cx="0" cy="5" rx="8" ry="3" fill="none" stroke="white" stroke-width="1.6"/>
+</g>
+<text x="278" y="263" class="node-label">Job Queue</text>
+<text x="278" y="274" class="node-sub">pending_jobs</text>
+
+<!-- Arrow: Queue → Routine -->
+<line x1="298" y1="232" x2="348" y2="232" stroke="#16a34a" stroke-width="1.5" marker-end="url(#a4)"/>
+
+<!-- Routine -->
+<g transform="translate(378,232)" filter="url(#sh)">
+  <circle r="20" fill="#16a34a"/>
+  <circle cx="0" cy="0" r="9" fill="none" stroke="white" stroke-width="1.6"/>
+  <line x1="0" y1="-6" x2="0" y2="1" stroke="white" stroke-width="1.6"/>
+  <line x1="0" y1="1" x2="4" y2="3.5" stroke="white" stroke-width="1.4"/>
+</g>
+<text x="378" y="263" class="node-label">Routine</text>
+<text x="378" y="274" class="node-sub">Hourly · scheduled</text>
+
+<!-- Arrow: Routine → Agent (loops up) -->
+<path d="M378,212 L378,165 L190,165 L190,122" fill="none" stroke="#16a34a" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#a4)"/>
+<text x="284" y="159" class="edge-label" style="fill:#16a34a">feeds URL to Agent</text>
+
+<!-- ═══ PIPELINE BOX ═══ -->
+<rect x="500" y="58" width="200" height="215" rx="12" fill="#fffbeb" stroke="#fbbf24" stroke-width="1.5" filter="url(#sh2)"/>
+<text x="600" y="80" style="font-size:11px;font-weight:700;fill:#92400e;text-anchor:middle">JobVault Pipeline</text>
+<text x="600" y="94" style="font-size:9px;fill:#b45309;text-anchor:middle">Fully automated</text>
+
+<!-- Step 1 -->
+<rect x="518" y="108" width="164" height="32" rx="5" fill="#fef3c7" stroke="#fde68a" stroke-width="0.8"/>
+<text x="530" y="122" class="pipe-num">①</text>
+<text x="540" y="122" class="pipe-step">Generate DOCX + PDF from</text>
+<text x="540" y="134" class="pipe-step">content received by Claude</text>
+
+<!-- Step 2 -->
+<rect x="518" y="148" width="164" height="32" rx="5" fill="#fef3c7" stroke="#fde68a" stroke-width="0.8"/>
+<text x="530" y="162" class="pipe-num">②</text>
+<text x="540" y="162" class="pipe-step">Commit all files to GitHub</text>
+<text x="540" y="174" class="pipe-step">private repo (Vault)</text>
+
+<!-- Step 3 -->
+<rect x="518" y="188" width="164" height="32" rx="5" fill="#fef3c7" stroke="#fde68a" stroke-width="0.8"/>
+<text x="530" y="202" class="pipe-num">③</text>
+<text x="540" y="202" class="pipe-step">Update JobVault dashboard</text>
+<text x="540" y="214" class="pipe-step">+ Telegram notification</text>
+
+<text x="600" y="248" style="font-size:8px;fill:#a16207;text-anchor:middle;font-style:italic">See architecture diagram for internals →</text>
+
+<!-- Merge automated into pipeline -->
+<path d="M440,195 L500,195" fill="none" stroke="#16a34a" stroke-width="1.3" stroke-dasharray="5,3"/>
+
+<!-- ═══ 4 FILE ARROWS FROM PIPELINE ═══ -->
+<path d="M700,110 L760,110" fill="none" stroke="#0284c7" stroke-width="1.5" marker-end="url(#a5)"/>
+<path d="M700,150 L760,150" fill="none" stroke="#0284c7" stroke-width="1.5" marker-end="url(#a5)"/>
+<path d="M700,190 L760,190" fill="none" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#a1)"/>
+<path d="M700,230 L760,230" fill="none" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#a1)"/>
+
+<!-- File format badges -->
+<rect x="718" y="100" width="38" height="14" rx="3" fill="#e0f2fe"/>
+<text x="737" y="110" style="font-size:7px;fill:#0369a1;text-anchor:middle;font-weight:600">.docx/.pdf</text>
+
+<rect x="718" y="140" width="38" height="14" rx="3" fill="#e0f2fe"/>
+<text x="737" y="150" style="font-size:7px;fill:#0369a1;text-anchor:middle;font-weight:600">.docx/.pdf</text>
+
+<rect x="722" y="180" width="30" height="14" rx="3" fill="#f3e8ff"/>
+<text x="737" y="190" style="font-size:7px;fill:#7c3aed;text-anchor:middle;font-weight:600">.md</text>
+
+<rect x="722" y="220" width="30" height="14" rx="3" fill="#f3e8ff"/>
+<text x="737" y="230" style="font-size:7px;fill:#7c3aed;text-anchor:middle;font-weight:600">.md</text>
+
+<!-- ═══ FILE CARDS ═══ -->
+<!-- CV -->
+<rect x="762" y="85" width="130" height="48" rx="7" fill="#f0f9ff" stroke="#bae6fd" stroke-width="1" filter="url(#sh)"/>
+<g transform="translate(778,109)">
+  <rect x="0" y="-12" width="14" height="18" rx="1.5" fill="none" stroke="#0284c7" stroke-width="1.2"/>
+  <path d="M9,-12 L9,-7 L14,-7" fill="none" stroke="#0284c7" stroke-width="0.8"/>
+  <line x1="2" y1="-4" x2="11" y2="-4" stroke="#0284c7" stroke-width="0.7"/>
+  <line x1="2" y1="-1" x2="11" y2="-1" stroke="#0284c7" stroke-width="0.7"/>
+  <line x1="2" y1="2" x2="8" y2="2" stroke="#0284c7" stroke-width="0.7"/>
+</g>
+<text x="830" y="105" class="file-title">Tailored CV</text>
+<text x="830" y="117" class="file-sub">Role-specific bullets from library</text>
+<text x="830" y="127" class="file-sub">DOCX + PDF</text>
+
+<!-- Cover Letter -->
+<rect x="762" y="140" width="130" height="48" rx="7" fill="#f0f9ff" stroke="#bae6fd" stroke-width="1" filter="url(#sh)"/>
+<g transform="translate(778,164)">
+  <rect x="0" y="-12" width="14" height="18" rx="1.5" fill="none" stroke="#0284c7" stroke-width="1.2"/>
+  <line x1="2" y1="-6" x2="11" y2="-6" stroke="#0284c7" stroke-width="0.7"/>
+  <line x1="2" y1="-3" x2="11" y2="-3" stroke="#0284c7" stroke-width="0.7"/>
+  <line x1="2" y1="0" x2="11" y2="0" stroke="#0284c7" stroke-width="0.7"/>
+  <line x1="2" y1="3" x2="8" y2="3" stroke="#0284c7" stroke-width="0.7"/>
+</g>
+<text x="830" y="160" class="file-title">Cover Letter</text>
+<text x="830" y="172" class="file-sub">4-paragraph, company-tailored</text>
+<text x="830" y="182" class="file-sub">DOCX + PDF</text>
+
+<!-- Compatibility Report -->
+<rect x="762" y="195" width="130" height="48" rx="7" fill="#faf5ff" stroke="#e9d5ff" stroke-width="1" filter="url(#sh)"/>
+<g transform="translate(778,219)">
+  <rect x="0" y="-12" width="14" height="18" rx="1.5" fill="none" stroke="#7c3aed" stroke-width="1.2"/>
+  <circle cx="5" cy="-4" r="2" fill="none" stroke="#7c3aed" stroke-width="0.7"/>
+  <line x1="9" y1="-6" x2="12" y2="-6" stroke="#7c3aed" stroke-width="0.7"/>
+  <line x1="9" y1="-3" x2="12" y2="-3" stroke="#7c3aed" stroke-width="0.7"/>
+  <line x1="2" y1="1" x2="12" y2="1" stroke="#7c3aed" stroke-width="0.7"/>
+  <line x1="2" y1="4" x2="9" y2="4" stroke="#7c3aed" stroke-width="0.7"/>
+</g>
+<text x="830" y="215" class="file-title">Compatibility Report</text>
+<text x="830" y="227" class="file-sub">Match score · strengths · gaps</text>
+<text x="830" y="237" class="file-sub">By Claude · Markdown</text>
+
+<!-- Tailoring Notes -->
+<rect x="762" y="250" width="130" height="48" rx="7" fill="#faf5ff" stroke="#e9d5ff" stroke-width="1" filter="url(#sh)"/>
+<g transform="translate(778,274)">
+  <rect x="0" y="-12" width="14" height="18" rx="1.5" fill="none" stroke="#7c3aed" stroke-width="1.2"/>
+  <line x1="2" y1="-6" x2="12" y2="-6" stroke="#7c3aed" stroke-width="0.7"/>
+  <line x1="2" y1="-3" x2="10" y2="-3" stroke="#7c3aed" stroke-width="0.7"/>
+  <line x1="2" y1="0" x2="12" y2="0" stroke="#7c3aed" stroke-width="0.7"/>
+  <line x1="2" y1="3" x2="7" y2="3" stroke="#7c3aed" stroke-width="0.7"/>
+</g>
+<text x="830" y="270" class="file-title">Tailoring Notes</text>
+<text x="830" y="282" class="file-sub">What was customized and why</text>
+<text x="830" y="292" class="file-sub">By Claude · Markdown</text>
+
+<!-- ═══ ALL FILES → DASHBOARD ═══ -->
+<path d="M892,133 L940,133 L940,370" fill="none" stroke="#0284c7" stroke-width="1.3" marker-end="url(#a5)"/>
+<path d="M892,188 L955,188 L955,370" fill="none" stroke="#0284c7" stroke-width="1.3"/>
+<path d="M892,243 L955,243 L955,370" fill="none" stroke="#7c3aed" stroke-width="1.3"/>
+<path d="M892,298 L940,298 L940,370" fill="none" stroke="#7c3aed" stroke-width="1.3"/>
+
+<!-- ═══ FINAL DASHBOARD ═══ -->
+<rect x="760" y="375" width="320" height="170" rx="12" fill="white" stroke="#16a34a" stroke-width="1.5" filter="url(#sh2)"/>
+
+<!-- Dashboard header -->
+<rect x="760" y="375" width="320" height="32" rx="12" fill="#f0fdf4"/>
+<rect x="760" y="395" width="320" height="12" fill="#f0fdf4"/>
+<g transform="translate(780,391)">
+  <rect x="0" y="-6" width="14" height="12" rx="2" fill="none" stroke="#16a34a" stroke-width="1.4"/>
+  <line x1="-3" y1="6" x2="-1" y2="9" stroke="#16a34a" stroke-width="1.2"/>
+  <line x1="3" y1="6" x2="1" y2="9" stroke="#16a34a" stroke-width="1.2"/>
+  <line x1="-3" y1="9" x2="17" y2="9" stroke="#16a34a" stroke-width="1.2"/>
+</g>
+<text x="810" y="395" style="font-size:11px;font-weight:700;fill:#16a34a">JobVault Dashboard</text>
+<text x="1000" y="395" style="font-size:8px;fill:#64748b;text-anchor:middle">Everything in one place</text>
+
+<!-- Dashboard content -->
+<rect x="776" y="416" width="140" height="18" rx="4" fill="#f8fafc" stroke="#e2e8f0" stroke-width="0.8"/>
+<text x="846" y="428" style="font-size:8px;fill:#475569;text-anchor:middle">📊 Match score &amp; analysis</text>
+
+<rect x="776" y="438" width="140" height="18" rx="4" fill="#f8fafc" stroke="#e2e8f0" stroke-width="0.8"/>
+<text x="846" y="450" style="font-size:8px;fill:#475569;text-anchor:middle">📝 CV + Cover Letter (download)</text>
+
+<rect x="776" y="460" width="140" height="18" rx="4" fill="#f8fafc" stroke="#e2e8f0" stroke-width="0.8"/>
+<text x="846" y="472" style="font-size:8px;fill:#475569;text-anchor:middle">📋 Reports &amp; strategy</text>
+
+<rect x="776" y="482" width="140" height="18" rx="4" fill="#f8fafc" stroke="#e2e8f0" stroke-width="0.8"/>
+<text x="846" y="494" style="font-size:8px;fill:#475569;text-anchor:middle">📁 Pipeline stage tracking</text>
+
+<!-- Apply button -->
+<rect x="936" y="440" width="120" height="42" rx="8" fill="#16a34a" filter="url(#sh)"/>
+<text x="996" y="458" style="font-size:10px;font-weight:700;fill:white;text-anchor:middle">Ready to Apply</text>
+<text x="996" y="472" style="font-size:8px;fill:#bbf7d0;text-anchor:middle">Download &amp; upload files</text>
+
+<!-- Decide label -->
+<rect x="936" y="496" width="120" height="18" rx="4" fill="#fef3c7" stroke="#fde68a" stroke-width="0.8"/>
+<text x="996" y="508" style="font-size:7.5px;fill:#92400e;text-anchor:middle;font-weight:600">You decide · You apply</text>
+
+<!-- ═══ BOTTOM TAGLINE ═══ -->
+<rect x="20" y="570" width="1060" height="36" rx="8" fill="#0f172a"/>
+<text x="550" y="593" style="font-size:11px;fill:#f8fafc;text-anchor:middle;font-weight:600">Only manual step: decide which jobs to apply to and upload the files. Everything else runs on its own.</text>
+
+<!-- ═══ LEGEND ═══ -->
+<rect x="20" y="375" width="180" height="100" rx="8" fill="white" stroke="#e2e8f0" stroke-width="1"/>
+<text x="34" y="393" style="font-size:8px;font-weight:700;fill:#94a3b8;letter-spacing:0.8px">LEGEND</text>
+<circle cx="36" cy="410" r="5" fill="#6366f1"/><text x="46" y="413" style="font-size:8.5px;fill:#475569">Input / AI Agent</text>
+<circle cx="36" cy="428" r="5" fill="#3b82f6"/><text x="46" y="431" style="font-size:8.5px;fill:#475569">API</text>
+<circle cx="36" cy="446" r="5" fill="#16a34a"/><text x="46" y="449" style="font-size:8.5px;fill:#475569">Automated / Processing</text>
+<circle cx="36" cy="464" r="5" fill="#0284c7"/><text x="46" y="467" style="font-size:8.5px;fill:#475569">Documents (DOCX/PDF)</text>
+<circle cx="36" cy="482" r="5" fill="#7c3aed"/><text x="46" y="485" style="font-size:8.5px;fill:#475569">Reports (Markdown)</text>
+
+</svg>
