@@ -7,7 +7,7 @@
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat-square&logo=docker)
 ![GitHub Actions](https://img.shields.io/badge/CI%2FCD-GitHub_Actions-2088FF?style=flat-square&logo=githubactions)
 
-**Live:** [Frontend](https://prd.kbilaluddin.dev) · [API](https://api.kbilaluddin.dev)
+**Live:** [Frontend](https://prd.kbilaluddin.dev) · [API](https://api.kbilaluddin.dev) · [Screenshots](#screenshots)
 
 ---
 
