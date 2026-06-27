@@ -121,6 +121,31 @@ The architecture is modular (Clean Architecture with enforced layer isolation), 
 
 ---
 
+## Screenshots
+
+![Dashboard](docs/screenshots/dashboard.png)
+*Dashboard — stats, pipeline funnel, top matches, recent activity*
+
+![Pipeline](docs/screenshots/pipeline.png)
+*Pipeline — Kanban board across all application stages*
+
+![Applications](docs/screenshots/applications.png)
+*Applications — searchable list with match scores and verdicts*
+
+![Edit Content](docs/screenshots/edit-content.png)
+*Company Detail — edit CV/cover letter content and regenerate in seconds*
+
+![Skills Gap](docs/screenshots/skills-gap.png)
+*Skills Gap — identifies missing skills across all job postings*
+
+![Interviews](docs/screenshots/interviews.png)
+*Interviews — all rounds grouped by company with outcomes*
+
+![Job Queue](docs/screenshots/job-queue.png)
+*Job Queue — paste URLs, the Routine picks them up automatically*
+
+---
+
 ## Features
 
 ### Backend
