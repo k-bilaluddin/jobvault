@@ -305,8 +305,6 @@ All variables use `SCREAMING_SNAKE_CASE`. Copy `.env.example` and fill in your v
 
 ## API Reference
 
-Full spec: [Postman Collection](JobVault.postman_collection.json)
-
 **Ingestion**
 
 | Method | Endpoint | Description |
