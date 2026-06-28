@@ -110,8 +110,17 @@ The API handles 20 concurrent users at **11ms average response time** with **0% 
 **Why a modular monolith, not microservices**
 The API and Worker run as separate processes but share the same codebase. Clean Architecture with architecture tests enforces the same layer boundaries that microservices would, without the network overhead, deployment complexity, or operational burden. At this scale, microservices would add complexity without value.
 
-**Why event-driven in a monolith**
-RabbitMQ decouples the ingestion path from the processing path. The API returns `202 Accepted` in 11ms while the Worker handles the heavy lifting (DOCX generation, PDF conversion, GitHub commits) asynchronously. This keeps the API fast regardless of how long processing takes.
+**Why RabbitMQ over direct HTTP**
+The API needs to return fast — 11ms average. Document generation, PDF conversion, and GitHub commits take seconds. RabbitMQ decouples these: the API publishes an event and returns `202 Accepted` immediately, while the Worker processes asynchronously. If the Worker is down, messages queue up and get processed when it recovers. Direct HTTP would block the API, cascade failures, and lose requests on crashes.
+
+**Why MongoDB over PostgreSQL**
+Job application payloads are schema-flexible — different JDs produce different skill sets, varying numbers of role bullets, optional salary ranges, and nested interview records. MongoDB's document model stores these naturally without migration overhead. The data is read-heavy and document-shaped, not relational.
+
+**Why GitHub as a file vault**
+Every application produces six files that need to be versioned, auditable, and accessible. GitHub gives this for free: atomic commits via the Git Trees API, full history of every version, and a familiar interface to browse files. No need to build a custom file storage service when Git already does versioning better than anything I'd write.
+
+**Why Vue over React**
+Vue's Composition API with `<script setup>` is concise and productive for a solo developer. The ecosystem (Pinia, Vue Router, Vite) is cohesive out of the box — no decision fatigue on state management or build tooling. For a project built and maintained by one person, shipping speed matters more than ecosystem size.
 
 **Why the Claude Agent is a separate repo**
 The agent contains prompt logic, evaluation criteria, and a curated bullet-point library — all personal data. Keeping it in a private repo separates credentials and personal content from the public infrastructure code.
@@ -248,155 +257,13 @@ Not all failures deserve retries. Transient errors (network timeout, generation 
 
 ---
 
-## Local Development
+## Documentation
 
-### Prerequisites
+### CI/CD Pipeline
 
-- [.NET 9 SDK](https://dotnet.microsoft.com/download)
-- [Node.js 20+](https://nodejs.org/)
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
-- [LibreOffice](https://www.libreoffice.org/) (for local Worker PDF conversion)
-- MongoDB Atlas account
-- CloudAMQP account (or local RabbitMQ)
-- Telegram Bot token + chat ID
-- GitHub personal access token (`repo` scope) + target repository
+![CI/CD Pipeline](docs/ci-cd-pipeline.svg)
 
-### 1. Clone and configure
-
-```bash
-git clone https://github.com/k-bilaluddin/jobvault.git
-cd jobvault
-cp .env.example .env
-# fill in your values
-```
-
-### 2. Create the Docker network (first time only)
-
-```bash
-docker network create jobvault-internal
-```
-
-### 3. Run with Docker Compose
-
-```bash
-docker compose up -d
-```
-
-Starts `jobvault-api` and `jobvault-worker`. The generation service runs separately on `jobvault-internal`.
-
-### 4. Run services locally
-
-```bash
-# API
-cd backend/src/JobVault.API && dotnet run
-
-# Worker
-cd backend/src/JobVault.Worker && dotnet run
-
-# Generation service (clone from https://github.com/k-bilaluddin/jobvault-generation-service)
-cd jobvault-generation-service && npm install && npm start
-
-# Frontend
-cd frontend/jobvault-ui && npm install && npm run dev
-```
-
----
-
-## Environment Variables
-
-All variables use `SCREAMING_SNAKE_CASE`. Copy `.env.example` and fill in your values. See [docs/env.md](docs/env.md) for the full reference with descriptions.
-
----
-
-## API Reference
-
-**Ingestion**
-
-| Method | Endpoint | Description |
-|---|---|---|
-| `POST` | `/api/ingest/applications` | Ingest a job application payload (async, returns `202`) |
-| `POST` | `/api/ingest` | Ingest raw payload |
-
-**Applications**
-
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/api/applications` | List all applications |
-| `GET` | `/api/applications/{name}/report` | Get compatibility report |
-| `GET` | `/api/applications/{name}/notes` | Get application notes |
-| `GET` | `/api/applications/{name}/pdf/{type}` | Download CV or cover letter PDF |
-| `GET` | `/api/applications/{name}/content` | Get editable CV/cover letter content |
-| `GET` | `/api/applications/skills-gap` | Get skills gap analysis across all applications |
-| `GET` | `/api/applications/historical` | Get historical (past) applications |
-| `POST` | `/api/applications/{name}/stage` | Update pipeline stage |
-| `POST` | `/api/applications/{name}/personal-notes` | Update personal notes |
-| `POST` | `/api/applications/{name}/interviews` | Add interview record |
-| `PUT` | `/api/applications/{name}/interviews/{idx}` | Update interview record |
-| `DELETE` | `/api/applications/{name}/interviews` | Delete all interviews |
-| `POST` | `/api/applications/{name}/notes` | Add a note |
-| `PUT` | `/api/applications/{name}/notes/{noteId}` | Update a note |
-| `DELETE` | `/api/applications/{name}/notes/{noteId}` | Delete a note |
-| `PATCH` | `/api/applications/{name}/content` | Edit CV/cover letter content |
-| `POST` | `/api/applications/{name}/regenerate` | Regenerate DOCX/PDF and sync to vault |
-| `POST` | `/api/applications/sync-vault` | Sync all files from GitHub vault |
-
-**Job Queue**
-
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/api/ingest/queue` | List all queued jobs |
-| `GET` | `/api/ingest/queue/pending` | Get pending jobs (for Routine) |
-| `POST` | `/api/ingest/queue` | Add URL to queue |
-| `PUT` | `/api/ingest/queue/{id}` | Update job status |
-| `DELETE` | `/api/ingest/queue/{id}` | Delete a queued job |
-| `DELETE` | `/api/ingest/queue/cleanup/{status}` | Bulk delete by status |
-
-**Notifications**
-
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/api/notifications` | Get recent notifications (last 50) |
-| `GET` | `/api/notifications/stream` | SSE stream for real-time events |
-| `POST` | `/api/notifications/read-all` | Mark all notifications as read |
-| `POST` | `/api/notifications/{id}/read` | Mark a single notification as read |
-
-**Auth & Settings**
-
-| Method | Endpoint | Description |
-|---|---|---|
-| `POST` | `/api/auth/login` | Authenticate and receive JWT token |
-| `GET` | `/api/settings` | Get application settings |
-| `PUT` | `/api/settings` | Update application settings |
-
----
-
-## CI/CD
-
-```
-Push to master
-      ↓
-① Architecture tests
-      ↓
-② Build & push API image  ──┐
-                             ├── parallel → GHCR
-③ Build & push Worker image ┘
-      ↓
-④ Self-hosted runner: docker compose pull && up -d
-      ↓
-⑤ Telegram deployment notification
-```
-
----
-
-## Testing
-
-```bash
-# Backend tests (unit + architecture)
-cd backend/src/JobVault.API && dotnet test JobVault.sln
-
-# Frontend tests
-cd frontend/jobvault-ui && npm test
-```
+[API Reference (35 endpoints)](docs/api-reference.md) · [CI/CD Details](docs/ci-cd.md) · [Local Development](docs/local-development.md) · [Environment Variables](docs/env.md)
 
 ---
 

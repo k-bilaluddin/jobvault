@@ -1,0 +1,289 @@
+<svg viewBox="0 0 1100 720" xmlns="http://www.w3.org/2000/svg" role="img">
+<title>JobVault — CI/CD Pipeline</title>
+<desc>Full CI/CD pipeline with tech icons: path-based CI, parallel Docker builds, self-hosted deployment, Cloudflare Pages frontend.</desc>
+
+<defs>
+<style>
+  text { font-family: "Segoe UI", system-ui, Arial, sans-serif; }
+  .node-label { font-size: 11px; font-weight: 600; fill: #1e293b; text-anchor: middle; }
+  .node-sub { font-size: 9px; fill: #64748b; text-anchor: middle; }
+  .edge-label { font-size: 8px; fill: #475569; text-anchor: middle; }
+  .zone-label { font-size: 9px; font-weight: 700; fill: #94a3b8; letter-spacing: 1px; }
+  .badge { font-size: 7.5px; font-weight: 700; letter-spacing: 0.5px; text-anchor: middle; }
+  .step-text { font-size: 9px; fill: #1e293b; text-anchor: middle; }
+  .step-sub { font-size: 8px; fill: #64748b; text-anchor: middle; }
+</style>
+<marker id="a1" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><path d="M0,0 L0,7 L7,3.5z" fill="#94a3b8"/></marker>
+<marker id="aG" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><path d="M0,0 L0,7 L7,3.5z" fill="#16a34a"/></marker>
+<marker id="aO" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><path d="M0,0 L0,7 L7,3.5z" fill="#f97316"/></marker>
+<filter id="sh"><feDropShadow dx="0" dy="1.5" stdDeviation="2" flood-color="#00000010"/></filter>
+<filter id="sh2"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#00000012"/></filter>
+</defs>
+
+<!-- Background -->
+<rect width="1100" height="720" fill="#f8fafc"/>
+
+<!-- Header -->
+<rect width="1100" height="42" fill="#0f172a"/>
+<text x="20" y="23" style="font-size:15px;font-weight:700;fill:#f8fafc">JobVault</text>
+<text x="105" y="24" style="font-size:11px;fill:#94a3b8">— CI/CD Pipeline</text>
+<text x="20" y="37" style="font-size:9px;fill:#94a3b8">Push → CI → Build → Deploy → Notify · Two environments: production (master) and staging (develop)</text>
+
+<!-- ═══ CI ZONE ═══ -->
+<rect x="30" y="56" width="500" height="340" rx="10" fill="#eef2ff" stroke="#c7d2fe" stroke-width="1"/>
+<text x="44" y="72" class="zone-label">CONTINUOUS INTEGRATION</text>
+<text x="44" y="84" style="font-size:8px;fill:#64748b">ci.yml · Runs on every push/PR</text>
+
+<!-- Trigger: GitHub icon -->
+<rect x="180" y="96" width="200" height="36" rx="8" fill="white" stroke="#e2e8f0" stroke-width="1" filter="url(#sh)"/>
+<g transform="translate(202,114)">
+  <circle r="11" fill="#1e293b"/>
+  <path d="M0,-7 C-4,-7 -7,-4 -7,0 C-7,3.2 -5,5.8 -2.2,6.6 C-1.8,6.7 -1.6,6.5 -1.6,6.3 C-1.6,6.1 -1.6,5.4 -1.6,4.7 C-4,5.2 -4.8,3.7 -4.8,3.7 C-5.2,3 -5.7,2.8 -5.7,2.8 C-6.4,2.3 -5.7,2.3 -5.7,2.3 C-5,2.4 -4.6,3 -4.6,3 C-3.9,4 -2.8,3.7 -1.6,3.5 C-1.5,3 -1.3,2.6 -1,2.4 C-3.3,2.1 -5.6,1.3 -5.6,-2.2 C-5.6,-3.1 -5.3,-3.8 -4.6,-4.4 C-4.7,-4.6 -5.1,-5.5 -4.5,-6.7 C-4.5,-6.7 -3.8,-6.9 -1.6,-5.8 C-1,-6 -0.5,-6 0,-6 C0.5,-6 1,-6 1.6,-5.8 C3.8,-6.9 4.5,-6.7 4.5,-6.7 C5.1,-5.5 4.7,-4.6 4.6,-4.4 C5.3,-3.8 5.6,-3.1 5.6,-2.2 C5.6,1.3 3.3,2.1 1,2.4 C1.4,2.7 1.6,3.3 1.6,4.2 C1.6,5.4 1.6,6.1 1.6,6.3 C1.6,6.5 1.8,6.7 2.2,6.6 C5,5.8 7,3.2 7,0 C7,-4 4,-7 0,-7Z" fill="white"/>
+</g>
+<text x="290" y="118" class="node-label">Push / PR</text>
+<text x="290" y="128" class="node-sub">to master or develop</text>
+
+<!-- Arrow down -->
+<line x1="280" y1="132" x2="280" y2="150" stroke="#94a3b8" stroke-width="1.3" marker-end="url(#a1)"/>
+
+<!-- Detect paths -->
+<rect x="200" y="152" width="160" height="30" rx="6" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1" filter="url(#sh)"/>
+<text x="280" y="171" class="step-text">Detect changed paths</text>
+
+<!-- Split arrows -->
+<line x1="240" y1="182" x2="140" y2="210" stroke="#94a3b8" stroke-width="1.3" marker-end="url(#a1)"/>
+<line x1="320" y1="182" x2="420" y2="210" stroke="#94a3b8" stroke-width="1.3" marker-end="url(#a1)"/>
+
+<!-- Backend path with .NET icon -->
+<rect x="60" y="212" width="160" height="60" rx="8" fill="#dbeafe" stroke="#93c5fd" stroke-width="1" filter="url(#sh)"/>
+<g transform="translate(82,237)">
+  <circle r="12" fill="#512BD4"/>
+  <text x="0" y="4" style="font-size:7px;font-weight:800;fill:white;text-anchor:middle">.NET</text>
+</g>
+<text x="150" y="232" class="node-label">Backend</text>
+<text x="150" y="244" class="step-sub">.NET 9 · Restore · Build</text>
+<text x="150" y="256" class="step-sub">Unit Tests (129)</text>
+<text x="150" y="266" class="step-sub">Architecture Tests (19)</text>
+
+<!-- Frontend path with Node icon -->
+<rect x="340" y="212" width="160" height="60" rx="8" fill="#dcfce7" stroke="#86efac" stroke-width="1" filter="url(#sh)"/>
+<g transform="translate(362,237)">
+  <circle r="12" fill="#339933"/>
+  <text x="0" y="4" style="font-size:7px;font-weight:800;fill:white;text-anchor:middle">JS</text>
+</g>
+<text x="430" y="232" class="node-label">Frontend</text>
+<text x="430" y="244" class="step-sub">Node.js 22 · npm ci</text>
+<text x="430" y="256" class="step-sub">Vitest (97 tests)</text>
+
+<!-- Parallel badge -->
+<rect x="234" y="228" width="52" height="14" rx="3" fill="#6366f1" opacity="0.15"/>
+<text x="260" y="238" class="badge" style="fill:#6366f1">PARALLEL</text>
+
+<!-- Converge arrows -->
+<line x1="140" y1="272" x2="280" y2="304" stroke="#94a3b8" stroke-width="1.3" marker-end="url(#a1)"/>
+<line x1="420" y1="272" x2="280" y2="304" stroke="#94a3b8" stroke-width="1.3" marker-end="url(#a1)"/>
+
+<!-- CI passes -->
+<rect x="190" y="306" width="180" height="36" rx="8" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5" filter="url(#sh)"/>
+<g transform="translate(210,324)">
+  <circle r="10" fill="#16a34a"/>
+  <path d="M-4,0 L-1,3 L5,-3" fill="none" stroke="white" stroke-width="2"/>
+</g>
+<text x="295" y="328" class="node-label" style="fill:#16a34a">CI Passes</text>
+
+<text x="280" y="360" class="step-sub">Only changed layers run — unchanged layers skip</text>
+
+<!-- ═══ CD ZONE — BACKEND ═══ -->
+<rect x="30" y="410" width="500" height="290" rx="10" fill="#fefce8" stroke="#fde68a" stroke-width="1"/>
+<text x="44" y="426" class="zone-label">CONTINUOUS DEPLOYMENT — BACKEND</text>
+<text x="44" y="438" style="font-size:8px;fill:#64748b">cd.yml (production) · cd-staging.yml (staging)</text>
+
+<!-- Arrow from CI to CD -->
+<line x1="280" y1="342" x2="280" y2="455" stroke="#16a34a" stroke-width="1.5" marker-end="url(#aG)"/>
+<text x="295" y="400" class="edge-label" style="fill:#16a34a">triggers CD</text>
+
+<!-- Build API with Docker icon -->
+<rect x="60" y="452" width="180" height="44" rx="8" fill="#dbeafe" stroke="#93c5fd" stroke-width="1" filter="url(#sh)"/>
+<g transform="translate(82,474)">
+  <circle r="12" fill="#2496ED"/>
+  <rect x="-7" y="-4" width="5" height="3.5" rx="0.5" fill="white"/>
+  <rect x="-1" y="-4" width="5" height="3.5" rx="0.5" fill="white"/>
+  <rect x="-1" y="-8.5" width="5" height="3.5" rx="0.5" fill="white"/>
+  <rect x="-7" y="1" width="14" height="5" rx="1" fill="white"/>
+</g>
+<text x="155" y="470" class="node-label">Build API Image</text>
+<text x="155" y="484" class="step-sub">Docker Buildx · GHA cache</text>
+
+<!-- Build Worker with Docker icon -->
+<rect x="320" y="452" width="180" height="44" rx="8" fill="#dcfce7" stroke="#86efac" stroke-width="1" filter="url(#sh)"/>
+<g transform="translate(342,474)">
+  <circle r="12" fill="#2496ED"/>
+  <rect x="-7" y="-4" width="5" height="3.5" rx="0.5" fill="white"/>
+  <rect x="-1" y="-4" width="5" height="3.5" rx="0.5" fill="white"/>
+  <rect x="-1" y="-8.5" width="5" height="3.5" rx="0.5" fill="white"/>
+  <rect x="-7" y="1" width="14" height="5" rx="1" fill="white"/>
+</g>
+<text x="415" y="470" class="node-label">Build Worker Image</text>
+<text x="415" y="484" class="step-sub">Docker Buildx · GHA cache</text>
+
+<!-- Parallel badge -->
+<rect x="234" y="456" width="52" height="14" rx="3" fill="#6366f1" opacity="0.15"/>
+<text x="260" y="466" class="badge" style="fill:#6366f1">PARALLEL</text>
+
+<!-- Push to GHCR -->
+<text x="155" y="508" class="step-sub">→ ghcr.io/.../jobvault-api</text>
+<text x="415" y="508" class="step-sub">→ ghcr.io/.../jobvault-worker</text>
+
+<!-- Converge to deploy -->
+<line x1="155" y1="514" x2="280" y2="540" stroke="#94a3b8" stroke-width="1.3" marker-end="url(#a1)"/>
+<line x1="415" y1="514" x2="280" y2="540" stroke="#94a3b8" stroke-width="1.3" marker-end="url(#a1)"/>
+
+<!-- Self-hosted runner with Windows icon -->
+<rect x="150" y="542" width="260" height="36" rx="8" fill="white" stroke="#e2e8f0" stroke-width="1" filter="url(#sh)"/>
+<g transform="translate(174,560)">
+  <circle r="11" fill="#0078D4"/>
+  <rect x="-6" y="-6" width="5.5" height="5.5" fill="white"/>
+  <rect x="1" y="-6" width="5.5" height="5.5" fill="white"/>
+  <rect x="-6" y="0.5" width="5.5" height="5.5" fill="white"/>
+  <rect x="1" y="0.5" width="5.5" height="5.5" fill="white"/>
+</g>
+<text x="300" y="564" class="node-label">Self-hosted Runner (Windows)</text>
+
+<!-- Deploy steps -->
+<line x1="280" y1="578" x2="280" y2="596" stroke="#94a3b8" stroke-width="1.3" marker-end="url(#a1)"/>
+
+<rect x="120" y="598" width="320" height="28" rx="6" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="0.8"/>
+<text x="280" y="616" class="step-text">Write .env from GitHub Secrets → docker compose pull → up -d</text>
+
+<line x1="280" y1="626" x2="280" y2="644" stroke="#94a3b8" stroke-width="1.3" marker-end="url(#a1)"/>
+
+<!-- Telegram with icon -->
+<rect x="190" y="646" width="180" height="36" rx="8" fill="#f3e8ff" stroke="#e9d5ff" stroke-width="1" filter="url(#sh)"/>
+<g transform="translate(212,664)">
+  <circle r="11" fill="#7c3aed"/>
+  <polygon points="-7,4 7,0 -7,-4" fill="white"/>
+  <polygon points="-7,4 -2,1 -1,6" fill="#7c3aed"/>
+</g>
+<text x="295" y="668" class="node-label">Telegram Notification</text>
+
+<!-- ═══ CLOUDFLARE ZONE ═══ -->
+<rect x="580" y="56" width="490" height="340" rx="10" fill="#fff7ed" stroke="#fdba74" stroke-width="1"/>
+<text x="594" y="72" class="zone-label">FRONTEND DEPLOYMENT</text>
+<text x="594" y="84" style="font-size:8px;fill:#64748b">Cloudflare Pages · Auto-deploys from GitHub</text>
+
+<!-- Cloudflare icon + heading -->
+<rect x="680" y="110" width="280" height="40" rx="8" fill="white" stroke="#e2e8f0" stroke-width="1" filter="url(#sh)"/>
+<g transform="translate(702,130)">
+  <circle r="12" fill="#f97316"/>
+  <path d="M-5,-2 L-2,-6 L5,-6 L7,-2 L-5,-2Z" fill="white" opacity="0.9"/>
+  <path d="M-2,-2 L0,2 L6,2 L7,-2Z" fill="white" opacity="0.7"/>
+</g>
+<text x="835" y="134" class="node-label">Cloudflare Pages</text>
+
+<line x1="820" y1="150" x2="820" y2="172" stroke="#f97316" stroke-width="1.3" marker-end="url(#aO)"/>
+
+<!-- Connected to GitHub -->
+<rect x="720" y="174" width="200" height="32" rx="6" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="0.8"/>
+<g transform="translate(740,190)">
+  <circle r="8" fill="#1e293b"/>
+  <path d="M0,-5 C-3,-5 -5,-3 -5,0 C-5,2.3 -3.6,4.2 -1.6,4.7 C-1.3,4.8 -1.1,4.6 -1.1,4.5 L-1.1,3.4 C-2.9,3.7 -3.5,2.6 -3.5,2.6 C-3.7,2.1 -4.1,2 -4.1,2 C-4.6,1.6 -4.1,1.7 -4.1,1.7 C-3.6,1.7 -3.3,2.1 -3.3,2.1 C-2.8,2.9 -2,2.7 -1.1,2.5 C-1.1,2.1 -0.9,1.9 -0.7,1.7 C-2.4,1.5 -4,0.9 -4,-1.6 C-4,-2.2 -3.8,-2.7 -3.3,-3.2 C-3.4,-3.3 -3.6,-3.9 -3.2,-4.8 C-3.2,-4.8 -2.7,-5 -1.1,-4 C-0.7,-4.1 -0.4,-4.2 0,-4.2 C0.4,-4.2 0.7,-4.1 1.1,-4 C2.7,-5 3.2,-4.8 3.2,-4.8 C3.6,-3.9 3.4,-3.3 3.3,-3.2 C3.8,-2.7 4,-2.2 4,-1.6 C4,0.9 2.4,1.5 0.7,1.7 C1,1.9 1.1,2.4 1.1,3 L1.1,4.5 C1.1,4.6 1.3,4.8 1.6,4.7 C3.6,4.2 5,2.3 5,0 C5,-3 3,-5 0,-5Z" fill="white" transform="scale(0.8)"/>
+</g>
+<text x="830" y="194" class="step-text">Connected to GitHub repo</text>
+
+<line x1="820" y1="206" x2="820" y2="226" stroke="#f97316" stroke-width="1.3" marker-end="url(#aO)"/>
+
+<!-- Build step -->
+<rect x="720" y="228" width="200" height="28" rx="6" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="0.8"/>
+<g transform="translate(740,242)">
+  <circle r="8" fill="#646CFF"/>
+  <text x="0" y="3" style="font-size:6px;font-weight:800;fill:white;text-anchor:middle">⚡</text>
+</g>
+<text x="835" y="246" class="step-text">Vite build → dist/</text>
+
+<line x1="820" y1="256" x2="820" y2="274" stroke="#f97316" stroke-width="1.3" marker-end="url(#aO)"/>
+
+<!-- Split to prod/staging -->
+<line x1="780" y1="274" x2="705" y2="292" stroke="#16a34a" stroke-width="1.3" marker-end="url(#aG)"/>
+<line x1="860" y1="274" x2="935" y2="292" stroke="#f97316" stroke-width="1.3" marker-end="url(#aO)"/>
+
+<!-- Production -->
+<rect x="620" y="294" width="170" height="52" rx="8" fill="#dcfce7" stroke="#16a34a" stroke-width="1" filter="url(#sh)"/>
+<g transform="translate(642,315)">
+  <circle r="10" fill="#16a34a"/>
+  <path d="M-4,0 L-1,3 L5,-3" fill="none" stroke="white" stroke-width="1.8"/>
+</g>
+<text x="720" y="315" class="node-label">Production</text>
+<text x="720" y="327" class="step-sub">master branch</text>
+<text x="720" y="339" class="step-sub">prd.kbilaluddin.dev</text>
+
+<!-- Staging -->
+<rect x="850" y="294" width="170" height="52" rx="8" fill="#fef3c7" stroke="#fbbf24" stroke-width="1" filter="url(#sh)"/>
+<g transform="translate(872,315)">
+  <circle r="10" fill="#d97706"/>
+  <text x="0" y="3.5" style="font-size:8px;font-weight:700;fill:white;text-anchor:middle">S</text>
+</g>
+<text x="950" y="315" class="node-label">Staging</text>
+<text x="950" y="327" class="step-sub">develop branch</text>
+<text x="950" y="339" class="step-sub">stg.kbilaluddin.dev</text>
+
+<!-- Features -->
+<rect x="620" y="360" width="400" height="24" rx="6" fill="white" stroke="#e2e8f0" stroke-width="0.8"/>
+<text x="820" y="376" class="step-sub">CDN edge caching · HTTPS · Custom domains · Preview deployments on PRs</text>
+
+<!-- ═══ ENVIRONMENT TABLE ═══ -->
+<rect x="580" y="410" width="490" height="290" rx="10" fill="white" stroke="#e2e8f0" stroke-width="1"/>
+<text x="594" y="426" class="zone-label">ENVIRONMENT ISOLATION</text>
+
+<!-- Table header -->
+<rect x="600" y="440" width="450" height="24" rx="4" fill="#f1f5f9"/>
+<text x="680" y="456" style="font-size:9px;font-weight:600;fill:#475569;text-anchor:middle">Component</text>
+<text x="825" y="456" style="font-size:9px;font-weight:600;fill:#16a34a;text-anchor:middle">Production</text>
+<text x="975" y="456" style="font-size:9px;font-weight:600;fill:#d97706;text-anchor:middle">Staging</text>
+
+<!-- Table rows -->
+<line x1="600" y1="466" x2="1050" y2="466" stroke="#e2e8f0" stroke-width="0.8"/>
+<text x="680" y="482" class="step-sub" style="text-anchor:middle">Branch</text>
+<text x="825" y="482" class="step-sub" style="text-anchor:middle">master</text>
+<text x="975" y="482" class="step-sub" style="text-anchor:middle">develop</text>
+
+<line x1="600" y1="490" x2="1050" y2="490" stroke="#e2e8f0" stroke-width="0.5"/>
+<text x="680" y="506" class="step-sub" style="text-anchor:middle">Docker tag</text>
+<text x="825" y="506" class="step-sub" style="text-anchor:middle">latest</text>
+<text x="975" y="506" class="step-sub" style="text-anchor:middle">staging</text>
+
+<line x1="600" y1="514" x2="1050" y2="514" stroke="#e2e8f0" stroke-width="0.5"/>
+<text x="680" y="530" class="step-sub" style="text-anchor:middle">Compose file</text>
+<text x="825" y="530" class="step-sub" style="text-anchor:middle">docker-compose.yml</text>
+<text x="975" y="530" class="step-sub" style="text-anchor:middle">docker-compose.staging.yml</text>
+
+<line x1="600" y1="538" x2="1050" y2="538" stroke="#e2e8f0" stroke-width="0.5"/>
+<text x="680" y="554" class="step-sub" style="text-anchor:middle">Database</text>
+<text x="825" y="554" class="step-sub" style="text-anchor:middle">jobvault</text>
+<text x="975" y="554" class="step-sub" style="text-anchor:middle">jobvault-staging</text>
+
+<line x1="600" y1="562" x2="1050" y2="562" stroke="#e2e8f0" stroke-width="0.5"/>
+<text x="680" y="578" class="step-sub" style="text-anchor:middle">Frontend</text>
+<text x="825" y="578" class="step-sub" style="text-anchor:middle">prd.kbilaluddin.dev</text>
+<text x="975" y="578" class="step-sub" style="text-anchor:middle">stg.kbilaluddin.dev</text>
+
+<line x1="600" y1="586" x2="1050" y2="586" stroke="#e2e8f0" stroke-width="0.5"/>
+<text x="680" y="602" class="step-sub" style="text-anchor:middle">API</text>
+<text x="825" y="602" class="step-sub" style="text-anchor:middle">api.kbilaluddin.dev</text>
+<text x="975" y="602" class="step-sub" style="text-anchor:middle">api-stg.kbilaluddin.dev</text>
+
+<line x1="600" y1="610" x2="1050" y2="610" stroke="#e2e8f0" stroke-width="0.5"/>
+<text x="680" y="626" class="step-sub" style="text-anchor:middle">Secrets</text>
+<text x="825" y="626" class="step-sub" style="text-anchor:middle">AUTH_*, MONGODB_*</text>
+<text x="975" y="626" class="step-sub" style="text-anchor:middle">STG_AUTH_*, STG_MONGODB_*</text>
+
+<!-- Legend -->
+<rect x="600" y="648" width="450" height="42" rx="6" fill="#f8fafc" stroke="#e2e8f0" stroke-width="0.8"/>
+<circle cx="620" cy="669" r="5" fill="#512BD4"/><text x="630" y="672" style="font-size:8px;fill:#475569">.NET</text>
+<circle cx="665" cy="669" r="5" fill="#339933"/><text x="675" y="672" style="font-size:8px;fill:#475569">Node.js</text>
+<circle cx="720" cy="669" r="5" fill="#2496ED"/><text x="730" y="672" style="font-size:8px;fill:#475569">Docker</text>
+<circle cx="775" cy="669" r="5" fill="#f97316"/><text x="785" y="672" style="font-size:8px;fill:#475569">Cloudflare</text>
+<circle cx="845" cy="669" r="5" fill="#0078D4"/><text x="855" y="672" style="font-size:8px;fill:#475569">Windows</text>
+<circle cx="905" cy="669" r="5" fill="#7c3aed"/><text x="915" y="672" style="font-size:8px;fill:#475569">Telegram</text>
+<circle cx="965" cy="669" r="5" fill="#1e293b"/><text x="975" y="672" style="font-size:8px;fill:#475569">GitHub</text>
+
+</svg>
