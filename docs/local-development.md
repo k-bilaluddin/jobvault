@@ -64,18 +64,3 @@ cd backend/src/JobVault.API && dotnet test JobVault.sln
 cd frontend/jobvault-ui && npm test
 ```
 
-## CI/CD
-
-```
-Push to master
-      ↓
-① Architecture tests
-      ↓
-② Build & push API image  ──┐
-                             ├── parallel → GHCR
-③ Build & push Worker image ┘
-      ↓
-④ Self-hosted runner: docker compose pull && up -d
-      ↓
-⑤ Telegram deployment notification
-```
