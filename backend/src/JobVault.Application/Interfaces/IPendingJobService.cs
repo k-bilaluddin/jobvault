@@ -4,7 +4,7 @@ namespace JobVault.Application.Interfaces;
 
 public interface IPendingJobService
 {
-    Task<PendingJob> CreateAsync(string url, CancellationToken ct = default);
+    Task<PendingJob> CreateAsync(string url, string? prompt = null, CancellationToken ct = default);
     Task<IReadOnlyList<PendingJob>> GetAllAsync(string? status = null, CancellationToken ct = default);
     Task<IReadOnlyList<PendingJob>> GetPendingAsync(CancellationToken ct = default);
     Task<bool> UpdateAsync(string id, string? url, string? status, CancellationToken ct = default);

@@ -27,13 +27,14 @@ public class PendingJobRepository : IPendingJobRepository
         _collection = database.GetCollection<PendingJobDocument>(collectionName);
     }
 
-    public async Task<PendingJob> CreateAsync(string url, CancellationToken ct = default)
+    public async Task<PendingJob> CreateAsync(string url, string? prompt = null, CancellationToken ct = default)
     {
         var doc = new PendingJobDocument
         {
             Id = ObjectId.GenerateNewId().ToString(),
             Url = url,
             Status = "pending",
+            Prompt = prompt,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
         };
@@ -105,6 +106,7 @@ public class PendingJobRepository : IPendingJobRepository
         Id = doc.Id,
         Url = doc.Url,
         Status = doc.Status,
+        Prompt = doc.Prompt,
         CreatedAt = doc.CreatedAt,
         UpdatedAt = doc.UpdatedAt,
     };

@@ -6,6 +6,8 @@ import { useJobQueue } from '@/composables/useJobQueue'
 const { jobs, loading, filterStatus, counts, addJob, updateJob, deleteJob, cleanup } = useJobQueue()
 
 const newUrl = ref('')
+const newPrompt = ref('')
+const showPrompt = ref(false)
 const adding = ref(false)
 const editingId = ref<string | null>(null)
 const editUrl = ref('')
@@ -23,8 +25,10 @@ async function handleAdd() {
   if (!url) return
   adding.value = true
   try {
-    await addJob(url)
+    await addJob(url, newPrompt.value.trim() || undefined)
     newUrl.value = ''
+    newPrompt.value = ''
+    showPrompt.value = false
     showToast('Job URL queued')
   } catch {
     showToast('Failed to add URL', true)
@@ -78,13 +82,25 @@ function formatDate(iso: string) {
     <div class="flex-1 overflow-y-auto p-6 space-y-6">
 
       <!-- Add URL -->
-      <form @submit.prevent="handleAdd" class="flex gap-3">
-        <input v-model="newUrl" type="url" placeholder="Paste job URL..."
-          class="flex-1 bg-surface-overlay border border-border text-text-primary text-sm rounded-lg px-4 py-2.5 outline-none focus:border-accent transition-colors placeholder:text-text-muted" />
-        <button type="submit" :disabled="adding || !newUrl.trim()"
-          class="px-5 py-2.5 bg-accent text-white text-sm font-medium rounded-lg hover:bg-accent/90 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
-          {{ adding ? 'Adding...' : 'Add to Queue' }}
-        </button>
+      <form @submit.prevent="handleAdd" class="space-y-2">
+        <div class="flex gap-3">
+          <input v-model="newUrl" type="url" placeholder="Paste job URL..."
+            class="flex-1 bg-surface-overlay border border-border text-text-primary text-sm rounded-lg px-4 py-2.5 outline-none focus:border-accent transition-colors placeholder:text-text-muted" />
+          <button type="button" @click="showPrompt = !showPrompt"
+            class="px-3 py-2.5 text-xs font-medium rounded-lg border transition-colors"
+            :class="showPrompt ? 'bg-orange-500/15 text-orange-400 border-orange-500/30' : 'text-text-muted border-border hover:text-text-secondary hover:border-accent/30'"
+            title="Add guidance prompt for Claude agent">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/></svg>
+          </button>
+          <button type="submit" :disabled="adding || !newUrl.trim()"
+            class="px-5 py-2.5 bg-accent text-white text-sm font-medium rounded-lg hover:bg-accent/90 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+            {{ adding ? 'Adding...' : 'Add to Queue' }}
+          </button>
+        </div>
+        <div v-if="showPrompt">
+          <textarea v-model="newPrompt" rows="2" placeholder="Optional guidance for Claude — e.g. &quot;Emphasize cloud migration experience&quot;"
+            class="w-full bg-surface-overlay border border-border rounded-lg px-4 py-2 text-sm text-text-primary placeholder:text-text-muted outline-none focus:border-orange-400/50 resize-none transition-colors" />
+        </div>
       </form>
 
       <!-- Filter tabs + cleanup -->

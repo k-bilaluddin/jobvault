@@ -15,6 +15,7 @@ public class ApplicationQueryService : IApplicationQueryService
     private readonly IVaultFileService _vaultFileService;
     private readonly IMarkdownRenderService _markdownRenderService;
     private readonly IRabbitMqPublisher _publisher;
+    private readonly IPendingJobService _pendingJobService;
     private readonly ILogger<ApplicationQueryService> _logger;
 
     public ApplicationQueryService(
@@ -22,12 +23,14 @@ public class ApplicationQueryService : IApplicationQueryService
         IVaultFileService vaultFileService,
         IMarkdownRenderService markdownRenderService,
         IRabbitMqPublisher publisher,
+        IPendingJobService pendingJobService,
         ILogger<ApplicationQueryService> logger)
     {
         _repository = repository;
         _vaultFileService = vaultFileService;
         _markdownRenderService = markdownRenderService;
         _publisher = publisher;
+        _pendingJobService = pendingJobService;
         _logger = logger;
     }
 
@@ -39,7 +42,7 @@ public class ApplicationQueryService : IApplicationQueryService
             .Where(a => !a.IsHistorical)
             .Select(a =>
             {
-                var stage = a.Status is "Processing" or "Failed" or "Regenerating"
+                var stage = a.Status is "Processing" or "Failed" or "Regenerating" or "Queued"
                     ? a.Status
                     : string.IsNullOrEmpty(a.Stage) ? "Ready to Apply" : a.Stage;
 
@@ -99,7 +102,7 @@ public class ApplicationQueryService : IApplicationQueryService
 
         var items = result.Items.Select(a =>
         {
-            var effectiveStage = a.Status is "Processing" or "Failed" or "Regenerating"
+            var effectiveStage = a.Status is "Processing" or "Failed" or "Regenerating" or "Queued"
                 ? a.Status
                 : string.IsNullOrEmpty(a.Stage) ? "Ready to Apply" : a.Stage;
 
@@ -471,5 +474,18 @@ public class ApplicationQueryService : IApplicationQueryService
         await _publisher.PublishJobApplicationEventAsync(jobEvent);
 
         return app.Id;
+    }
+
+    public async Task<string?> ReQueueAsync(string companyName, string? prompt, CancellationToken cancellationToken = default)
+    {
+        var app = await _repository.GetByCompanyNameAsync(companyName, cancellationToken);
+        if (app == null) return null;
+        if (string.IsNullOrWhiteSpace(app.JobUrl)) return null;
+
+        var job = await _pendingJobService.CreateAsync(app.JobUrl, prompt, cancellationToken);
+
+        await _repository.UpdateStatusAsync(app.Id!, "Queued", cancellationToken: cancellationToken);
+
+        return job.Id;
     }
 }

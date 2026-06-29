@@ -15,6 +15,9 @@ public class PendingJobDocument
     [BsonElement("status")]
     public string Status { get; set; } = "pending";
 
+    [BsonElement("prompt")]
+    public string? Prompt { get; set; }
+
     [BsonElement("createdAt")]
     public DateTime CreatedAt { get; set; }
 
