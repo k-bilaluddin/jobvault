@@ -47,6 +47,7 @@ const userMessages: Record<string, string> = {
   'application.note_add_failed': 'Failed to add note.',
   'application.note_update_failed': 'Failed to update note.',
   'application.note_del_failed': 'Failed to delete note.',
+  'application.no_job_url': 'This application has no job URL to re-queue.',
   'vault.no_files_uploaded': 'Please upload at least one file.',
   'vault.empty_files': 'All uploaded files are empty.',
   'queue.url_required': 'Job URL is required.',

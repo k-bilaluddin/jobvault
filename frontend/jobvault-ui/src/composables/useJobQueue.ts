@@ -25,8 +25,8 @@ export function useJobQueue() {
     }
   }
 
-  async function addJob(url: string) {
-    const { data } = await api.post<PendingJob>('/api/ingest/queue', { url })
+  async function addJob(url: string, prompt?: string) {
+    const { data } = await api.post<PendingJob>('/api/ingest/queue', { url, prompt: prompt || null })
     jobs.value.unshift(data)
     return data
   }

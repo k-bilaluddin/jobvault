@@ -7,6 +7,8 @@ public record UpdateInterviewRequest(string? Date, string? Type, string? Notes, 
 public record AddNoteRequest(string Category, string Content, bool Pinned = false, string? Stage = null);
 public record UpdateNoteRequest(string? Category, string? Content, bool? Pinned);
 
+public record ReQueueRequest(string? Prompt);
+
 public class UpdateContentRequest
 {
     public string? Headline { get; set; }

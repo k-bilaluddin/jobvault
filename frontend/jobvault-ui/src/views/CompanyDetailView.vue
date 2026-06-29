@@ -49,6 +49,37 @@ async function updateStage(newStage: ApplicationStage) {
   }
 }
 
+// ── Re-analyze (re-queue for Claude agent) ──────────────────
+const showReAnalyze = ref(false)
+const reAnalyzePrompt = ref('')
+const reAnalyzeLoading = ref(false)
+const reAnalyzeSuccess = ref(false)
+const reAnalyzeError = ref('')
+
+async function submitReAnalyze() {
+  reAnalyzeLoading.value = true
+  reAnalyzeError.value = ''
+  try {
+    await api.post(`/api/applications/${encodeURIComponent(companyName.value)}/re-queue`, {
+      prompt: reAnalyzePrompt.value.trim() || null
+    })
+    reAnalyzeSuccess.value = true
+    if (company.value) {
+      company.value.status = 'Queued'
+      company.value.stage = 'Queued' as ApplicationStage
+    }
+    setTimeout(() => {
+      showReAnalyze.value = false
+      reAnalyzeSuccess.value = false
+      reAnalyzePrompt.value = ''
+    }, 2000)
+  } catch {
+    reAnalyzeError.value = 'Failed to queue for re-analysis'
+  } finally {
+    reAnalyzeLoading.value = false
+  }
+}
+
 // ── Compatibility report HTML (from Flask) ────────────────────
 const reportHtml   = ref('')
 const reportLoading = ref(false)
@@ -462,7 +493,40 @@ const OUTCOME_STYLE: Record<string, { selected: string; unselected: string }> = 
           Job Posting
         </a>
         <span v-else class="text-xs text-text-muted">No job URL</span>
+
+        <button v-if="company.job_url" @click="showReAnalyze = !showReAnalyze"
+          class="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border transition-colors"
+          :class="showReAnalyze ? 'bg-orange-500/20 text-orange-400 border-orange-500/40' : 'bg-orange-500/10 text-orange-400 border-orange-500/20 hover:bg-orange-500/20'">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          Re-analyze
+        </button>
       </div>
+
+      <!-- Re-analyze prompt panel -->
+      <Transition enter-active-class="transition-all duration-150 ease-out" enter-from-class="opacity-0 -translate-y-2" enter-to-class="opacity-100 translate-y-0"
+        leave-active-class="transition-all duration-100 ease-in" leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 -translate-y-2">
+        <div v-if="showReAnalyze" class="px-6 py-3 border-b border-border bg-orange-500/5 flex-shrink-0">
+          <div class="flex items-start gap-3">
+            <div class="flex-1">
+              <p class="text-xs font-semibold text-orange-400 mb-1.5">Re-analyze with Claude Agent</p>
+              <textarea v-model="reAnalyzePrompt" rows="2" placeholder="Optional guidance — e.g. &quot;Emphasize cloud migration experience&quot; or &quot;Cover letter should be more formal&quot;"
+                class="w-full bg-surface-raised border border-border rounded-lg px-3 py-2 text-sm text-text-primary placeholder:text-text-muted outline-none focus:border-orange-400/50 resize-none transition-colors"/>
+            </div>
+            <div class="flex flex-col gap-1.5 pt-5">
+              <button @click="submitReAnalyze" :disabled="reAnalyzeLoading || reAnalyzeSuccess"
+                class="px-4 py-2 text-xs font-medium rounded-lg transition-colors"
+                :class="reAnalyzeSuccess ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-orange-500/20 text-orange-400 border border-orange-500/30 hover:bg-orange-500/30 disabled:opacity-50'">
+                {{ reAnalyzeSuccess ? 'Queued!' : reAnalyzeLoading ? 'Queuing...' : 'Queue' }}
+              </button>
+              <button @click="showReAnalyze = false" class="px-4 py-1.5 text-xs text-text-muted hover:text-text-primary transition-colors">
+                Cancel
+              </button>
+            </div>
+          </div>
+          <p v-if="reAnalyzeError" class="text-xs text-red-400 mt-1">{{ reAnalyzeError }}</p>
+          <p class="text-[10px] text-text-muted mt-1">The Claude agent routine will pick this up on its next hourly run and re-generate everything from scratch.</p>
+        </div>
+      </Transition>
 
       <!-- Tabs -->
       <div class="px-6 border-b border-border flex gap-0 overflow-x-auto flex-shrink-0">

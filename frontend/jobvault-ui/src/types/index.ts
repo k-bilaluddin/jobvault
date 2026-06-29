@@ -2,6 +2,7 @@
 export type ApplicationStage =
   | 'Processing'     // Transient — async ingestion accepted, Worker not yet done
   | 'Regenerating'   // Documents being regenerated after content edit
+  | 'Queued'         // Queued for re-analysis by Claude agent
   | 'Failed'         // Worker encountered an unrecoverable error
   | 'Not Interested'
   | 'Archived'
@@ -13,7 +14,7 @@ export type ApplicationStage =
   | 'Rejected'
 
 export const PIPELINE_STAGES: ApplicationStage[] = [
-  'Processing', 'Regenerating', 'Failed',
+  'Processing', 'Regenerating', 'Queued', 'Failed',
   'Not Interested', 'Archived', 'Researching',
   'Ready to Apply', 'Applied', 'Interview', 'Offer', 'Rejected',
 ]
