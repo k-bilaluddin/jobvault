@@ -6,6 +6,7 @@ namespace JobVault.Application.Interfaces;
 public interface IApplicationQueryService
 {
     Task<IReadOnlyList<ApplicationResponse>> GetAllAsync(CancellationToken cancellationToken = default);
+    Task<PagedResponse<ApplicationResponse>> GetPagedAsync(int page, int pageSize, string? search, string? stage, string sortBy, string sortDirection, CancellationToken cancellationToken = default);
     Task<string?> GetReportHtmlAsync(string companyName, CancellationToken cancellationToken = default);
     Task<string?> GetNotesHtmlAsync(string companyName, CancellationToken cancellationToken = default);
     Task<SkillsGapResponse> GetSkillsGapAsync(CancellationToken cancellationToken = default);
