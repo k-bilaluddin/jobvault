@@ -6,6 +6,7 @@ describe('types', () => {
     it('contains all expected stages', () => {
       expect(PIPELINE_STAGES).toContain('Processing')
       expect(PIPELINE_STAGES).toContain('Regenerating')
+      expect(PIPELINE_STAGES).toContain('Queued')
       expect(PIPELINE_STAGES).toContain('Failed')
       expect(PIPELINE_STAGES).toContain('Not Interested')
       expect(PIPELINE_STAGES).toContain('Archived')
@@ -18,7 +19,7 @@ describe('types', () => {
     })
 
     it('has exactly 11 stages', () => {
-      expect(PIPELINE_STAGES).toHaveLength(11)
+      expect(PIPELINE_STAGES).toHaveLength(12)
     })
 
     it('starts with Processing', () => {
