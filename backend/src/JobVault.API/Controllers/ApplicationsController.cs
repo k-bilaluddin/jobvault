@@ -27,9 +27,25 @@ public class ApplicationsController : ApiControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
+    public async Task<IActionResult> GetAll(
+        [FromQuery] int? page = null,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? search = null,
+        [FromQuery] string? stage = null,
+        [FromQuery] string sortBy = "synced_at",
+        [FromQuery] string sortDirection = "desc",
+        CancellationToken cancellationToken = default)
     {
-        var result = await _queryService.GetAllAsync(cancellationToken);
+        if (page == null)
+        {
+            var all = await _queryService.GetAllAsync(cancellationToken);
+            return Ok(all);
+        }
+
+        var p = page.Value < 1 ? 1 : page.Value;
+        if (pageSize is < 1 or > 50) pageSize = 10;
+
+        var result = await _queryService.GetPagedAsync(p, pageSize, search, stage, sortBy, sortDirection, cancellationToken);
         return Ok(result);
     }
 

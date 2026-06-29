@@ -4,6 +4,11 @@ using JobVault.Domain.ValueObjects;
 
 namespace JobVault.Application.Interfaces;
 
+public record ApplicationPageResult(
+    IReadOnlyList<JobApplication> Items,
+    int TotalCount,
+    Dictionary<string, int> StageCounts);
+
 /// <summary>
 /// Repository interface for job application persistence operations.
 /// </summary>
@@ -30,6 +35,15 @@ public interface IJobApplicationRepository
         CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<JobApplication>> GetAllApplicationsAsync(CancellationToken cancellationToken = default);
+
+    Task<ApplicationPageResult> GetPagedApplicationsAsync(
+        int page,
+        int pageSize,
+        string? search = null,
+        string? stage = null,
+        string sortBy = "synced_at",
+        string sortDirection = "desc",
+        CancellationToken cancellationToken = default);
 
     Task<JobApplication?> GetByCompanyNameAsync(string companyName, CancellationToken cancellationToken = default);
 

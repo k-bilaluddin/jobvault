@@ -164,6 +164,128 @@ public class MongoDbService : IJobApplicationRepository
         }
     }
 
+    public async Task<ApplicationPageResult> GetPagedApplicationsAsync(
+        int page,
+        int pageSize,
+        string? search = null,
+        string? stage = null,
+        string sortBy = "synced_at",
+        string sortDirection = "desc",
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var builder = Builders<JobApplicationDocument>.Filter;
+            var filter = builder.Ne(d => d.IsHistorical, true);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var regex = new BsonRegularExpression(search, "i");
+                filter &= builder.Or(
+                    builder.Regex(d => d.CompanyName, regex),
+                    builder.Regex(d => d.JobTitle, regex));
+            }
+
+            if (!string.IsNullOrWhiteSpace(stage) && stage != "All")
+            {
+                var statusStages = new[] { "Processing", "Failed", "Regenerating" };
+                if (statusStages.Contains(stage))
+                {
+                    filter &= builder.Eq(d => d.Status, stage);
+                }
+                else if (stage == "Ready to Apply")
+                {
+                    filter &= builder.Or(
+                        builder.Eq(d => d.Stage, stage),
+                        builder.Eq(d => d.Stage, ""),
+                        builder.Eq(d => d.Stage, null));
+                    filter &= builder.Nin(d => d.Status, statusStages);
+                }
+                else
+                {
+                    filter &= builder.Eq(d => d.Stage, stage);
+                    filter &= builder.Nin(d => d.Status, statusStages);
+                }
+            }
+
+            // Stage counts — run on non-historical filter only (before stage filter)
+            var baseFilter = builder.Ne(d => d.IsHistorical, true);
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var regex = new BsonRegularExpression(search, "i");
+                baseFilter &= builder.Or(
+                    builder.Regex(d => d.CompanyName, regex),
+                    builder.Regex(d => d.JobTitle, regex));
+            }
+
+            var allDocs = await _collection.Find(baseFilter)
+                .Project(Builders<JobApplicationDocument>.Projection.Include(d => d.Stage).Include(d => d.Status))
+                .ToListAsync(cancellationToken);
+
+            var stageCounts = new Dictionary<string, int>();
+            var totalAll = 0;
+            foreach (var doc in allDocs)
+            {
+                totalAll++;
+                var status = doc.GetValue("status", "").AsString;
+                var docStage = doc.GetValue("stage", "").AsString;
+                var effectiveStage = status is "Processing" or "Failed" or "Regenerating"
+                    ? status
+                    : string.IsNullOrEmpty(docStage) ? "Ready to Apply" : docStage;
+                stageCounts[effectiveStage] = stageCounts.GetValueOrDefault(effectiveStage) + 1;
+            }
+            stageCounts["All"] = totalAll;
+
+            var totalCount = await _collection.CountDocumentsAsync(filter, cancellationToken: cancellationToken);
+
+            var sort = BuildSort(sortBy, sortDirection);
+
+            var docs2 = await _collection
+                .Find(filter)
+                .Sort(sort)
+                .Skip((page - 1) * pageSize)
+                .Limit(pageSize)
+                .ToListAsync(cancellationToken);
+
+            return new ApplicationPageResult(
+                docs2.Select(JobApplicationMapper.ToDomain).ToList(),
+                (int)totalCount,
+                stageCounts);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching paged job applications");
+            return new ApplicationPageResult([], 0, new Dictionary<string, int>());
+        }
+    }
+
+    private static SortDefinition<JobApplicationDocument> BuildSort(string sortBy, string direction)
+    {
+        var isAsc = direction.Equals("asc", StringComparison.OrdinalIgnoreCase);
+
+        return sortBy.ToLowerInvariant() switch
+        {
+            "name" => isAsc
+                ? Builders<JobApplicationDocument>.Sort.Ascending(d => d.CompanyName)
+                : Builders<JobApplicationDocument>.Sort.Descending(d => d.CompanyName),
+            "match_pct" => isAsc
+                ? Builders<JobApplicationDocument>.Sort.Ascending(d => d.MatchScore)
+                : Builders<JobApplicationDocument>.Sort.Descending(d => d.MatchScore),
+            "applied_date" => isAsc
+                ? Builders<JobApplicationDocument>.Sort.Ascending(d => d.AppliedDate)
+                : Builders<JobApplicationDocument>.Sort.Descending(d => d.AppliedDate),
+            "stage" => isAsc
+                ? Builders<JobApplicationDocument>.Sort.Ascending(d => d.Stage)
+                : Builders<JobApplicationDocument>.Sort.Descending(d => d.Stage),
+            "salary" => isAsc
+                ? Builders<JobApplicationDocument>.Sort.Ascending("salary.advertised")
+                : Builders<JobApplicationDocument>.Sort.Descending("salary.advertised"),
+            _ => isAsc
+                ? Builders<JobApplicationDocument>.Sort.Ascending(d => d.UpdatedAt)
+                : Builders<JobApplicationDocument>.Sort.Descending(d => d.UpdatedAt),
+        };
+    }
+
     public async Task<JobApplication?> GetByCompanyNameAsync(string companyName, CancellationToken cancellationToken = default)
     {
         try

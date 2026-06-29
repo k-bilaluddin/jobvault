@@ -1,69 +1,103 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import CompanyAvatar from '@/components/common/CompanyAvatar.vue'
 import RecommendBadge from '@/components/common/RecommendBadge.vue'
-import { useCompanies } from '@/composables/useCompanies'
 import { STAGE_COLORS, matchPctColor, matchPctBar } from '@/utils/score'
 import { PIPELINE_STAGES } from '@/types'
 import type { ApplicationStage, Company } from '@/types'
 import { api } from '@/api'
 
 const router = useRouter()
-const { filtered, loading, search, filterStage, companies } = useCompanies()
 
-// ── Tabs ─────────────────────────────────────────────────────
-const STAGE_TABS = ['All', ...PIPELINE_STAGES] as const
-const stageCounts = computed(() => {
-  const m: Record<string, number> = { All: companies.value.length }
-  for (const s of PIPELINE_STAGES) m[s] = companies.value.filter(c => c.stage === s).length
-  return m
-})
+// ── Pagination state ────────────────────────────────────────
+const companies = ref<Company[]>([])
+const loading = ref(false)
+const page = ref(1)
+const pageSize = 10
+const totalCount = ref(0)
+const totalPages = ref(0)
+const stageCounts = ref<Record<string, number>>({})
 
-// ── Sort ─────────────────────────────────────────────────────
+// ── Filters & sort ──────────────────────────────────────────
+const search = ref('')
+const filterStage = ref<ApplicationStage | 'All'>('All')
+
 type SortKey = 'name' | 'synced_at' | 'applied_date' | 'stage' | 'match_pct' | 'salary'
 const sortKey = ref<SortKey>('synced_at')
 const sortDir = ref<'asc' | 'desc'>('desc')
 
+// ── Fetch ───────────────────────────────────────────────────
+let searchDebounce: ReturnType<typeof setTimeout> | null = null
+
+async function fetchPage() {
+  loading.value = true
+  try {
+    const params: Record<string, string | number> = {
+      page: page.value,
+      pageSize,
+      sortBy: sortKey.value,
+      sortDirection: sortDir.value,
+    }
+    if (search.value.trim()) params.search = search.value.trim()
+    if (filterStage.value !== 'All') params.stage = filterStage.value
+
+    const { data } = await api.get<{
+      items: Company[]
+      totalCount: number
+      totalPages: number
+      page: number
+      pageSize: number
+      stageCounts: Record<string, number>
+    }>('/api/applications', { params })
+
+    companies.value = data.items
+    totalCount.value = data.totalCount
+    totalPages.value = data.totalPages
+    stageCounts.value = data.stageCounts
+  } catch {
+    companies.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(fetchPage)
+
+watch([page, sortKey, sortDir, filterStage], fetchPage)
+
+watch(search, () => {
+  if (searchDebounce) clearTimeout(searchDebounce)
+  searchDebounce = setTimeout(() => {
+    page.value = 1
+    fetchPage()
+  }, 300)
+})
+
+watch(filterStage, () => { page.value = 1 })
+
+// ── Tabs ────────────────────────────────────────────────────
+const STAGE_TABS = ['All', ...PIPELINE_STAGES] as const
+
+// ── Sort ────────────────────────────────────────────────────
 function toggleSort(key: SortKey) {
   if (sortKey.value === key) { sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc' }
   else { sortKey.value = key; sortDir.value = 'desc' }
+  page.value = 1
 }
-
-function salaryNum(c: Company): number {
-  const v = c.salary?.advertised
-  if (!v) return 0
-  if (v.includes('-')) return parseInt(v.split('-')[1]) || 0
-  return parseInt(v) || 0
-}
-
-const sorted = computed(() => {
-  // Attach original index so ties preserve API insertion order (newest last → reverse index = newest first)
-  const indexed = filtered.value.map((c, i) => ({ c, i }))
-  return indexed.sort((x, y) => {
-    const a = x.c, b = y.c
-    let va: string | number = ''
-    let vb: string | number = ''
-    if (sortKey.value === 'name')         { va = a.name.toLowerCase();   vb = b.name.toLowerCase()   }
-    if (sortKey.value === 'synced_at')    { va = a.synced_at || '';      vb = b.synced_at || ''      }
-    if (sortKey.value === 'applied_date') { va = a.applied_date || '';   vb = b.applied_date || ''   }
-    if (sortKey.value === 'stage')        { va = a.stage;                vb = b.stage                }
-    if (sortKey.value === 'match_pct')    { va = a.match_pct ?? -1;      vb = b.match_pct ?? -1      }
-    if (sortKey.value === 'salary')       { va = salaryNum(a);           vb = salaryNum(b)           }
-    if (va < vb) return sortDir.value === 'asc' ? -1 : 1
-    if (va > vb) return sortDir.value === 'asc' ? 1 : -1
-    // Tiebreaker: higher index (later in API response) comes first
-    return y.i - x.i
-  }).map(x => x.c)
-})
 
 function sortIcon(key: SortKey) {
   if (sortKey.value !== key) return '↕'
   return sortDir.value === 'asc' ? '↑' : '↓'
 }
 
-// ── Salary ────────────────────────────────────────────────────
+// ── Pagination controls ─────────────────────────────────────
+function goToPage(p: number) {
+  if (p >= 1 && p <= totalPages.value) page.value = p
+}
+
+// ── Salary ───────────────────────────────────────────────────
 function fmtSalary(c: Company): string {
   const v = c.salary?.advertised
   if (!v) return ''
@@ -75,19 +109,19 @@ function fmtSalary(c: Company): string {
   return n >= 1000 ? `€${Math.round(n/1000)}k` : ''
 }
 
-// ── Role ─────────────────────────────────────────────────────
+// ── Role ────────────────────────────────────────────────────
 function roleStr(role: string | string[] | undefined): string {
   if (!role) return ''
   return Array.isArray(role) ? (role[0] ?? '') : role
 }
 
-// ── Follow-up ────────────────────────────────────────────────
+// ── Follow-up ───────────────────────────────────────────────
 const today = new Date().toISOString().split('T')[0]
 function isFollowUpDue(c: Company): boolean {
   return !!c.follow_up_date && c.follow_up_date <= today
 }
 
-// ── Row actions ───────────────────────────────────────────────
+// ── Row actions ──────────────────────────────────────────────
 const activeActionRow = ref<string | null>(null)
 const stageUpdating   = ref<string | null>(null)
 
@@ -104,7 +138,7 @@ async function quickStage(c: Company, stage: ApplicationStage, e: MouseEvent) {
   activeActionRow.value = null
   try {
     await api.post(`/api/applications/${encodeURIComponent(c.name)}/stage`, { stage })
-    c.stage = stage
+    await fetchPage()
   } finally {
     stageUpdating.value = null
   }
@@ -133,10 +167,10 @@ function copyEmail(email: string, e: MouseEvent) {
   activeActionRow.value = null
 }
 
-// ── Export CSV ────────────────────────────────────────────────
+// ── Export CSV ───────────────────────────────────────────────
 function exportCsv() {
   const header = ['Company', 'Role', 'Stage', 'Applied', 'Match%', 'Salary', 'Verdict'].join(',')
-  const rows = sorted.value.map(c =>
+  const rows = companies.value.map(c =>
     [c.name, roleStr(c.role), c.stage, c.applied_date, c.match_pct ?? '', fmtSalary(c), c.recommend]
       .map(v => '"' + String(v ?? '').replace(/"/g, '""') + '"').join(',')
   )
@@ -193,7 +227,7 @@ const QUICK_STAGES: ApplicationStage[] = ['Ready to Apply', 'Applied', 'Intervie
           <div v-for="i in 8" :key="i" class="h-14 bg-surface-raised border border-border rounded-lg"/>
         </div>
 
-        <div v-else-if="sorted.length === 0" class="flex flex-col items-center justify-center py-20 text-center">
+        <div v-else-if="companies.length === 0" class="flex flex-col items-center justify-center py-20 text-center">
           <p class="text-4xl mb-3">🔍</p>
           <p class="text-text-secondary font-medium">No companies found</p>
         </div>
@@ -225,7 +259,7 @@ const QUICK_STAGES: ApplicationStage[] = ['Ready to Apply', 'Applied', 'Intervie
           </div>
 
           <!-- Rows -->
-          <div v-for="c in sorted" :key="c.name" class="relative">
+          <div v-for="c in companies" :key="c.name" class="relative">
             <!-- Follow-up left border indicator -->
             <div v-if="isFollowUpDue(c)" class="absolute left-0 top-1 bottom-1 w-0.5 rounded-full bg-amber-400 z-10"/>
 
@@ -336,7 +370,40 @@ const QUICK_STAGES: ApplicationStage[] = ['Ready to Apply', 'Applied', 'Intervie
           </div>
         </div>
 
-        <p class="text-xs text-text-muted mt-4 px-3">{{ sorted.length }} of {{ companies.length }} companies</p>
+        <!-- Pagination -->
+        <div v-if="totalPages > 1" class="flex items-center justify-between mt-4 px-3">
+          <p class="text-xs text-text-muted">
+            {{ (page - 1) * pageSize + 1 }}–{{ Math.min(page * pageSize, totalCount) }} of {{ totalCount }} companies
+          </p>
+          <div class="flex items-center gap-1">
+            <button @click="goToPage(1)" :disabled="page === 1"
+              class="px-2 py-1 text-xs rounded-md border border-border text-text-muted hover:text-text-primary hover:border-accent/50 disabled:opacity-30 disabled:pointer-events-none transition-colors">
+              ««
+            </button>
+            <button @click="goToPage(page - 1)" :disabled="page === 1"
+              class="px-2 py-1 text-xs rounded-md border border-border text-text-muted hover:text-text-primary hover:border-accent/50 disabled:opacity-30 disabled:pointer-events-none transition-colors">
+              «
+            </button>
+            <template v-for="p in totalPages" :key="p">
+              <button v-if="p === 1 || p === totalPages || (p >= page - 2 && p <= page + 2)"
+                @click="goToPage(p)"
+                class="px-2.5 py-1 text-xs rounded-md border transition-colors"
+                :class="p === page ? 'border-accent bg-accent/10 text-accent font-medium' : 'border-border text-text-muted hover:text-text-primary hover:border-accent/50'">
+                {{ p }}
+              </button>
+              <span v-else-if="p === page - 3 || p === page + 3" class="text-xs text-text-muted px-1">...</span>
+            </template>
+            <button @click="goToPage(page + 1)" :disabled="page === totalPages"
+              class="px-2 py-1 text-xs rounded-md border border-border text-text-muted hover:text-text-primary hover:border-accent/50 disabled:opacity-30 disabled:pointer-events-none transition-colors">
+              »
+            </button>
+            <button @click="goToPage(totalPages)" :disabled="page === totalPages"
+              class="px-2 py-1 text-xs rounded-md border border-border text-text-muted hover:text-text-primary hover:border-accent/50 disabled:opacity-30 disabled:pointer-events-none transition-colors">
+              »»
+            </button>
+          </div>
+        </div>
+        <p v-else class="text-xs text-text-muted mt-4 px-3">{{ totalCount }} companies</p>
       </div>
     </div>
   </div>

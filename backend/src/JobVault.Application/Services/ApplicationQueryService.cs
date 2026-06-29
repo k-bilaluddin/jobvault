@@ -90,6 +90,74 @@ public class ApplicationQueryService : IApplicationQueryService
             .ToList();
     }
 
+    public async Task<PagedResponse<ApplicationResponse>> GetPagedAsync(
+        int page, int pageSize, string? search, string? stage,
+        string sortBy, string sortDirection, CancellationToken cancellationToken = default)
+    {
+        var result = await _repository.GetPagedApplicationsAsync(
+            page, pageSize, search, stage, sortBy, sortDirection, cancellationToken);
+
+        var items = result.Items.Select(a =>
+        {
+            var effectiveStage = a.Status is "Processing" or "Failed" or "Regenerating"
+                ? a.Status
+                : string.IsNullOrEmpty(a.Stage) ? "Ready to Apply" : a.Stage;
+
+            var (hasCvPdf, hasLetterPdf, hasReport, hasNotes) = _vaultFileService.CheckFiles(a.CompanyName);
+
+            return new ApplicationResponse
+            {
+                Name = a.CompanyName,
+                Synced_at = a.UpdatedAt.ToString("o"),
+                Has_report = !string.IsNullOrEmpty(a.CompatibilityReportMarkdown) || hasReport,
+                Has_notes = !string.IsNullOrEmpty(a.TailoringNotesMarkdown) || hasNotes,
+                Has_cv_pdf = !string.IsNullOrEmpty(a.CommitUrl) || hasCvPdf,
+                Has_letter_pdf = !string.IsNullOrEmpty(a.CommitUrl) || hasLetterPdf,
+                Match_pct = a.MatchScore > 0 ? a.MatchScore : null,
+                Recommend = a.Recommendation,
+                Job_url = a.JobUrl,
+                Role = a.JobTitle,
+                Applied = a.Applied,
+                Applied_date = a.AppliedDate?.ToString("yyyy-MM-dd") ?? "",
+                Stage = effectiveStage,
+                Personal_notes = a.PersonalNotes,
+                Interviews = a.Interviews.Select(i => new InterviewResponse
+                {
+                    Id = i.Id, Date = i.Date, Type = i.Type, Notes = i.Notes, Outcome = i.Outcome,
+                }).ToList(),
+                Notes = a.Notes.Select(n => new NoteResponse
+                {
+                    Id = n.Id, Category = n.Category, Content = n.Content,
+                    Stage = n.Stage, Pinned = n.Pinned,
+                    Created_at = n.CreatedAt.ToString("o"),
+                    Updated_at = n.UpdatedAt.ToString("o"),
+                }).ToList(),
+                Salary = new SalaryResponse
+                {
+                    Advertised = a.Salary.Advertised, Target = a.Salary.Target,
+                    Discussed = a.Salary.Discussed, Offered = a.Salary.Offered,
+                },
+                Recruiter = new RecruiterResponse
+                {
+                    Name = a.Recruiter.Name, Email = a.Recruiter.Email, Linkedin = a.Recruiter.LinkedIn,
+                },
+                Follow_up_date = a.FollowUpDate?.ToString("yyyy-MM-dd") ?? "",
+                Source = a.Source,
+                Status = a.Status,
+                Has_content = !string.IsNullOrEmpty(a.Headline),
+            };
+        }).ToList();
+
+        return new PagedResponse<ApplicationResponse>
+        {
+            Items = items,
+            TotalCount = result.TotalCount,
+            Page = page,
+            PageSize = pageSize,
+            StageCounts = result.StageCounts,
+        };
+    }
+
     public async Task<string?> GetReportHtmlAsync(string companyName, CancellationToken cancellationToken = default)
     {
         var app = await _repository.GetByCompanyNameAsync(companyName, cancellationToken);
