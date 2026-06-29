@@ -22,6 +22,7 @@ public static class ErrorCatalog
         ["application.note_add_failed"]     = new(404, "Note Add Failed",           "Failed to add note for '{0}'"),
         ["application.note_update_failed"]  = new(404, "Note Update Failed",        "Failed to update note for '{0}'"),
         ["application.note_del_failed"]     = new(404, "Note Delete Failed",        "Failed to delete note for '{0}'"),
+        ["application.no_job_url"]          = new(400, "No Job URL",               "Application '{0}' has no job URL to re-queue"),
 
         // Ingest
         ["ingest.validation_failed"]        = new(400, "Validation Failed",         "Required field '{0}' is missing"),

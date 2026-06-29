@@ -13,17 +13,20 @@ public class ApplicationsController : ApiControllerBase
     private readonly IVaultFileService _vaultFileService;
     private readonly ITokenService _tokenService;
     private readonly IGitSyncService _gitSyncService;
+    private readonly IPendingJobService _pendingJobService;
 
     public ApplicationsController(
         IApplicationQueryService queryService,
         IVaultFileService vaultFileService,
         ITokenService tokenService,
-        IGitSyncService gitSyncService)
+        IGitSyncService gitSyncService,
+        IPendingJobService pendingJobService)
     {
         _queryService = queryService;
         _vaultFileService = vaultFileService;
         _tokenService = tokenService;
         _gitSyncService = gitSyncService;
+        _pendingJobService = pendingJobService;
     }
 
     [HttpGet]
@@ -176,6 +179,15 @@ public class ApplicationsController : ApiControllerBase
         var applicationId = await _queryService.RegenerateAsync(name, request, cancellationToken);
         if (applicationId == null) return ErrorResponse("application.not_found", name);
         return Accepted(new { ok = true, applicationId });
+    }
+
+    [HttpPost("{name}/re-queue")]
+    [ProducesResponseType(StatusCodes.Status202Accepted)]
+    public async Task<IActionResult> ReQueue(string name, [FromBody] ReQueueRequest? request, CancellationToken cancellationToken)
+    {
+        var jobId = await _queryService.ReQueueAsync(name, request?.Prompt, cancellationToken);
+        if (jobId == null) return ErrorResponse("application.not_found", name);
+        return Accepted(new { ok = true, jobId });
     }
 
     [HttpPost("sync-vault")]

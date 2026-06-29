@@ -23,7 +23,7 @@ public class JobQueueController : ApiControllerBase
     public async Task<IActionResult> GetPending(CancellationToken ct)
     {
         var jobs = await _service.GetPendingAsync(ct);
-        var response = jobs.Select(j => new { jobId = j.Id, url = j.Url });
+        var response = jobs.Select(j => new { jobId = j.Id, url = j.Url, prompt = j.Prompt });
         return Ok(response);
     }
 
@@ -42,7 +42,7 @@ public class JobQueueController : ApiControllerBase
         if (string.IsNullOrWhiteSpace(request.Url))
             return ErrorResponse("queue.url_required");
 
-        var job = await _service.CreateAsync(request.Url.Trim(), ct);
+        var job = await _service.CreateAsync(request.Url.Trim(), request.Prompt?.Trim(), ct);
         return Created($"/api/ingest/queue/{job.Id}", ToResponse(job));
     }
 
@@ -77,6 +77,7 @@ public class JobQueueController : ApiControllerBase
         JobId = j.Id,
         Url = j.Url,
         Status = j.Status,
+        Prompt = j.Prompt,
         CreatedAt = j.CreatedAt,
         UpdatedAt = j.UpdatedAt,
     };

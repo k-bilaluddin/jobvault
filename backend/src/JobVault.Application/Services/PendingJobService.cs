@@ -15,9 +15,9 @@ public class PendingJobService : IPendingJobService
         _logger = logger;
     }
 
-    public async Task<PendingJob> CreateAsync(string url, CancellationToken ct = default)
+    public async Task<PendingJob> CreateAsync(string url, string? prompt = null, CancellationToken ct = default)
     {
-        var job = await _repository.CreateAsync(url, ct);
+        var job = await _repository.CreateAsync(url, prompt, ct);
         _logger.LogInformation("Queued pending job {JobId} for {Url}", job.Id, url);
         return job;
     }

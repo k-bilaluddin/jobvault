@@ -22,4 +22,5 @@ public interface IApplicationQueryService
     Task<ContentResponse?> GetContentAsync(string companyName, CancellationToken cancellationToken = default);
     Task<bool> UpdateContentAsync(string companyName, UpdateContentRequest request, CancellationToken cancellationToken = default);
     Task<string?> RegenerateAsync(string companyName, UpdateContentRequest? contentUpdate, CancellationToken cancellationToken = default);
+    Task<string?> ReQueueAsync(string companyName, string? prompt, CancellationToken cancellationToken = default);
 }

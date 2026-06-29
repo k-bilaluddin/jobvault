@@ -188,7 +188,7 @@ public class MongoDbService : IJobApplicationRepository
 
             if (!string.IsNullOrWhiteSpace(stage) && stage != "All")
             {
-                var statusStages = new[] { "Processing", "Failed", "Regenerating" };
+                var statusStages = new[] { "Processing", "Failed", "Regenerating", "Queued" };
                 if (statusStages.Contains(stage))
                 {
                     filter &= builder.Eq(d => d.Status, stage);
@@ -229,7 +229,7 @@ public class MongoDbService : IJobApplicationRepository
                 totalAll++;
                 var status = doc.GetValue("status", "").AsString;
                 var docStage = doc.GetValue("stage", "").AsString;
-                var effectiveStage = status is "Processing" or "Failed" or "Regenerating"
+                var effectiveStage = status is "Processing" or "Failed" or "Regenerating" or "Queued"
                     ? status
                     : string.IsNullOrEmpty(docStage) ? "Ready to Apply" : docStage;
                 stageCounts[effectiveStage] = stageCounts.GetValueOrDefault(effectiveStage) + 1;
