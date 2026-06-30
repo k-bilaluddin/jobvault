@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { api } from '@/api'
 import type { ApplicationContent, RolePayload } from '@/types'
 
@@ -81,6 +81,9 @@ async function regenerate() {
   }
 }
 
+// Non-null assertion for template — guarded by v-else which only renders when content is set
+const c = computed(() => content.value!)
+
 const copyToast = ref('')
 
 async function reviewWithChatGPT() {
@@ -160,14 +163,14 @@ const ROLE_LABELS: Record<string, string> = {
       <!-- Headline -->
       <div>
         <label class="block text-xs font-medium text-text-muted uppercase tracking-wider mb-1.5">Headline</label>
-        <input v-model="content.headline"
+        <input v-model="c.headline"
           class="w-full bg-surface-overlay border border-border rounded-lg px-3 py-2 text-sm text-text-primary outline-none focus:border-accent"/>
       </div>
 
       <!-- Summary -->
       <div>
         <label class="block text-xs font-medium text-text-muted uppercase tracking-wider mb-1.5">Summary</label>
-        <textarea v-model="content.summary" rows="3"
+        <textarea v-model="c.summary" rows="3"
           class="w-full bg-surface-overlay border border-border rounded-lg px-3 py-2 text-sm text-text-primary outline-none focus:border-accent resize-vertical"/>
       </div>
 
@@ -181,7 +184,7 @@ const ROLE_LABELS: Record<string, string> = {
           </button>
         </div>
         <div class="grid grid-cols-2 gap-2">
-          <div v-for="(skill, idx) in content.skills" :key="idx"
+          <div v-for="(skill, idx) in c.skills" :key="idx"
             class="flex items-center gap-2 bg-surface-overlay border border-border rounded-lg px-3 py-1.5 group">
             <input v-model="skill.label" placeholder="Label"
               class="w-20 bg-transparent text-xs text-text-muted outline-none flex-shrink-0"/>
@@ -197,7 +200,7 @@ const ROLE_LABELS: Record<string, string> = {
       <!-- Role bullets -->
       <div>
         <label class="block text-xs font-medium text-text-muted uppercase tracking-wider mb-2">Role Bullets</label>
-        <div v-for="role in content.roles" :key="role.id" class="mb-4">
+        <div v-for="role in c.roles" :key="role.id" class="mb-4">
           <div class="flex items-center gap-2 mb-2">
             <span class="text-xs font-medium text-accent bg-accent/10 px-2 py-0.5 rounded">{{ role.id }}</span>
             <span class="text-xs text-text-muted">{{ ROLE_LABELS[role.id] || role.id }}</span>
@@ -225,7 +228,7 @@ const ROLE_LABELS: Record<string, string> = {
       <!-- Recipient -->
       <div>
         <label class="block text-xs font-medium text-text-muted uppercase tracking-wider mb-1.5">Recipient</label>
-        <input v-model="content.recipient"
+        <input v-model="c.recipient"
           class="w-full bg-surface-overlay border border-border rounded-lg px-3 py-2 text-sm text-text-primary outline-none focus:border-accent"
           placeholder="Dear Hiring Manager,"/>
       </div>
@@ -248,12 +251,12 @@ const ROLE_LABELS: Record<string, string> = {
           </div>
         </div>
         <div class="space-y-3">
-          <div v-for="(_para, idx) in content.coverLetterParagraphs" :key="idx" class="relative group">
+          <div v-for="(_para, idx) in c.coverLetterParagraphs" :key="idx" class="relative group">
             <div class="absolute -left-2 top-2.5 w-4 h-4 rounded-full bg-surface-raised border border-border flex items-center justify-center">
               <span class="text-[9px] text-text-muted font-mono">{{ idx + 1 }}</span>
             </div>
             <div class="flex items-start gap-2 pl-4">
-              <textarea v-model="content.coverLetterParagraphs[idx]" rows="3"
+              <textarea v-model="c.coverLetterParagraphs[idx]" rows="3"
                 class="flex-1 bg-surface-overlay border border-border rounded-lg px-3 py-2 text-xs text-text-secondary outline-none focus:border-accent resize-vertical leading-relaxed"/>
               <button @click="removeParagraph(idx)" class="text-text-muted hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity mt-2">
                 <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
