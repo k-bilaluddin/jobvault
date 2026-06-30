@@ -970,6 +970,7 @@ const OUTCOME_STYLE: Record<string, { selected: string; unselected: string }> = 
           <div v-if="showEditor || company.status === 'Regenerating'" class="flex-1 min-w-0">
             <ContentEditor
               :company-name="company.name"
+              :job-url="company.job_url"
               :is-regenerating="company.status === 'Regenerating'"
               @regenerated="company.status = 'Regenerating'; showEditor = false"
             />
