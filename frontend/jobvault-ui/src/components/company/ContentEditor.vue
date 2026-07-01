@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { api } from '@/api'
 import type { ApplicationContent, RolePayload } from '@/types'
 
 const props = defineProps<{
   companyName: string
+  jobUrl?: string
   isRegenerating: boolean
 }>()
 
@@ -80,6 +81,23 @@ async function regenerate() {
   }
 }
 
+// Non-null assertion for template — guarded by v-else which only renders when content is set
+const c = computed(() => content.value!)
+
+const copyToast = ref('')
+
+async function reviewWithChatGPT() {
+  if (!content.value) return
+  const coverLetter = content.value.coverLetterParagraphs.join('\n\n')
+  await navigator.clipboard.writeText(coverLetter)
+  const prompt = encodeURIComponent(
+    `I'm applying for this role: ${props.jobUrl || '(see cover letter)'} — I'll paste my cover letter below. Please review it: tone, alignment with the JD, weak spots, and what to improve.`
+  )
+  window.open(`https://chatgpt.com/?q=${prompt}`, '_blank')
+  copyToast.value = 'Cover letter copied — paste it into ChatGPT (Ctrl+V)'
+  setTimeout(() => { copyToast.value = '' }, 4000)
+}
+
 const ROLE_LABELS: Record<string, string> = {
   calvergy: 'Calvergy',
   senior_baris: 'Senior — Baris',
@@ -134,14 +152,14 @@ const ROLE_LABELS: Record<string, string> = {
       <!-- Headline -->
       <div>
         <label class="block text-xs font-medium text-text-muted uppercase tracking-wider mb-1.5">Headline</label>
-        <input v-model="content.headline"
+        <input v-model="c.headline"
           class="w-full bg-surface-overlay border border-border rounded-lg px-3 py-2 text-sm text-text-primary outline-none focus:border-accent"/>
       </div>
 
       <!-- Summary -->
       <div>
         <label class="block text-xs font-medium text-text-muted uppercase tracking-wider mb-1.5">Summary</label>
-        <textarea v-model="content.summary" rows="3"
+        <textarea v-model="c.summary" rows="3"
           class="w-full bg-surface-overlay border border-border rounded-lg px-3 py-2 text-sm text-text-primary outline-none focus:border-accent resize-vertical"/>
       </div>
 
@@ -155,7 +173,7 @@ const ROLE_LABELS: Record<string, string> = {
           </button>
         </div>
         <div class="grid grid-cols-2 gap-2">
-          <div v-for="(skill, idx) in content.skills" :key="idx"
+          <div v-for="(skill, idx) in c.skills" :key="idx"
             class="flex items-center gap-2 bg-surface-overlay border border-border rounded-lg px-3 py-1.5 group">
             <input v-model="skill.label" placeholder="Label"
               class="w-20 bg-transparent text-xs text-text-muted outline-none flex-shrink-0"/>
@@ -171,7 +189,7 @@ const ROLE_LABELS: Record<string, string> = {
       <!-- Role bullets -->
       <div>
         <label class="block text-xs font-medium text-text-muted uppercase tracking-wider mb-2">Role Bullets</label>
-        <div v-for="role in content.roles" :key="role.id" class="mb-4">
+        <div v-for="role in c.roles" :key="role.id" class="mb-4">
           <div class="flex items-center gap-2 mb-2">
             <span class="text-xs font-medium text-accent bg-accent/10 px-2 py-0.5 rounded">{{ role.id }}</span>
             <span class="text-xs text-text-muted">{{ ROLE_LABELS[role.id] || role.id }}</span>
@@ -199,7 +217,7 @@ const ROLE_LABELS: Record<string, string> = {
       <!-- Recipient -->
       <div>
         <label class="block text-xs font-medium text-text-muted uppercase tracking-wider mb-1.5">Recipient</label>
-        <input v-model="content.recipient"
+        <input v-model="c.recipient"
           class="w-full bg-surface-overlay border border-border rounded-lg px-3 py-2 text-sm text-text-primary outline-none focus:border-accent"
           placeholder="Dear Hiring Manager,"/>
       </div>
@@ -208,18 +226,26 @@ const ROLE_LABELS: Record<string, string> = {
       <div>
         <div class="flex items-center justify-between mb-2">
           <label class="text-xs font-medium text-text-muted uppercase tracking-wider">Paragraphs</label>
-          <button @click="addParagraph" class="text-xs text-accent hover:text-accent/80 flex items-center gap-1">
-            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-            Add
-          </button>
+          <div class="flex items-center gap-3">
+            <button @click="reviewWithChatGPT" class="text-xs text-emerald-400 hover:text-emerald-300 flex items-center gap-1">
+              <svg class="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91 6.046 6.046 0 0 0-6.51-2.9A6.065 6.065 0 0 0 4.981 4.18a5.985 5.985 0 0 0-3.998 2.9 6.046 6.046 0 0 0 .743 7.097 5.98 5.98 0 0 0 .51 4.911 6.051 6.051 0 0 0 6.515 2.9A5.985 5.985 0 0 0 13.26 24a6.056 6.056 0 0 0 5.772-4.206 5.99 5.99 0 0 0 3.997-2.9 6.056 6.056 0 0 0-.747-7.073zM13.26 22.43a4.476 4.476 0 0 1-2.876-1.04l.141-.081 4.779-2.758a.795.795 0 0 0 .392-.681v-6.737l2.02 1.168a.071.071 0 0 1 .038.052v5.583a4.504 4.504 0 0 1-4.494 4.494zM3.6 18.304a4.47 4.47 0 0 1-.535-3.014l.142.085 4.783 2.759a.771.771 0 0 0 .78 0l5.843-3.369v2.332a.08.08 0 0 1-.033.062L9.74 19.95a4.5 4.5 0 0 1-6.14-1.646zM2.34 7.896a4.485 4.485 0 0 1 2.366-1.973V11.6a.766.766 0 0 0 .388.676l5.815 3.355-2.02 1.168a.076.076 0 0 1-.071 0l-4.83-2.786A4.504 4.504 0 0 1 2.34 7.896zm16.597 3.855l-5.843-3.369 2.02-1.168a.076.076 0 0 1 .071 0l4.83 2.786a4.494 4.494 0 0 1-.676 8.105v-5.678a.79.79 0 0 0-.402-.676zm2.01-3.023l-.141-.085-4.774-2.782a.776.776 0 0 0-.785 0L9.409 9.23V6.897a.066.066 0 0 1 .028-.061l4.83-2.787a4.5 4.5 0 0 1 6.68 4.66zm-12.64 4.135l-2.02-1.164a.08.08 0 0 1-.038-.057V6.075a4.5 4.5 0 0 1 7.375-3.453l-.142.08-4.778 2.758a.795.795 0 0 0-.393.681zm1.097-2.365l2.602-1.5 2.607 1.5v2.999l-2.597 1.5-2.607-1.5z"/>
+              </svg>
+              Review with ChatGPT
+            </button>
+            <button @click="addParagraph" class="text-xs text-accent hover:text-accent/80 flex items-center gap-1">
+              <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              Add
+            </button>
+          </div>
         </div>
         <div class="space-y-3">
-          <div v-for="(_para, idx) in content.coverLetterParagraphs" :key="idx" class="relative group">
+          <div v-for="(_para, idx) in c.coverLetterParagraphs" :key="idx" class="relative group">
             <div class="absolute -left-2 top-2.5 w-4 h-4 rounded-full bg-surface-raised border border-border flex items-center justify-center">
               <span class="text-[9px] text-text-muted font-mono">{{ idx + 1 }}</span>
             </div>
             <div class="flex items-start gap-2 pl-4">
-              <textarea v-model="content.coverLetterParagraphs[idx]" rows="3"
+              <textarea v-model="c.coverLetterParagraphs[idx]" rows="3"
                 class="flex-1 bg-surface-overlay border border-border rounded-lg px-3 py-2 text-xs text-text-secondary outline-none focus:border-accent resize-vertical leading-relaxed"/>
               <button @click="removeParagraph(idx)" class="text-text-muted hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity mt-2">
                 <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -248,4 +274,15 @@ const ROLE_LABELS: Record<string, string> = {
       </button>
     </div>
   </div>
+
+  <!-- Toast -->
+  <teleport to="body">
+    <div v-if="copyToast"
+      class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-surface-raised border border-border rounded-lg px-4 py-2.5 text-xs text-text-primary shadow-lg flex items-center gap-2">
+      <svg class="w-4 h-4 text-green-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+      </svg>
+      {{ copyToast }}
+    </div>
+  </teleport>
 </template>
