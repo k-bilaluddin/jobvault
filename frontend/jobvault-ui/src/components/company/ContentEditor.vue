@@ -130,17 +130,6 @@ const ROLE_LABELS: Record<string, string> = {
     <p class="text-xs text-text-muted mt-1">Content is only available for applications ingested through the async pipeline.</p>
   </div>
 
-  <!-- Toast -->
-  <teleport to="body">
-    <div v-if="copyToast"
-      class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-surface-raised border border-border rounded-lg px-4 py-2.5 text-xs text-text-primary shadow-lg flex items-center gap-2">
-      <svg class="w-4 h-4 text-green-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-      </svg>
-      {{ copyToast }}
-    </div>
-  </teleport>
-
   <!-- Editor -->
   <div v-else class="space-y-4">
     <!-- Tab switch -->
@@ -285,4 +274,15 @@ const ROLE_LABELS: Record<string, string> = {
       </button>
     </div>
   </div>
+
+  <!-- Toast -->
+  <teleport to="body">
+    <div v-if="copyToast"
+      class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-surface-raised border border-border rounded-lg px-4 py-2.5 text-xs text-text-primary shadow-lg flex items-center gap-2">
+      <svg class="w-4 h-4 text-green-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+      </svg>
+      {{ copyToast }}
+    </div>
+  </teleport>
 </template>
