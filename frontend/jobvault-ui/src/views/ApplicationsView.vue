@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import CompanyAvatar from '@/components/common/CompanyAvatar.vue'
 import RecommendBadge from '@/components/common/RecommendBadge.vue'
+import ApplicationRowActions from '@/components/applications/ApplicationRowActions.vue'
 import { STAGE_COLORS, matchPctColor, matchPctBar } from '@/utils/score'
 import { PIPELINE_STAGES } from '@/types'
 import type { ApplicationStage, Company } from '@/types'
@@ -125,15 +126,13 @@ function isFollowUpDue(c: Company): boolean {
 const activeActionRow = ref<string | null>(null)
 const stageUpdating   = ref<string | null>(null)
 
-function toggleActions(name: string, e: MouseEvent) {
-  e.stopPropagation()
+function toggleActions(name: string) {
   activeActionRow.value = activeActionRow.value === name ? null : name
 }
 
 function onDocClick() { activeActionRow.value = null }
 
-async function quickStage(c: Company, stage: ApplicationStage, e: MouseEvent) {
-  e.stopPropagation()
+async function quickStage(c: Company, stage: ApplicationStage) {
   stageUpdating.value = c.name
   activeActionRow.value = null
   try {
@@ -144,18 +143,15 @@ async function quickStage(c: Company, stage: ApplicationStage, e: MouseEvent) {
   }
 }
 
-function openUrl(c: Company, e: MouseEvent) {
-  e.stopPropagation()
+function openUrl(c: Company) {
   if (c.job_url) window.open(c.job_url, '_blank')
 }
 
-function openDetail(c: Company, e: MouseEvent) {
-  e.stopPropagation()
+function openDetail(c: Company) {
   router.push(`/company/${encodeURIComponent(c.name)}`)
 }
 
-function copyEmail(email: string, e: MouseEvent) {
-  e.stopPropagation()
+function copyEmail(email: string) {
   navigator.clipboard?.writeText(email).catch(() => {
     const el = document.createElement('textarea')
     el.value = email
@@ -182,8 +178,6 @@ function exportCsv() {
   link.click()
   document.body.removeChild(link)
 }
-
-const QUICK_STAGES: ApplicationStage[] = ['Ready to Apply', 'Applied', 'Interview', 'Offer', 'Rejected', 'Not Interested']
 </script>
 
 <template>
@@ -192,9 +186,9 @@ const QUICK_STAGES: ApplicationStage[] = ['Ready to Apply', 'Applied', 'Intervie
     <div class="flex-1 overflow-y-auto">
 
       <!-- Toolbar -->
-      <div class="px-6 pt-5 pb-0 border-b border-border space-y-3">
+      <div class="px-4 md:px-6 pt-5 pb-0 border-b border-border space-y-3">
         <div class="flex items-center gap-3">
-          <div class="relative flex-1 max-w-sm">
+          <div class="relative flex-1 min-w-0 sm:max-w-sm">
             <svg class="w-4 h-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
             </svg>
@@ -206,7 +200,7 @@ const QUICK_STAGES: ApplicationStage[] = ['Ready to Apply', 'Applied', 'Intervie
             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
             </svg>
-            Export CSV
+            <span class="hidden sm:inline">Export CSV</span>
           </button>
         </div>
 
@@ -222,7 +216,7 @@ const QUICK_STAGES: ApplicationStage[] = ['Ready to Apply', 'Applied', 'Intervie
       </div>
 
       <!-- Table -->
-      <div class="px-6 py-4">
+      <div class="px-4 md:px-6 py-4">
         <div v-if="loading" class="space-y-2 animate-pulse">
           <div v-for="i in 8" :key="i" class="h-14 bg-surface-raised border border-border rounded-lg"/>
         </div>
@@ -233,172 +227,200 @@ const QUICK_STAGES: ApplicationStage[] = ['Ready to Apply', 'Applied', 'Intervie
         </div>
 
         <div v-else>
-          <!-- Header -->
-          <div class="grid grid-cols-[2.5rem_1fr_7rem_9rem_6rem_6rem_6rem_7rem_2rem] gap-3 px-3 pb-2 text-[10px] font-semibold text-text-muted uppercase tracking-wider select-none">
-            <div/>
-            <button class="text-left flex items-center gap-1 hover:text-text-primary transition-colors" @click="toggleSort('name')">
-              Company / Role <span class="opacity-40 font-mono">{{ sortIcon('name') }}</span>
-            </button>
-            <button class="text-left flex items-center gap-1 hover:text-text-primary transition-colors" @click="toggleSort('salary')">
-              Salary <span class="opacity-40 font-mono">{{ sortIcon('salary') }}</span>
-            </button>
-            <button class="text-left flex items-center gap-1 hover:text-text-primary transition-colors" @click="toggleSort('stage')">
-              Stage <span class="opacity-40 font-mono">{{ sortIcon('stage') }}</span>
-            </button>
-            <button class="text-left flex items-center gap-1 hover:text-text-primary transition-colors" @click="toggleSort('synced_at')">
-              Received <span class="opacity-40 font-mono">{{ sortIcon('synced_at') }}</span>
-            </button>
-            <button class="text-left flex items-center gap-1 hover:text-text-primary transition-colors" @click="toggleSort('applied_date')">
-              Applied <span class="opacity-40 font-mono">{{ sortIcon('applied_date') }}</span>
-            </button>
-            <button class="text-left flex items-center gap-1 hover:text-text-primary transition-colors" @click="toggleSort('match_pct')">
-              Match <span class="opacity-40 font-mono">{{ sortIcon('match_pct') }}</span>
-            </button>
-            <div>Verdict</div>
-            <div/>
-          </div>
-
-          <!-- Rows -->
-          <div v-for="c in companies" :key="c.name" class="relative">
-            <!-- Follow-up left border indicator -->
-            <div v-if="isFollowUpDue(c)" class="absolute left-0 top-1 bottom-1 w-0.5 rounded-full bg-amber-400 z-10"/>
-
-            <div @click="router.push(`/company/${encodeURIComponent(c.name)}`)"
-              class="grid grid-cols-[2.5rem_1fr_7rem_9rem_6rem_6rem_6rem_7rem_2rem] gap-3 items-center px-3 py-2.5 rounded-lg border border-transparent cursor-pointer transition-all group"
-              :class="[
-                stageUpdating === c.name ? 'opacity-50 pointer-events-none' : '',
-                isFollowUpDue(c)
-                  ? 'hover:bg-amber-500/5 hover:border-amber-500/20'
-                  : 'hover:bg-surface-raised hover:border-border'
-              ]">
-
-              <CompanyAvatar :name="c.name" size="sm"/>
-
-              <!-- Company + role -->
-              <div class="min-w-0">
-                <div class="flex items-center gap-1.5 min-w-0">
-                  <p class="text-sm font-semibold text-text-primary truncate group-hover:text-accent transition-colors">{{ c.name }}</p>
-                  <span v-if="c.has_report" class="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0" title="Has report"/>
-                  <span v-if="(c.interviews?.length ?? 0) > 0" class="text-[10px] text-violet-400 flex-shrink-0 font-medium">{{ c.interviews.length }}✦</span>
-                  <span v-if="isFollowUpDue(c)" class="text-[10px] text-amber-400 flex-shrink-0" title="Follow-up due">⏰</span>
-                  <!-- Job posting link — always visible when URL exists -->
-                  <a v-if="c.job_url" :href="c.job_url" target="_blank" @click.stop
-                    class="flex-shrink-0 text-text-muted hover:text-blue-400 transition-colors"
-                    title="Open job posting">
-                    <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
-                    </svg>
-                  </a>
-                </div>
-                <p v-if="roleStr(c.role)" class="text-xs text-text-muted truncate mt-0.5">{{ roleStr(c.role) }}</p>
-              </div>
-
-              <!-- Salary -->
-              <span class="text-xs font-mono text-text-secondary">{{ fmtSalary(c) || '—' }}</span>
-
-              <!-- Stage -->
-              <div class="flex items-center gap-1.5 min-w-0">
-                <span :class="['w-1.5 h-1.5 rounded-full flex-shrink-0', STAGE_COLORS[c.stage as ApplicationStage]?.dot]"/>
-                <span :class="['text-xs font-medium truncate', STAGE_COLORS[c.stage as ApplicationStage]?.text]">{{ c.stage }}</span>
-              </div>
-
-              <!-- Received (synced_at) -->
-              <span class="text-xs text-text-muted font-mono">{{ c.synced_at ? c.synced_at.slice(0,10) : '—' }}</span>
-
-              <!-- Applied date -->
-              <span class="text-xs text-text-muted font-mono">{{ c.applied_date || '—' }}</span>
-
-              <!-- Match % -->
-              <div v-if="c.match_pct !== null" class="flex items-center gap-1.5">
-                <div class="flex-1 h-1 bg-surface-overlay rounded-full overflow-hidden">
-                  <div :class="['h-full rounded-full', matchPctBar(c.match_pct)]" :style="{ width: `${c.match_pct}%` }"/>
-                </div>
-                <span :class="['text-xs font-mono font-bold w-7 text-right flex-shrink-0', matchPctColor(c.match_pct)]">{{ c.match_pct }}%</span>
-              </div>
-              <span v-else class="text-xs text-text-muted">—</span>
-
-              <!-- Verdict -->
-              <RecommendBadge :recommend="c.recommend" size="sm"/>
-
-              <!-- Actions trigger -->
-              <button @click="toggleActions(c.name, $event)"
-                class="w-6 h-6 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-surface-overlay transition-colors opacity-0 group-hover:opacity-100"
-                :class="activeActionRow === c.name ? '!opacity-100 bg-surface-overlay text-text-primary' : ''">
-                <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
-                  <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
-                </svg>
+          <!-- Desktop table (md and up) -->
+          <div class="hidden md:block">
+            <!-- Header -->
+            <div class="grid grid-cols-[2.5rem_1fr_7rem_9rem_6rem_6rem_6rem_7rem_2rem] gap-3 px-3 pb-2 text-[10px] font-semibold text-text-muted uppercase tracking-wider select-none">
+              <div/>
+              <button class="text-left flex items-center gap-1 hover:text-text-primary transition-colors" @click="toggleSort('name')">
+                Company / Role <span class="opacity-40 font-mono">{{ sortIcon('name') }}</span>
               </button>
+              <button class="text-left flex items-center gap-1 hover:text-text-primary transition-colors" @click="toggleSort('salary')">
+                Salary <span class="opacity-40 font-mono">{{ sortIcon('salary') }}</span>
+              </button>
+              <button class="text-left flex items-center gap-1 hover:text-text-primary transition-colors" @click="toggleSort('stage')">
+                Stage <span class="opacity-40 font-mono">{{ sortIcon('stage') }}</span>
+              </button>
+              <button class="text-left flex items-center gap-1 hover:text-text-primary transition-colors" @click="toggleSort('synced_at')">
+                Received <span class="opacity-40 font-mono">{{ sortIcon('synced_at') }}</span>
+              </button>
+              <button class="text-left flex items-center gap-1 hover:text-text-primary transition-colors" @click="toggleSort('applied_date')">
+                Applied <span class="opacity-40 font-mono">{{ sortIcon('applied_date') }}</span>
+              </button>
+              <button class="text-left flex items-center gap-1 hover:text-text-primary transition-colors" @click="toggleSort('match_pct')">
+                Match <span class="opacity-40 font-mono">{{ sortIcon('match_pct') }}</span>
+              </button>
+              <div>Verdict</div>
+              <div/>
             </div>
 
-            <!-- Action dropdown -->
-            <Transition enter-active-class="transition-all duration-100 ease-out" enter-from-class="opacity-0 scale-95" enter-to-class="opacity-100 scale-100"
-              leave-active-class="transition-all duration-75 ease-in" leave-from-class="opacity-100 scale-100" leave-to-class="opacity-0 scale-95">
-              <div v-if="activeActionRow === c.name" @click.stop
-                class="absolute right-0 top-11 z-30 bg-surface-raised border border-border rounded-xl shadow-2xl p-1.5 w-52 origin-top-right">
+            <!-- Rows -->
+            <div v-for="c in companies" :key="c.name" class="relative">
+              <!-- Follow-up left border indicator -->
+              <div v-if="isFollowUpDue(c)" class="absolute left-0 top-1 bottom-1 w-0.5 rounded-full bg-amber-400 z-10"/>
 
-                <button @click="openDetail(c, $event)"
-                  class="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-text-secondary hover:text-text-primary hover:bg-surface-overlay rounded-lg transition-colors">
-                  <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                  Open Detail
-                </button>
+              <div @click="router.push(`/company/${encodeURIComponent(c.name)}`)"
+                class="grid grid-cols-[2.5rem_1fr_7rem_9rem_6rem_6rem_6rem_7rem_2rem] gap-3 items-center px-3 py-2.5 rounded-lg border border-transparent cursor-pointer transition-all group"
+                :class="[
+                  stageUpdating === c.name ? 'opacity-50 pointer-events-none' : '',
+                  isFollowUpDue(c)
+                    ? 'hover:bg-amber-500/5 hover:border-amber-500/20'
+                    : 'hover:bg-surface-raised hover:border-border'
+                ]">
 
-                <button v-if="c.job_url" @click="openUrl(c, $event)"
-                  class="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-text-secondary hover:text-text-primary hover:bg-surface-overlay rounded-lg transition-colors">
-                  <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
-                  Job Posting
-                </button>
+                <CompanyAvatar :name="c.name" size="sm"/>
 
-                <button v-if="c.recruiter?.email" @click="copyEmail(c.recruiter.email, $event)"
-                  class="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-text-secondary hover:text-text-primary hover:bg-surface-overlay rounded-lg transition-colors">
-                  <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
-                  <span class="truncate">Copy · {{ c.recruiter.email }}</span>
-                </button>
+                <!-- Company + role -->
+                <div class="min-w-0">
+                  <div class="flex items-center gap-1.5 min-w-0">
+                    <p class="text-sm font-semibold text-text-primary truncate group-hover:text-accent transition-colors">{{ c.name }}</p>
+                    <span v-if="c.has_report" class="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0" title="Has report"/>
+                    <span v-if="(c.interviews?.length ?? 0) > 0" class="text-[10px] text-violet-400 flex-shrink-0 font-medium">{{ c.interviews.length }}✦</span>
+                    <span v-if="isFollowUpDue(c)" class="text-[10px] text-amber-400 flex-shrink-0" title="Follow-up due">⏰</span>
+                    <!-- Job posting link — always visible when URL exists -->
+                    <a v-if="c.job_url" :href="c.job_url" target="_blank" @click.stop
+                      class="flex-shrink-0 text-text-muted hover:text-blue-400 transition-colors"
+                      title="Open job posting">
+                      <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                      </svg>
+                    </a>
+                  </div>
+                  <p v-if="roleStr(c.role)" class="text-xs text-text-muted truncate mt-0.5">{{ roleStr(c.role) }}</p>
+                </div>
 
-                <div class="border-t border-border my-1"/>
+                <!-- Salary -->
+                <span class="text-xs font-mono text-text-secondary">{{ fmtSalary(c) || '—' }}</span>
 
-                <p class="px-3 py-1 text-[10px] font-semibold text-text-muted uppercase tracking-wider">Move to stage</p>
-                <button v-for="stage in QUICK_STAGES" :key="stage"
-                  @click="quickStage(c, stage, $event)"
-                  class="w-full flex items-center gap-2 px-3 py-1.5 text-xs rounded-lg transition-colors"
-                  :class="c.stage === stage ? 'text-accent bg-accent/10 font-medium' : 'text-text-secondary hover:text-text-primary hover:bg-surface-overlay'">
-                  <span :class="['w-1.5 h-1.5 rounded-full flex-shrink-0', STAGE_COLORS[stage as ApplicationStage]?.dot]"/>
-                  {{ stage }}
-                  <svg v-if="c.stage === stage" class="w-3 h-3 ml-auto text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
-                </button>
+                <!-- Stage -->
+                <div class="flex items-center gap-1.5 min-w-0">
+                  <span :class="['w-1.5 h-1.5 rounded-full flex-shrink-0', STAGE_COLORS[c.stage as ApplicationStage]?.dot]"/>
+                  <span :class="['text-xs font-medium truncate', STAGE_COLORS[c.stage as ApplicationStage]?.text]">{{ c.stage }}</span>
+                </div>
+
+                <!-- Received (synced_at) -->
+                <span class="text-xs text-text-muted font-mono">{{ c.synced_at ? c.synced_at.slice(0,10) : '—' }}</span>
+
+                <!-- Applied date -->
+                <span class="text-xs text-text-muted font-mono">{{ c.applied_date || '—' }}</span>
+
+                <!-- Match % -->
+                <div v-if="c.match_pct !== null" class="flex items-center gap-1.5">
+                  <div class="flex-1 h-1 bg-surface-overlay rounded-full overflow-hidden">
+                    <div :class="['h-full rounded-full', matchPctBar(c.match_pct)]" :style="{ width: `${c.match_pct}%` }"/>
+                  </div>
+                  <span :class="['text-xs font-mono font-bold w-7 text-right flex-shrink-0', matchPctColor(c.match_pct)]">{{ c.match_pct }}%</span>
+                </div>
+                <span v-else class="text-xs text-text-muted">—</span>
+
+                <!-- Verdict -->
+                <RecommendBadge :recommend="c.recommend" size="sm"/>
+
+                <ApplicationRowActions :company="c" :open="activeActionRow === c.name"
+                  @toggle="toggleActions(c.name)"
+                  @open-detail="openDetail(c)"
+                  @open-url="openUrl(c)"
+                  @copy-email="copyEmail(c.recruiter.email)"
+                  @quick-stage="(stage) => quickStage(c, stage)"/>
               </div>
-            </Transition>
+            </div>
+          </div>
+
+          <!-- Mobile cards (below md) -->
+          <div class="md:hidden space-y-2">
+            <div v-for="c in companies" :key="c.name" class="relative">
+              <!-- Follow-up left border indicator -->
+              <div v-if="isFollowUpDue(c)" class="absolute left-0 top-1 bottom-1 w-0.5 rounded-full bg-amber-400 z-10"/>
+
+              <div @click="router.push(`/company/${encodeURIComponent(c.name)}`)"
+                class="flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all"
+                :class="[
+                  stageUpdating === c.name ? 'opacity-50 pointer-events-none' : '',
+                  isFollowUpDue(c)
+                    ? 'bg-amber-500/5 border-amber-500/20'
+                    : 'bg-surface-raised border-border'
+                ]">
+
+                <CompanyAvatar :name="c.name" size="sm"/>
+
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-start justify-between gap-2">
+                    <div class="min-w-0">
+                      <div class="flex items-center gap-1.5 min-w-0">
+                        <p class="text-sm font-semibold text-text-primary truncate">{{ c.name }}</p>
+                        <span v-if="c.has_report" class="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0" title="Has report"/>
+                        <span v-if="(c.interviews?.length ?? 0) > 0" class="text-[10px] text-violet-400 flex-shrink-0 font-medium">{{ c.interviews.length }}✦</span>
+                        <span v-if="isFollowUpDue(c)" class="text-[10px] text-amber-400 flex-shrink-0" title="Follow-up due">⏰</span>
+                        <a v-if="c.job_url" :href="c.job_url" target="_blank" @click.stop
+                          class="flex-shrink-0 text-text-muted hover:text-blue-400 transition-colors"
+                          title="Open job posting">
+                          <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                          </svg>
+                        </a>
+                      </div>
+                      <p v-if="roleStr(c.role)" class="text-xs text-text-muted truncate mt-0.5">{{ roleStr(c.role) }}</p>
+                    </div>
+
+                    <ApplicationRowActions :company="c" :open="activeActionRow === c.name"
+                      @toggle="toggleActions(c.name)"
+                      @open-detail="openDetail(c)"
+                      @open-url="openUrl(c)"
+                      @copy-email="copyEmail(c.recruiter.email)"
+                      @quick-stage="(stage) => quickStage(c, stage)"/>
+                  </div>
+
+                  <div class="flex items-center flex-wrap gap-x-3 gap-y-1.5 mt-2">
+                    <div class="flex items-center gap-1.5">
+                      <span :class="['w-1.5 h-1.5 rounded-full flex-shrink-0', STAGE_COLORS[c.stage as ApplicationStage]?.dot]"/>
+                      <span :class="['text-xs font-medium', STAGE_COLORS[c.stage as ApplicationStage]?.text]">{{ c.stage }}</span>
+                    </div>
+                    <span v-if="fmtSalary(c)" class="text-xs font-mono text-text-secondary">{{ fmtSalary(c) }}</span>
+                    <span class="text-xs text-text-muted font-mono">{{ c.applied_date || (c.synced_at ? c.synced_at.slice(0,10) : '—') }}</span>
+                    <RecommendBadge :recommend="c.recommend" size="sm"/>
+                  </div>
+
+                  <div v-if="c.match_pct !== null" class="flex items-center gap-1.5 mt-2">
+                    <div class="flex-1 h-1 bg-surface-overlay rounded-full overflow-hidden">
+                      <div :class="['h-full rounded-full', matchPctBar(c.match_pct)]" :style="{ width: `${c.match_pct}%` }"/>
+                    </div>
+                    <span :class="['text-xs font-mono font-bold w-9 text-right flex-shrink-0', matchPctColor(c.match_pct)]">{{ c.match_pct }}%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
         <!-- Pagination -->
-        <div v-if="totalPages > 1" class="flex items-center justify-between mt-4 px-3">
+        <div v-if="totalPages > 1" class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-4 px-3">
           <p class="text-xs text-text-muted">
             {{ (page - 1) * pageSize + 1 }}–{{ Math.min(page * pageSize, totalCount) }} of {{ totalCount }} companies
           </p>
-          <div class="flex items-center gap-1">
+          <div class="flex items-center gap-1 overflow-x-auto">
             <button @click="goToPage(1)" :disabled="page === 1"
-              class="px-2 py-1 text-xs rounded-md border border-border text-text-muted hover:text-text-primary hover:border-accent/50 disabled:opacity-30 disabled:pointer-events-none transition-colors">
+              class="px-2 py-1 text-xs rounded-md border border-border text-text-muted hover:text-text-primary hover:border-accent/50 disabled:opacity-30 disabled:pointer-events-none transition-colors flex-shrink-0">
               ««
             </button>
             <button @click="goToPage(page - 1)" :disabled="page === 1"
-              class="px-2 py-1 text-xs rounded-md border border-border text-text-muted hover:text-text-primary hover:border-accent/50 disabled:opacity-30 disabled:pointer-events-none transition-colors">
+              class="px-2 py-1 text-xs rounded-md border border-border text-text-muted hover:text-text-primary hover:border-accent/50 disabled:opacity-30 disabled:pointer-events-none transition-colors flex-shrink-0">
               «
             </button>
             <template v-for="p in totalPages" :key="p">
               <button v-if="p === 1 || p === totalPages || (p >= page - 2 && p <= page + 2)"
                 @click="goToPage(p)"
-                class="px-2.5 py-1 text-xs rounded-md border transition-colors"
+                class="px-2.5 py-1 text-xs rounded-md border transition-colors flex-shrink-0"
                 :class="p === page ? 'border-accent bg-accent/10 text-accent font-medium' : 'border-border text-text-muted hover:text-text-primary hover:border-accent/50'">
                 {{ p }}
               </button>
-              <span v-else-if="p === page - 3 || p === page + 3" class="text-xs text-text-muted px-1">...</span>
+              <span v-else-if="p === page - 3 || p === page + 3" class="text-xs text-text-muted px-1 flex-shrink-0">...</span>
             </template>
             <button @click="goToPage(page + 1)" :disabled="page === totalPages"
-              class="px-2 py-1 text-xs rounded-md border border-border text-text-muted hover:text-text-primary hover:border-accent/50 disabled:opacity-30 disabled:pointer-events-none transition-colors">
+              class="px-2 py-1 text-xs rounded-md border border-border text-text-muted hover:text-text-primary hover:border-accent/50 disabled:opacity-30 disabled:pointer-events-none transition-colors flex-shrink-0">
               »
             </button>
             <button @click="goToPage(totalPages)" :disabled="page === totalPages"
-              class="px-2 py-1 text-xs rounded-md border border-border text-text-muted hover:text-text-primary hover:border-accent/50 disabled:opacity-30 disabled:pointer-events-none transition-colors">
+              class="px-2 py-1 text-xs rounded-md border border-border text-text-muted hover:text-text-primary hover:border-accent/50 disabled:opacity-30 disabled:pointer-events-none transition-colors flex-shrink-0">
               »»
             </button>
           </div>

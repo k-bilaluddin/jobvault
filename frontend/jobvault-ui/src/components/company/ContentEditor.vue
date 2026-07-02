@@ -172,14 +172,14 @@ const ROLE_LABELS: Record<string, string> = {
             Add
           </button>
         </div>
-        <div class="grid grid-cols-2 gap-2">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <div v-for="(skill, idx) in c.skills" :key="idx"
             class="flex items-center gap-2 bg-surface-overlay border border-border rounded-lg px-3 py-1.5 group">
             <input v-model="skill.label" placeholder="Label"
               class="w-20 bg-transparent text-xs text-text-muted outline-none flex-shrink-0"/>
             <input v-model="skill.value" placeholder="Value"
               class="flex-1 bg-transparent text-xs text-text-primary outline-none"/>
-            <button @click="removeSkill(idx)" class="text-text-muted hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button @click="removeSkill(idx)" class="text-text-muted hover:text-red-400 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
               <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
           </div>
@@ -199,7 +199,7 @@ const ROLE_LABELS: Record<string, string> = {
               <span class="w-1.5 h-1.5 rounded-full bg-accent mt-2 flex-shrink-0"/>
               <textarea v-model="role.bullets[bIdx]" rows="2"
                 class="flex-1 bg-surface-overlay border border-border rounded-lg px-3 py-1.5 text-xs text-text-secondary outline-none focus:border-accent resize-vertical"/>
-              <button @click="removeBullet(role, bIdx)" class="text-text-muted hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity mt-1.5">
+              <button @click="removeBullet(role, bIdx)" class="text-text-muted hover:text-red-400 md:opacity-0 md:group-hover:opacity-100 transition-opacity mt-1.5">
                 <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
               </button>
             </div>
@@ -247,7 +247,7 @@ const ROLE_LABELS: Record<string, string> = {
             <div class="flex items-start gap-2 pl-4">
               <textarea v-model="c.coverLetterParagraphs[idx]" rows="3"
                 class="flex-1 bg-surface-overlay border border-border rounded-lg px-3 py-2 text-xs text-text-secondary outline-none focus:border-accent resize-vertical leading-relaxed"/>
-              <button @click="removeParagraph(idx)" class="text-text-muted hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity mt-2">
+              <button @click="removeParagraph(idx)" class="text-text-muted hover:text-red-400 md:opacity-0 md:group-hover:opacity-100 transition-opacity mt-2">
                 <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
               </button>
             </div>

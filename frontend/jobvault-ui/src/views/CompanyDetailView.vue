@@ -458,54 +458,58 @@ const OUTCOME_STYLE: Record<string, { selected: string; unselected: string }> = 
     <div v-else class="flex-1 overflow-y-auto flex flex-col">
 
       <!-- Header bar -->
-      <div class="px-6 py-4 border-b border-border flex items-center gap-4 flex-wrap flex-shrink-0">
-        <CompanyAvatar :name="company.name" size="lg"/>
-        <div class="flex-1 min-w-0">
-          <h2 class="text-lg font-bold text-text-primary">{{ company.name }}</h2>
-          <div class="flex items-center gap-2 mt-0.5 flex-wrap text-xs text-text-muted">
-            <span v-if="company.applied_date">Applied {{ company.applied_date }}</span>
-            <span v-if="company.recruiter?.name"> · {{ company.recruiter.name }}</span>
-            <span v-if="company.source" class="px-1.5 py-0.5 rounded bg-surface-overlay text-text-muted">{{ company.source }}</span>
+      <div class="px-4 md:px-6 py-4 border-b border-border flex flex-col md:flex-row md:items-center gap-4 flex-shrink-0">
+        <div class="flex items-center gap-4 md:flex-1 min-w-0">
+          <CompanyAvatar :name="company.name" size="lg"/>
+          <div class="flex-1 min-w-0">
+            <h2 class="text-lg font-bold text-text-primary">{{ company.name }}</h2>
+            <div class="flex items-center gap-2 mt-0.5 flex-wrap text-xs text-text-muted">
+              <span v-if="company.applied_date">Applied {{ company.applied_date }}</span>
+              <span v-if="company.recruiter?.name"> · {{ company.recruiter.name }}</span>
+              <span v-if="company.source" class="px-1.5 py-0.5 rounded bg-surface-overlay text-text-muted">{{ company.source }}</span>
+            </div>
           </div>
         </div>
 
-        <!-- Stage dropdown — wired to Flask -->
-        <div class="relative">
-          <select
-            :value="currentStage"
-            :disabled="stageUpdating"
-            @change="updateStage(($event.target as HTMLSelectElement).value as ApplicationStage)"
-            class="appearance-none bg-surface-raised border border-border text-text-primary text-sm rounded-lg px-3 py-2 pr-8 outline-none focus:border-accent cursor-pointer disabled:opacity-50 transition-colors"
-            :class="stageUpdating ? 'animate-pulse' : ''">
-            <option v-for="s in PIPELINE_STAGES" :key="s" :value="s">{{ s }}</option>
-          </select>
-          <svg class="w-4 h-4 text-text-muted absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-          </svg>
+        <div class="flex items-center gap-3 flex-wrap">
+          <!-- Stage dropdown — wired to Flask -->
+          <div class="relative">
+            <select
+              :value="currentStage"
+              :disabled="stageUpdating"
+              @change="updateStage(($event.target as HTMLSelectElement).value as ApplicationStage)"
+              class="appearance-none bg-surface-raised border border-border text-text-primary text-sm rounded-lg px-3 py-2 pr-8 outline-none focus:border-accent cursor-pointer disabled:opacity-50 transition-colors"
+              :class="stageUpdating ? 'animate-pulse' : ''">
+              <option v-for="s in PIPELINE_STAGES" :key="s" :value="s">{{ s }}</option>
+            </select>
+            <svg class="w-4 h-4 text-text-muted absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </div>
+          <p v-if="stageError" class="text-xs text-red-400">{{ stageError }}</p>
+
+          <RecommendBadge :recommend="company.recommend"/>
+
+          <a v-if="company.job_url" :href="company.job_url" target="_blank"
+            class="flex items-center gap-2 px-3 py-2 bg-blue-500/15 text-blue-400 text-sm font-medium rounded-lg hover:bg-blue-500/25 border border-blue-500/30 transition-colors">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+            Job Posting
+          </a>
+          <span v-else class="text-xs text-text-muted">No job URL</span>
+
+          <button v-if="company.job_url" @click="showReAnalyze = !showReAnalyze"
+            class="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border transition-colors"
+            :class="showReAnalyze ? 'bg-orange-500/20 text-orange-400 border-orange-500/40' : 'bg-orange-500/10 text-orange-400 border-orange-500/20 hover:bg-orange-500/20'">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            Re-analyze
+          </button>
         </div>
-        <p v-if="stageError" class="text-xs text-red-400">{{ stageError }}</p>
-
-        <RecommendBadge :recommend="company.recommend"/>
-
-        <a v-if="company.job_url" :href="company.job_url" target="_blank"
-          class="flex items-center gap-2 px-3 py-2 bg-blue-500/15 text-blue-400 text-sm font-medium rounded-lg hover:bg-blue-500/25 border border-blue-500/30 transition-colors">
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
-          Job Posting
-        </a>
-        <span v-else class="text-xs text-text-muted">No job URL</span>
-
-        <button v-if="company.job_url" @click="showReAnalyze = !showReAnalyze"
-          class="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border transition-colors"
-          :class="showReAnalyze ? 'bg-orange-500/20 text-orange-400 border-orange-500/40' : 'bg-orange-500/10 text-orange-400 border-orange-500/20 hover:bg-orange-500/20'">
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-          Re-analyze
-        </button>
       </div>
 
       <!-- Re-analyze prompt panel -->
       <Transition enter-active-class="transition-all duration-150 ease-out" enter-from-class="opacity-0 -translate-y-2" enter-to-class="opacity-100 translate-y-0"
         leave-active-class="transition-all duration-100 ease-in" leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 -translate-y-2">
-        <div v-if="showReAnalyze" class="px-6 py-3 border-b border-border bg-orange-500/5 flex-shrink-0">
+        <div v-if="showReAnalyze" class="px-4 md:px-6 py-3 border-b border-border bg-orange-500/5 flex-shrink-0">
           <div class="flex items-start gap-3">
             <div class="flex-1">
               <p class="text-xs font-semibold text-orange-400 mb-1.5">Re-analyze with Claude Agent</p>
@@ -529,7 +533,7 @@ const OUTCOME_STYLE: Record<string, { selected: string; unselected: string }> = 
       </Transition>
 
       <!-- Tabs -->
-      <div class="px-6 border-b border-border flex gap-0 overflow-x-auto flex-shrink-0">
+      <div class="px-4 md:px-6 border-b border-border flex gap-0 overflow-x-auto flex-shrink-0">
         <button v-for="tab in TABS" :key="tab" @click="activeTab = tab"
           class="px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors flex-shrink-0"
           :class="activeTab === tab ? 'border-accent text-accent' : 'border-transparent text-text-muted hover:text-text-primary'">
@@ -542,12 +546,12 @@ const OUTCOME_STYLE: Record<string, { selected: string; unselected: string }> = 
       </div>
 
       <!-- Tab content -->
-      <div class="flex-1 overflow-y-auto p-6">
+      <div class="flex-1 overflow-y-auto p-4 md:p-6">
 
         <!-- ── COMPATIBILITY REPORT ── -->
-        <div v-if="activeTab === 'Analysis'" class="grid grid-cols-3 gap-6">
-          <div class="col-span-1 space-y-4">
-            <div class="bg-surface-raised border border-border rounded-xl p-5 flex flex-col items-center">
+        <div v-if="activeTab === 'Analysis'" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="space-y-4">
+            <div class="bg-surface-raised border border-border rounded-xl p-4 sm:p-5 flex flex-col items-center">
               <p class="text-xs font-semibold text-text-muted uppercase tracking-wider mb-4">Match Score</p>
               <MatchRing :pct="company.match_pct" :recommend="company.recommend" :size="128"/>
               <RecommendBadge :recommend="company.recommend" class="mt-3"/>
@@ -578,8 +582,8 @@ const OUTCOME_STYLE: Record<string, { selected: string; unselected: string }> = 
           </div>
 
           <!-- Report HTML rendered from Flask -->
-          <div class="col-span-2">
-            <div class="bg-surface-raised border border-border rounded-xl p-5 min-h-[300px]">
+          <div class="md:col-span-2">
+            <div class="bg-surface-raised border border-border rounded-xl p-4 sm:p-5 min-h-[300px]">
               <p class="text-xs font-semibold text-text-muted uppercase tracking-wider mb-4">Compatibility Report</p>
               <div v-if="reportLoading" class="flex items-center gap-2 text-text-muted text-sm">
                 <div class="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin flex-shrink-0"/>
@@ -595,7 +599,7 @@ const OUTCOME_STYLE: Record<string, { selected: string; unselected: string }> = 
 
         <!-- ── TAILORING NOTES ── -->
         <div v-else-if="activeTab === 'Strategy'" class="max-w-3xl">
-          <div class="bg-surface-raised border border-border rounded-xl p-5 min-h-[300px]">
+          <div class="bg-surface-raised border border-border rounded-xl p-4 sm:p-5 min-h-[300px]">
             <p class="text-xs font-semibold text-text-muted uppercase tracking-wider mb-4">Tailoring Notes</p>
             <div v-if="notesLoading" class="flex items-center gap-2 text-text-muted text-sm">
               <div class="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin flex-shrink-0"/>
@@ -611,7 +615,7 @@ const OUTCOME_STYLE: Record<string, { selected: string; unselected: string }> = 
         <div v-else-if="activeTab === 'Details'" class="max-w-3xl space-y-5">
 
           <!-- Application overview cards -->
-          <div class="grid grid-cols-3 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <!-- Stage -->
             <div class="bg-surface-raised border border-border rounded-xl p-4">
               <p class="text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-2">Stage</p>
@@ -659,7 +663,7 @@ const OUTCOME_STYLE: Record<string, { selected: string; unselected: string }> = 
 
           <!-- Recruiter card -->
           <div v-if="company.recruiter?.name || company.recruiter?.email || company.recruiter?.linkedin"
-            class="bg-surface-raised border border-border rounded-xl p-5">
+            class="bg-surface-raised border border-border rounded-xl p-4 sm:p-5">
             <p class="text-xs font-semibold text-text-muted uppercase tracking-wider mb-4">Recruiter / Contact</p>
             <div class="flex items-start gap-4">
               <!-- Avatar -->
@@ -708,7 +712,7 @@ const OUTCOME_STYLE: Record<string, { selected: string; unselected: string }> = 
           </div>
 
           <!-- Salary card -->
-          <div class="bg-surface-raised border border-border rounded-xl p-5">
+          <div class="bg-surface-raised border border-border rounded-xl p-4 sm:p-5">
             <p class="text-xs font-semibold text-text-muted uppercase tracking-wider mb-4">Salary</p>
             <div class="grid grid-cols-2 gap-4">
               <div v-for="(val, key) in company.salary" :key="key"
@@ -723,7 +727,7 @@ const OUTCOME_STYLE: Record<string, { selected: string; unselected: string }> = 
           </div>
 
           <!-- Vault files status -->
-          <div class="bg-surface-raised border border-border rounded-xl p-5">
+          <div class="bg-surface-raised border border-border rounded-xl p-4 sm:p-5">
             <p class="text-xs font-semibold text-text-muted uppercase tracking-wider mb-4">Vault Files</p>
             <div class="grid grid-cols-2 gap-3">
               <div v-for="f in [
@@ -776,7 +780,7 @@ const OUTCOME_STYLE: Record<string, { selected: string; unselected: string }> = 
 
           <!-- Add note form -->
           <Transition enter-active-class="transition-all duration-200 ease-out" enter-from-class="opacity-0 -translate-y-2" enter-to-class="opacity-100 translate-y-0">
-            <div v-if="addingNote" class="bg-surface-raised border border-accent/40 rounded-xl p-5 space-y-4">
+            <div v-if="addingNote" class="bg-surface-raised border border-accent/40 rounded-xl p-4 sm:p-5 space-y-4">
               <p class="text-sm font-semibold text-text-primary">New Note</p>
               <div>
                 <label class="block text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-1.5">Stage</label>
@@ -848,7 +852,7 @@ const OUTCOME_STYLE: Record<string, { selected: string; unselected: string }> = 
                 </div>
                 <p class="text-sm text-text-secondary leading-relaxed whitespace-pre-wrap">{{ note.content }}</p>
               </div>
-              <div class="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+              <div class="flex flex-col gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex-shrink-0">
                 <button @click="togglePin(note)" class="p-1 rounded hover:bg-surface-overlay text-text-muted hover:text-amber-400 transition-colors" :title="note.pinned ? 'Unpin' : 'Pin'">
                   <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>
                 </button>
@@ -899,8 +903,8 @@ const OUTCOME_STYLE: Record<string, { selected: string; unselected: string }> = 
         </div>
 
         <!-- ── FILES ── -->
-        <div v-else-if="activeTab === 'Files'" :class="showEditor || company.status === 'Regenerating' ? 'flex gap-5 items-start' : 'max-w-xl'">
-          <div class="bg-surface-raised border border-border rounded-xl p-5 flex-shrink-0" :class="showEditor || company.status === 'Regenerating' ? 'w-80' : ''">
+        <div v-else-if="activeTab === 'Files'" :class="showEditor || company.status === 'Regenerating' ? 'flex flex-col md:flex-row gap-5 items-stretch md:items-start' : 'max-w-xl'">
+          <div class="bg-surface-raised border border-border rounded-xl p-4 sm:p-5 flex-shrink-0" :class="showEditor || company.status === 'Regenerating' ? 'w-full md:w-80' : ''">
             <p class="text-xs font-semibold text-text-muted uppercase tracking-wider mb-4">Vault Files</p>
             <div class="space-y-2">
               <!-- CV PDF — opens in browser -->
@@ -1028,12 +1032,12 @@ const OUTCOME_STYLE: Record<string, { selected: string; unselected: string }> = 
                         :class="['text-[10px] font-semibold px-2 py-0.5 rounded-full transition-all',
                           iv.outcome === o
                             ? (OUTCOME_STYLE[o]?.selected ?? 'bg-slate-500 text-white')
-                            : 'bg-transparent text-text-muted opacity-0 group-hover:opacity-60 hover:!opacity-100 ' + (OUTCOME_STYLE[o]?.unselected ?? '')]">
+                            : 'bg-transparent text-text-muted opacity-60 md:opacity-0 md:group-hover:opacity-60 hover:!opacity-100 ' + (OUTCOME_STYLE[o]?.unselected ?? '')]">
                         {{ o === 'Pass' ? '✓' : o === 'Fail' ? '✗' : '⏳' }}
                       </button>
                       <!-- Delete -->
                       <button @click="deleteInterview(idx)"
-                        class="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-lg hover:bg-red-500/15 text-text-muted hover:text-red-400">
+                        class="md:opacity-0 md:group-hover:opacity-100 transition-opacity p-1 rounded-lg hover:bg-red-500/15 text-text-muted hover:text-red-400">
                         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                       </button>
                     </div>
@@ -1063,11 +1067,11 @@ const OUTCOME_STYLE: Record<string, { selected: string; unselected: string }> = 
 
           <!-- Add interview form -->
           <Transition enter-active-class="transition-all duration-200 ease-out" enter-from-class="opacity-0 -translate-y-2" enter-to-class="opacity-100 translate-y-0">
-            <div v-if="addingInterview" class="bg-surface-raised border border-accent/40 rounded-xl p-5 space-y-4">
+            <div v-if="addingInterview" class="bg-surface-raised border border-accent/40 rounded-xl p-4 sm:p-5 space-y-4">
               <p class="text-sm font-semibold text-text-primary">Log Interview Round</p>
 
               <!-- Date + Type row -->
-              <div class="grid grid-cols-2 gap-3">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label class="block text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-1.5">Date</label>
                   <input v-model="newInterview.date" type="date"
@@ -1136,10 +1140,10 @@ const OUTCOME_STYLE: Record<string, { selected: string; unselected: string }> = 
         </div>
 
         <!-- ── PIPELINE ── -->
-        <div v-else-if="activeTab === 'Journey'" class="grid grid-cols-3 gap-6">
+        <div v-else-if="activeTab === 'Journey'" class="grid grid-cols-1 md:grid-cols-3 gap-6">
 
           <!-- LEFT: Timeline (2 cols) -->
-          <div class="col-span-2 space-y-5">
+          <div class="md:col-span-2 space-y-5">
             <!-- Header + Progress -->
             <div>
               <div class="flex items-center justify-between mb-4">
@@ -1213,10 +1217,10 @@ const OUTCOME_STYLE: Record<string, { selected: string; unselected: string }> = 
           </div>
 
           <!-- RIGHT: Summary panel (1 col) -->
-          <div class="col-span-1 space-y-4">
+          <div class="space-y-4">
 
             <!-- Status card -->
-            <div class="bg-surface-raised border border-border rounded-xl p-5">
+            <div class="bg-surface-raised border border-border rounded-xl p-4 sm:p-5">
               <p class="text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-4">Status</p>
               <div class="flex items-center gap-3 mb-4">
                 <div :class="['w-10 h-10 rounded-full flex items-center justify-center',
@@ -1251,7 +1255,7 @@ const OUTCOME_STYLE: Record<string, { selected: string; unselected: string }> = 
             </div>
 
             <!-- Key dates -->
-            <div class="bg-surface-raised border border-border rounded-xl p-5">
+            <div class="bg-surface-raised border border-border rounded-xl p-4 sm:p-5">
               <p class="text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-3">Key Dates</p>
               <div class="space-y-2.5">
                 <div v-if="company.applied_date" class="flex items-center justify-between">
@@ -1289,7 +1293,7 @@ const OUTCOME_STYLE: Record<string, { selected: string; unselected: string }> = 
             </div>
 
             <!-- Notes breakdown -->
-            <div class="bg-surface-raised border border-border rounded-xl p-5">
+            <div class="bg-surface-raised border border-border rounded-xl p-4 sm:p-5">
               <p class="text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-3">Notes by Category</p>
               <div class="space-y-2">
                 <div v-for="cat in NOTE_CATEGORIES" :key="cat" class="flex items-center gap-2.5">
