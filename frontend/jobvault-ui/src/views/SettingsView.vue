@@ -69,12 +69,12 @@ onMounted(loadSettings)
   <div class="flex-1 flex flex-col overflow-hidden">
     <AppHeader title="Settings" />
 
-    <div class="flex-1 overflow-y-auto p-6">
+    <div class="flex-1 overflow-y-auto p-4 md:p-6">
       <div v-if="loading" class="text-sm text-text-muted text-center py-12">Loading settings...</div>
 
       <div v-else class="max-w-2xl space-y-6">
         <!-- GitHub -->
-        <div class="bg-surface-raised border border-border rounded-xl p-5">
+        <div class="bg-surface-raised border border-border rounded-xl p-4 sm:p-5">
           <div class="flex items-center gap-2 mb-4">
             <div class="w-8 h-8 rounded-lg bg-slate-500/10 flex items-center justify-center">
               <svg class="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -87,7 +87,7 @@ onMounted(loadSettings)
             </div>
           </div>
 
-          <div class="grid grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label class="block text-xs font-medium text-text-muted uppercase tracking-wider mb-1">Owner</label>
               <input v-model="form.gitHub.owner" placeholder="e.g. your-username"
@@ -103,7 +103,7 @@ onMounted(loadSettings)
               <input v-model="form.gitHub.branch"
                 class="w-full bg-surface-overlay border border-border rounded-lg px-3 py-2 text-sm text-text-primary outline-none focus:border-accent"/>
             </div>
-            <div class="col-span-2 border-t border-border pt-4 mt-1">
+            <div class="col-span-1 sm:col-span-2 border-t border-border pt-4 mt-1">
               <p class="text-xs text-text-muted mb-3">File naming used when generating CV and cover letter documents</p>
             </div>
             <div>
@@ -122,7 +122,7 @@ onMounted(loadSettings)
         </div>
 
         <!-- Telegram -->
-        <div class="bg-surface-raised border border-border rounded-xl p-5">
+        <div class="bg-surface-raised border border-border rounded-xl p-4 sm:p-5">
           <div class="flex items-center gap-2 mb-4">
             <div class="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
               <svg class="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
