@@ -79,7 +79,7 @@ function formatDate(iso: string) {
   <div class="flex-1 flex flex-col h-full overflow-hidden">
     <AppHeader title="Job Queue" />
 
-    <div class="flex-1 overflow-y-auto p-6 space-y-6">
+    <div class="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
 
       <!-- Add URL -->
       <form @submit.prevent="handleAdd" class="space-y-2">
@@ -104,8 +104,8 @@ function formatDate(iso: string) {
       </form>
 
       <!-- Filter tabs + cleanup -->
-      <div class="flex items-center justify-between">
-        <div class="flex gap-1">
+      <div class="flex items-center justify-between flex-wrap gap-2">
+        <div class="flex gap-1 flex-wrap">
           <button v-for="s in (['all', 'pending', 'done', 'failed'] as const)" :key="s"
             @click="filterStatus = s"
             class="px-3 py-1.5 text-xs font-medium rounded-lg transition-colors capitalize"
@@ -140,8 +140,8 @@ function formatDate(iso: string) {
       </div>
 
       <!-- Jobs table -->
-      <div v-else class="border border-border rounded-xl overflow-hidden">
-        <table class="w-full">
+      <div v-else class="border border-border rounded-xl overflow-x-auto">
+        <table class="w-full min-w-[560px]">
           <thead>
             <tr class="bg-surface-overlay text-text-muted text-xs uppercase tracking-wider">
               <th class="text-left px-4 py-3 font-medium">URL</th>

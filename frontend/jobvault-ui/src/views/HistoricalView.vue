@@ -250,7 +250,7 @@ const hoveredBar  = ref<{ date: string; count: number } | null>(null)
 <template>
   <div class="flex flex-col h-full">
     <AppHeader title="Historical" />
-    <div class="flex-1 overflow-y-auto p-6 space-y-6">
+    <div class="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
 
       <!-- Loading -->
       <div v-if="loading" class="space-y-4 animate-pulse">
@@ -272,7 +272,7 @@ const hoveredBar  = ref<{ date: string; count: number } | null>(null)
       <template v-else-if="stats">
 
         <!-- Header stats -->
-        <div class="grid grid-cols-4 gap-4">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div class="bg-surface-raised border border-border rounded-2xl p-5">
             <p class="text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-3">Total Applications</p>
             <p class="text-4xl font-bold text-text-primary font-mono">{{ stats.total.toLocaleString() }}</p>
@@ -296,10 +296,10 @@ const hoveredBar  = ref<{ date: string; count: number } | null>(null)
         </div>
 
         <!-- Source breakdown -->
-        <div class="bg-surface-raised border border-border rounded-2xl p-6">
+        <div class="bg-surface-raised border border-border rounded-2xl p-4 md:p-6">
           <p class="text-xs font-semibold text-text-muted uppercase tracking-wider mb-5">Source Breakdown</p>
-          <div class="flex items-end gap-6">
-            <div v-for="(count, source) in stats.sources" :key="source" class="flex-1">
+          <div class="flex flex-wrap items-end gap-4 md:gap-6">
+            <div v-for="(count, source) in stats.sources" :key="source" class="flex-1 min-w-[110px]">
               <div class="flex items-center justify-between mb-2">
                 <div class="flex items-center gap-2">
                   <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" :style="{ background: SOURCE_COLORS[source] ?? '#64748b' }"/>
@@ -327,7 +327,7 @@ const hoveredBar  = ref<{ date: string; count: number } | null>(null)
         </div>
 
         <!-- Monthly chart -->
-        <div v-if="activeView === 'monthly'" class="bg-surface-raised border border-border rounded-2xl p-6">
+        <div v-if="activeView === 'monthly'" class="bg-surface-raised border border-border rounded-2xl p-4 md:p-6">
           <div class="flex items-center justify-between mb-1">
             <div>
               <h3 class="text-sm font-semibold text-text-primary">Applications per Month</h3>
@@ -358,7 +358,7 @@ const hoveredBar  = ref<{ date: string; count: number } | null>(null)
         </div>
 
         <!-- Weekly chart -->
-        <div v-else-if="activeView === 'weekly'" class="bg-surface-raised border border-border rounded-2xl p-6">
+        <div v-else-if="activeView === 'weekly'" class="bg-surface-raised border border-border rounded-2xl p-4 md:p-6">
           <div class="flex items-center justify-between mb-1">
             <div>
               <h3 class="text-sm font-semibold text-text-primary">Applications per Week</h3>
@@ -388,7 +388,7 @@ const hoveredBar  = ref<{ date: string; count: number } | null>(null)
         </div>
 
         <!-- Heatmap -->
-        <div v-else-if="activeView === 'heatmap'" class="bg-surface-raised border border-border rounded-2xl p-6">
+        <div v-else-if="activeView === 'heatmap'" class="bg-surface-raised border border-border rounded-2xl p-4 md:p-6">
           <div class="flex items-center justify-between mb-4">
             <div>
               <h3 class="text-sm font-semibold text-text-primary">Activity Heatmap</h3>
@@ -437,7 +437,7 @@ const hoveredBar  = ref<{ date: string; count: number } | null>(null)
         </div>
 
         <!-- Cumulative growth -->
-        <div class="bg-surface-raised border border-border rounded-2xl p-6">
+        <div class="bg-surface-raised border border-border rounded-2xl p-4 md:p-6">
           <div class="flex items-center justify-between mb-1">
             <div>
               <h3 class="text-sm font-semibold text-text-primary">Cumulative Growth</h3>
@@ -465,7 +465,7 @@ const hoveredBar  = ref<{ date: string; count: number } | null>(null)
         </div>
 
         <!-- Top months table -->
-        <div class="bg-surface-raised border border-border rounded-2xl p-6">
+        <div class="bg-surface-raised border border-border rounded-2xl p-4 md:p-6">
           <h3 class="text-sm font-semibold text-text-primary mb-4">Top Months by Volume</h3>
           <div class="space-y-2">
             <div v-for="([month, count], i) in [...monthlyData.bars].sort(([,a],[,b])=>b-a).slice(0,8)" :key="month"

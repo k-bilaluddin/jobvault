@@ -1,14 +1,19 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import CompanyAvatar from '@/components/common/CompanyAvatar.vue'
 import { useCompanies } from '@/composables/useCompanies'
+import { useSidebar } from '@/composables/useSidebar'
 import { STAGE_COLORS, matchPctColor } from '@/utils/score'
 import type { ApplicationStage } from '@/types'
 import { api } from '@/api'
 
 const route = useRoute()
 const { companies, filtered, search: sidebarSearch, refresh } = useCompanies()
+const { sidebarOpen, closeSidebar } = useSidebar()
+
+// Close the mobile drawer whenever the route changes
+watch(() => route.fullPath, () => closeSidebar())
 
 // ── Follow-up dues ────────────────────────────────────────────
 const today = new Date().toISOString().split('T')[0]
@@ -101,14 +106,28 @@ async function syncVault() {
 </script>
 
 <template>
-  <aside class="w-52 flex-shrink-0 flex flex-col h-full bg-surface-raised border-r border-border">
+  <!-- Mobile backdrop -->
+  <Transition name="backdrop">
+    <div v-if="sidebarOpen" class="fixed inset-0 z-30 bg-black/50 md:hidden" @click="closeSidebar"/>
+  </Transition>
+
+  <aside
+    class="w-64 md:w-52 flex-shrink-0 flex flex-col h-full bg-surface-raised border-r border-border fixed inset-y-0 left-0 z-40 transform transition-transform duration-200 ease-out md:static md:translate-x-0"
+    :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'">
 
     <!-- Logo -->
-    <div class="px-4 pt-5 pb-3">
-      <span class="text-lg font-bold">
-        <span class="text-text-primary">Job</span><span class="text-accent">Vault</span>
-      </span>
-      <p class="text-[10px] text-text-muted mt-0.5 tracking-widest uppercase">Bilal · Frankfurt · 2026</p>
+    <div class="px-4 pt-5 pb-3 flex items-center justify-between">
+      <div>
+        <span class="text-lg font-bold">
+          <span class="text-text-primary">Job</span><span class="text-accent">Vault</span>
+        </span>
+        <p class="text-[10px] text-text-muted mt-0.5 tracking-widest uppercase">Bilal · Frankfurt · 2026</p>
+      </div>
+      <button class="md:hidden p-1.5 rounded-lg text-text-muted hover:bg-surface-overlay hover:text-text-primary transition-colors" @click="closeSidebar">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
     </div>
 
     <!-- Follow-up banner -->
@@ -226,4 +245,7 @@ async function syncVault() {
 <style scoped>
 .toast-enter-active, .toast-leave-active { transition: all 0.3s ease; }
 .toast-enter-from, .toast-leave-to { opacity: 0; transform: translateY(8px); }
+
+.backdrop-enter-active, .backdrop-leave-active { transition: opacity 0.2s ease; }
+.backdrop-enter-from, .backdrop-leave-to { opacity: 0; }
 </style>

@@ -57,7 +57,7 @@ const topGaps = computed(() => gaps.value.slice(0, 3))
 <template>
   <div class="flex flex-col h-full">
     <AppHeader title="Skills Gap" />
-    <div class="flex-1 overflow-y-auto p-6 space-y-5">
+    <div class="flex-1 overflow-y-auto p-4 md:p-6 space-y-5">
 
       <!-- Loading -->
       <div v-if="loading" class="space-y-3 animate-pulse">
@@ -74,7 +74,7 @@ const topGaps = computed(() => gaps.value.slice(0, 3))
       <template v-else>
 
         <!-- Summary cards -->
-        <div class="grid grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div class="bg-surface-raised border border-border rounded-xl p-5">
             <p class="text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">Unique Gaps</p>
             <p class="text-3xl font-bold text-text-primary font-mono">{{ gaps.length }}</p>
@@ -126,7 +126,7 @@ const topGaps = computed(() => gaps.value.slice(0, 3))
             :class="severityColor(gap.count).bg">
 
             <!-- Row -->
-            <div class="flex items-center gap-4 px-4 py-3 cursor-pointer"
+            <div class="flex items-center gap-2 sm:gap-4 px-3 sm:px-4 py-3 cursor-pointer"
               @click="expandedSkill = expandedSkill === gap.skill ? null : gap.skill">
               <!-- Rank -->
               <span class="text-xs font-mono text-text-muted w-5 flex-shrink-0 text-right">{{ i + 1 }}</span>
@@ -140,7 +140,7 @@ const topGaps = computed(() => gaps.value.slice(0, 3))
               </div>
 
               <!-- Bar -->
-              <div class="w-32 h-1.5 bg-surface-overlay rounded-full overflow-hidden flex-shrink-0">
+              <div class="hidden sm:block w-32 h-1.5 bg-surface-overlay rounded-full overflow-hidden flex-shrink-0">
                 <div :class="['h-full rounded-full transition-all duration-700', severityColor(gap.count).bar]"
                   :style="{ width: `${(gap.count / maxCount) * 100}%` }"/>
               </div>
