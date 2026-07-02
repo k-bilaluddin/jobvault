@@ -168,14 +168,14 @@ const avgSalary = computed(() => {
   <div class="flex flex-col h-full">
     <AppHeader title="Dashboard" />
 
-    <div v-if="loading" class="flex-1 p-6 grid grid-cols-4 gap-4 animate-pulse">
+    <div v-if="loading" class="flex-1 p-4 md:p-6 grid grid-cols-2 md:grid-cols-4 gap-4 animate-pulse">
       <div v-for="i in 4" :key="i" class="bg-surface-raised border border-border rounded-xl h-28"/>
     </div>
 
-    <div v-else class="flex-1 overflow-y-auto p-6 space-y-5">
+    <div v-else class="flex-1 overflow-y-auto p-4 md:p-6 space-y-5">
 
       <!-- Overview cards -->
-      <div class="grid grid-cols-4 gap-4">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div class="bg-surface-raised border border-border rounded-xl p-5">
           <p class="text-xs font-semibold text-text-muted uppercase tracking-wider mb-3">Total</p>
           <p class="text-3xl font-bold text-text-primary font-mono">{{ stats.total }}</p>
@@ -201,7 +201,7 @@ const avgSalary = computed(() => {
       </div>
 
       <!-- Secondary stats -->
-      <div class="grid grid-cols-3 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div class="bg-surface-raised border border-border rounded-xl p-4 flex items-center gap-4">
           <div class="w-10 h-10 rounded-xl bg-red-500/15 flex items-center justify-center flex-shrink-0">
             <svg class="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -306,7 +306,7 @@ const avgSalary = computed(() => {
       </div>
 
       <!-- Pipeline + Score Distribution -->
-      <div class="grid grid-cols-2 gap-5">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
         <div class="bg-surface-raised border border-border rounded-xl p-5">
           <div class="flex items-center justify-between mb-5">
             <h3 class="text-sm font-semibold text-text-primary">Pipeline Funnel</h3>
@@ -366,7 +366,7 @@ const avgSalary = computed(() => {
       </div>
 
       <!-- Top Matches + Recent Activity -->
-      <div class="grid grid-cols-2 gap-5">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
 
         <!-- Top matches not yet applied -->
         <div class="bg-surface-raised border border-border rounded-xl p-5">

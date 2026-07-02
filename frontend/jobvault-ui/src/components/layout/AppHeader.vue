@@ -4,12 +4,14 @@ import { useRouter } from 'vue-router'
 import { useTheme } from '@/composables/useTheme'
 import { usePWA } from '@/composables/usePWA'
 import { useNotifications } from '@/composables/useNotifications'
+import { useSidebar } from '@/composables/useSidebar'
 
 defineProps<{ title: string }>()
 
 const { isDark, toggle } = useTheme()
 const router = useRouter()
 const { canInstall, install } = usePWA()
+const { toggleSidebar } = useSidebar()
 const { notifications, unreadCount, connected, markAllRead, markRead } = useNotifications()
 
 const dropdownOpen = ref(false)
@@ -85,28 +87,36 @@ onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
 </script>
 
 <template>
-  <header class="flex items-center justify-between px-6 py-4 border-b border-border bg-surface-raised flex-shrink-0">
-    <h1 class="text-base font-semibold text-text-primary">{{ title }}</h1>
+  <header class="flex items-center justify-between gap-3 px-4 md:px-6 py-4 border-b border-border bg-surface-raised flex-shrink-0">
+    <div class="flex items-center gap-3 min-w-0">
+      <!-- Mobile menu toggle -->
+      <button class="md:hidden p-1.5 -ml-1.5 rounded-lg text-text-muted hover:bg-surface-overlay hover:text-text-primary transition-colors flex-shrink-0" @click="toggleSidebar">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
+      </button>
+      <h1 class="text-base font-semibold text-text-primary truncate">{{ title }}</h1>
+    </div>
 
-    <div class="flex items-center gap-3">
+    <div class="flex items-center gap-2 md:gap-3 flex-shrink-0">
       <!-- Connection status -->
       <div class="flex items-center gap-1.5 text-xs text-text-muted">
         <span
           class="w-2 h-2 rounded-full"
           :class="connected ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'"
         />
-        <span class="text-text-secondary font-medium">
+        <span class="hidden sm:inline text-text-secondary font-medium">
           {{ connected ? 'Connected' : 'Disconnected' }}
         </span>
       </div>
 
       <!-- PWA Install -->
       <button v-if="canInstall" @click="install"
-        class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-accent/15 text-accent border border-accent/30 rounded-lg hover:bg-accent/25 transition-colors">
-        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        class="flex items-center gap-1.5 px-2.5 md:px-3 py-1.5 text-xs font-medium bg-accent/15 text-accent border border-accent/30 rounded-lg hover:bg-accent/25 transition-colors">
+        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
         </svg>
-        Install App
+        <span class="hidden sm:inline">Install App</span>
       </button>
 
       <!-- Notifications -->
@@ -129,7 +139,7 @@ onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
         <!-- Dropdown -->
         <div
           v-if="dropdownOpen"
-          class="absolute right-0 top-full mt-2 w-80 bg-surface-raised border border-border rounded-xl shadow-xl z-50 overflow-hidden"
+          class="absolute right-0 top-full mt-2 w-[calc(100vw-2rem)] max-w-80 bg-surface-raised border border-border rounded-xl shadow-xl z-50 overflow-hidden"
         >
           <!-- Header -->
           <div class="flex items-center justify-between px-4 py-3 border-b border-border">
