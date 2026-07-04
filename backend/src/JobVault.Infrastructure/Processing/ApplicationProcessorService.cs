@@ -200,16 +200,29 @@ public class ApplicationProcessorService : IApplicationProcessorService
             // "LibreOffice": { "ExecutablePath": "C:\\Program Files\\LibreOffice\\program\\soffice.exe" }
             var libreOfficePath = _configuration["LibreOffice:ExecutablePath"] ?? "libreoffice";
 
+            // Isolated user profile per conversion — without this, back-to-back soffice invocations
+            // race on the shared default profile lock: the second call can attach to the first
+            // instance's still-shutting-down soffice.bin, exit 0, and silently produce no PDF.
+            var profileDir = Path.Combine(tempDir, "profile");
+            Directory.CreateDirectory(profileDir);
+            var profileUri = new Uri(profileDir).AbsoluteUri;
+
             using var process = new System.Diagnostics.Process();
             process.StartInfo = new System.Diagnostics.ProcessStartInfo
             {
                 FileName = libreOfficePath,
-                Arguments = $"--headless --convert-to pdf --outdir \"{tempDir}\" \"{docxPath}\"",
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
                 CreateNoWindow = true
             };
+            process.StartInfo.ArgumentList.Add($"-env:UserInstallation={profileUri}");
+            process.StartInfo.ArgumentList.Add("--headless");
+            process.StartInfo.ArgumentList.Add("--convert-to");
+            process.StartInfo.ArgumentList.Add("pdf");
+            process.StartInfo.ArgumentList.Add("--outdir");
+            process.StartInfo.ArgumentList.Add(tempDir);
+            process.StartInfo.ArgumentList.Add(docxPath);
 
             process.Start();
             var stderr = await process.StandardError.ReadToEndAsync(cancellationToken);
