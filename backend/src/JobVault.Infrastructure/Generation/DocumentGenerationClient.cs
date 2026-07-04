@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 using JobVault.Application.Interfaces;
 using JobVault.Domain.Entities;
 using Microsoft.Extensions.Logging;
+using System.Linq;
 
 namespace JobVault.Infrastructure.Generation;
 
@@ -65,7 +66,10 @@ public sealed class DocumentGenerationClient : IDocumentGenerationClient
         Skills = app.Skills,
         Roles = app.Roles,
         Recipient = app.Recipient,
-        CoverLetterParagraphs = app.CoverLetterParagraphs,
+        // Trimmed: a trailing newline on a paragraph makes the generation service emit an
+        // unclosed <w:t> run for the empty tail text, producing a DOCX LibreOffice can't parse
+        // (fails silently with exit code 0 — see ApplicationProcessorService.ConvertDocxToPdfAsync).
+        CoverLetterParagraphs = app.CoverLetterParagraphs.Select(p => p.Trim()).ToList(),
         CompatibilityScore = app.MatchScore,
         Strengths = app.Strengths,
         Gaps = app.Gaps,
