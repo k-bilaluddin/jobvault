@@ -1,6 +1,8 @@
+using System.Text.RegularExpressions;
 using JobVault.Application.Common;
 using JobVault.Application.Interfaces;
 using JobVault.Domain.Entities;
+using JobVault.Domain.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using MongoDB.Bson;
@@ -30,8 +32,19 @@ public class MongoDbService : IJobApplicationRepository
         var database = client.GetDatabase(databaseName);
         _collection = database.GetCollection<JobApplicationDocument>(collectionName);
 
+        EnsureIndexes();
+
         _logger.LogInformation("MongoDbService initialized with database: {Database}, collection: {Collection}",
             databaseName, collectionName);
+    }
+
+    private void EnsureIndexes()
+    {
+        var jobUrlNormalizedIndex = new CreateIndexModel<JobApplicationDocument>(
+            Builders<JobApplicationDocument>.IndexKeys.Ascending(d => d.JobUrlNormalized),
+            new CreateIndexOptions { Sparse = true });
+
+        _collection.Indexes.CreateMany([jobUrlNormalizedIndex]);
     }
 
     public async Task<UpsertResult> UpsertApplicationAsync(JobApplication application)
@@ -44,57 +57,108 @@ public class MongoDbService : IJobApplicationRepository
                 return UpsertResult.Failure();
             }
 
-            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.CompanyName, application.CompanyName);
-            var existing = await _collection.Find(filter).FirstOrDefaultAsync();
+            var existing = await FindMatchAsync(application);
+            if (existing == null)
+                return await InsertNewAsync(application);
 
-            application.UpdatedAt = DateTime.UtcNow;
-            var isNew = existing == null;
-
-            string id;
-            if (isNew)
+            return ApplicationStatusGuard.Resolve(existing.Status) switch
             {
-                application.CreatedAt = DateTime.UtcNow;
-                id = ObjectId.GenerateNewId().ToString();
-            }
-            else
-            {
-                application.CreatedAt = existing!.CreatedAt ?? DateTime.UtcNow;
-                id = existing.Id;
-            }
-
-            var doc = JobApplicationMapper.ToDocument(application, id);
-
-            if (isNew)
-            {
-                await _collection.InsertOneAsync(doc);
-                _logger.LogInformation("Inserted new job application for {CompanyName} (id={Id})", application.CompanyName, id);
-            }
-            else
-            {
-                // Preserve existing tracker fields on re-ingestion
-                doc.Stage = (existing!.Stage?.Length > 0) ? existing.Stage : "Ready to Apply";
-                doc.Applied = existing.Applied ?? false;
-                doc.AppliedDate = existing.AppliedDate;
-                doc.PersonalNotes = existing.PersonalNotes ?? "";
-                doc.Interviews = existing.Interviews ?? [];
-                doc.Notes = existing.Notes ?? [];
-                doc.Salary = existing.Salary ?? new SalaryDocument();
-                doc.Recruiter = existing.Recruiter ?? new RecruiterDocument();
-                doc.FollowUpDate = existing.FollowUpDate;
-                doc.Source = (existing.Source?.Length > 0) ? existing.Source : doc.Source;
-                doc.IsHistorical = existing.IsHistorical ?? false;
-
-                await _collection.ReplaceOneAsync(filter, doc);
-                _logger.LogInformation("Updated existing job application for {CompanyName} (id={Id})", application.CompanyName, id);
-            }
-
-            return UpsertResult.Success(isNew, id);
+                IngestionMatchAction.UpdateInPlace => await ReplaceExistingAsync(existing, application),
+                IngestionMatchAction.NoOp => UpsertResult.NoOp(existing.Id),
+                _ => await InsertNewAsync(application),
+            };
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error upserting job application for {CompanyName}", application.CompanyName);
             return UpsertResult.Failure();
         }
+    }
+
+    public async Task<UpsertResult> UpdateApplicationByIdAsync(string applicationId, JobApplication application, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.Id, applicationId);
+            var existing = await _collection.Find(filter).FirstOrDefaultAsync(cancellationToken);
+            if (existing == null)
+            {
+                _logger.LogWarning("UpdateApplicationByIdAsync: application not found: {Id}", applicationId);
+                return UpsertResult.Failure();
+            }
+
+            return await ReplaceExistingAsync(existing, application);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating job application by id={Id}", applicationId);
+            return UpsertResult.Failure();
+        }
+    }
+
+    /// <summary>
+    /// Tier 1 (normalized URL) then Tier 2 (company+title fallback) of the identity resolution
+    /// cascade. Tier 0 (PendingJob.SourceApplicationId) is resolved by the caller before this is
+    /// ever reached — see ApplicationIngestionService.
+    /// </summary>
+    private async Task<JobApplicationDocument?> FindMatchAsync(JobApplication application)
+    {
+        if (!string.IsNullOrWhiteSpace(application.JobUrlNormalized))
+        {
+            var urlFilter = Builders<JobApplicationDocument>.Filter.Eq(d => d.JobUrlNormalized, application.JobUrlNormalized);
+            var urlMatch = await _collection.Find(urlFilter).FirstOrDefaultAsync();
+            if (urlMatch != null)
+                return urlMatch;
+        }
+
+        var companyPattern = new BsonRegularExpression($"^{Regex.Escape(application.CompanyName.Trim())}$", "i");
+        var titlePattern = new BsonRegularExpression($"^{Regex.Escape(application.JobTitle.Trim())}$", "i");
+
+        var fallbackFilter = Builders<JobApplicationDocument>.Filter.And(
+            Builders<JobApplicationDocument>.Filter.Regex(d => d.CompanyName, companyPattern),
+            Builders<JobApplicationDocument>.Filter.Regex(d => d.JobTitle, titlePattern));
+
+        return await _collection.Find(fallbackFilter).FirstOrDefaultAsync();
+    }
+
+    private async Task<UpsertResult> InsertNewAsync(JobApplication application)
+    {
+        var id = ObjectId.GenerateNewId().ToString();
+        application.CreatedAt = DateTime.UtcNow;
+        application.UpdatedAt = DateTime.UtcNow;
+
+        var doc = JobApplicationMapper.ToDocument(application, id);
+        await _collection.InsertOneAsync(doc);
+
+        _logger.LogInformation("Inserted new job application for {CompanyName} (id={Id})", application.CompanyName, id);
+        return UpsertResult.Success(isNewDocument: true, id);
+    }
+
+    private async Task<UpsertResult> ReplaceExistingAsync(JobApplicationDocument existing, JobApplication application)
+    {
+        application.UpdatedAt = DateTime.UtcNow;
+        application.CreatedAt = existing.CreatedAt ?? DateTime.UtcNow;
+
+        var doc = JobApplicationMapper.ToDocument(application, existing.Id);
+
+        // Preserve existing tracker fields on re-ingestion
+        doc.Stage = (existing.Stage?.Length > 0) ? existing.Stage : "Ready to Apply";
+        doc.Applied = existing.Applied ?? false;
+        doc.AppliedDate = existing.AppliedDate;
+        doc.PersonalNotes = existing.PersonalNotes ?? "";
+        doc.Interviews = existing.Interviews ?? [];
+        doc.Notes = existing.Notes ?? [];
+        doc.Salary = existing.Salary ?? new SalaryDocument();
+        doc.Recruiter = existing.Recruiter ?? new RecruiterDocument();
+        doc.FollowUpDate = existing.FollowUpDate;
+        doc.Source = (existing.Source?.Length > 0) ? existing.Source : doc.Source;
+        doc.IsHistorical = existing.IsHistorical ?? false;
+
+        var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.Id, existing.Id);
+        await _collection.ReplaceOneAsync(filter, doc);
+
+        _logger.LogInformation("Updated existing job application for {CompanyName} (id={Id})", application.CompanyName, existing.Id);
+        return UpsertResult.Success(isNewDocument: false, existing.Id);
     }
 
     public async Task<JobApplication?> GetByIdAsync(string id, CancellationToken cancellationToken = default)

@@ -482,7 +482,7 @@ public class ApplicationQueryService : IApplicationQueryService
         if (app == null) return null;
         if (string.IsNullOrWhiteSpace(app.JobUrl)) return null;
 
-        var job = await _pendingJobService.CreateAsync(app.JobUrl, prompt, cancellationToken);
+        var job = await _pendingJobService.CreateAsync(app.JobUrl, prompt, app.Id, cancellationToken);
 
         await _repository.UpdateStatusAsync(app.Id!, "Queued", cancellationToken: cancellationToken);
 

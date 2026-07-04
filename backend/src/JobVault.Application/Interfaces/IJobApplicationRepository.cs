@@ -15,9 +15,18 @@ public record ApplicationPageResult(
 public interface IJobApplicationRepository
 {
     /// <summary>
-    /// Inserts or updates a job application. Returns the MongoDB ObjectId in UpsertResult.Id.
+    /// Resolves an incoming ingestion against existing applications and inserts, updates, or no-ops
+    /// per the identity resolution cascade (normalized URL match -> company+title fallback match ->
+    /// status-guard -> insert). See issue #104. Returns the MongoDB ObjectId in UpsertResult.Id.
     /// </summary>
     Task<UpsertResult> UpsertApplicationAsync(JobApplication application);
+
+    /// <summary>
+    /// Updates an already-known application unconditionally, bypassing the resolution cascade and
+    /// status-guard entirely. Used when the caller already knows the exact target (e.g. a re-queue
+    /// completing via its linked PendingJob.SourceApplicationId) rather than inferring a match.
+    /// </summary>
+    Task<UpsertResult> UpdateApplicationByIdAsync(string applicationId, JobApplication application, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Fetches a job application by its MongoDB ObjectId string.
