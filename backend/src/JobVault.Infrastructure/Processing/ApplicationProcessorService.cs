@@ -96,11 +96,11 @@ public class ApplicationProcessorService : IApplicationProcessorService
         };
 
         // GitHub commit — propagate failures for consumer retry.
-        var ingestResult = await _fileIngestService.IngestAsync(application.CompanyName, files, cancellationToken);
+        var ingestResult = await _fileIngestService.IngestAsync(application.CompanyName, files, applicationId, cancellationToken);
         if (!ingestResult.IsSuccess)
             throw new InvalidOperationException(ingestResult.ErrorMessage ?? "GitHub commit returned failure");
 
-        _vaultFileService.EvictCache(application.CompanyName);
+        _vaultFileService.EvictCache(application.CompanyName, applicationId);
 
         await _repository.UpdateStatusAsync(
             applicationId,

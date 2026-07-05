@@ -52,92 +52,95 @@ public class ApplicationsController : ApiControllerBase
         return Ok(result);
     }
 
-    [HttpPost("{name}/stage")]
-    public async Task<IActionResult> UpdateStage(string name, [FromBody] UpdateStageRequest request, CancellationToken cancellationToken)
+    [HttpPost("{id}/stage")]
+    public async Task<IActionResult> UpdateStage(string id, [FromBody] UpdateStageRequest request, CancellationToken cancellationToken)
     {
-        var success = await _queryService.UpdateStageAsync(name, request.Stage, cancellationToken);
-        if (!success) return ErrorResponse("application.stage_update_failed", name);
+        var success = await _queryService.UpdateStageAsync(id, request.Stage, cancellationToken);
+        if (!success) return ErrorResponse("application.stage_update_failed", id);
         return Ok(new { ok = true, stage = request.Stage });
     }
 
-    [HttpPost("{name}/personal-notes")]
-    public async Task<IActionResult> UpdatePersonalNotes(string name, [FromBody] UpdateNotesRequest request, CancellationToken cancellationToken)
+    [HttpPost("{id}/personal-notes")]
+    public async Task<IActionResult> UpdatePersonalNotes(string id, [FromBody] UpdateNotesRequest request, CancellationToken cancellationToken)
     {
-        var success = await _queryService.UpdatePersonalNotesAsync(name, request.Notes, cancellationToken);
-        if (!success) return ErrorResponse("application.notes_update_failed", name);
+        var success = await _queryService.UpdatePersonalNotesAsync(id, request.Notes, cancellationToken);
+        if (!success) return ErrorResponse("application.notes_update_failed", id);
         return Ok(new { ok = true });
     }
 
-    [HttpPost("{name}/interviews")]
-    public async Task<IActionResult> AddInterview(string name, [FromBody] AddInterviewRequest request, CancellationToken cancellationToken)
+    [HttpPost("{id}/interviews")]
+    public async Task<IActionResult> AddInterview(string id, [FromBody] AddInterviewRequest request, CancellationToken cancellationToken)
     {
-        var result = await _queryService.AddInterviewAsync(name, request, cancellationToken);
-        if (result == null) return ErrorResponse("application.interview_add_failed", name);
+        var result = await _queryService.AddInterviewAsync(id, request, cancellationToken);
+        if (result == null) return ErrorResponse("application.interview_add_failed", id);
         return Ok(result);
     }
 
-    [HttpPut("{name}/interviews/{idx:int}")]
-    public async Task<IActionResult> UpdateInterview(string name, int idx, [FromBody] UpdateInterviewRequest request, CancellationToken cancellationToken)
+    [HttpPut("{id}/interviews/{idx:int}")]
+    public async Task<IActionResult> UpdateInterview(string id, int idx, [FromBody] UpdateInterviewRequest request, CancellationToken cancellationToken)
     {
-        var result = await _queryService.UpdateInterviewAsync(name, idx, request, cancellationToken);
-        if (result == null) return ErrorResponse("application.interview_update_failed", name);
+        var result = await _queryService.UpdateInterviewAsync(id, idx, request, cancellationToken);
+        if (result == null) return ErrorResponse("application.interview_update_failed", id);
         return Ok(result);
     }
 
-    [HttpDelete("{name}/interviews")]
-    public async Task<IActionResult> DeleteInterview(string name, [FromQuery] int idx, CancellationToken cancellationToken)
+    [HttpDelete("{id}/interviews")]
+    public async Task<IActionResult> DeleteInterview(string id, [FromQuery] int idx, CancellationToken cancellationToken)
     {
-        var success = await _queryService.DeleteInterviewAsync(name, idx, cancellationToken);
-        if (!success) return ErrorResponse("application.interview_del_failed", name);
+        var success = await _queryService.DeleteInterviewAsync(id, idx, cancellationToken);
+        if (!success) return ErrorResponse("application.interview_del_failed", id);
         return Ok(new { ok = true });
     }
 
-    [HttpPost("{name}/notes")]
-    public async Task<IActionResult> AddNote(string name, [FromBody] AddNoteRequest request, CancellationToken cancellationToken)
+    [HttpPost("{id}/notes")]
+    public async Task<IActionResult> AddNote(string id, [FromBody] AddNoteRequest request, CancellationToken cancellationToken)
     {
-        var result = await _queryService.AddNoteAsync(name, request, cancellationToken);
-        if (result == null) return ErrorResponse("application.note_add_failed", name);
+        var result = await _queryService.AddNoteAsync(id, request, cancellationToken);
+        if (result == null) return ErrorResponse("application.note_add_failed", id);
         return Ok(result);
     }
 
-    [HttpPut("{name}/notes/{noteId:int}")]
-    public async Task<IActionResult> UpdateNote(string name, int noteId, [FromBody] UpdateNoteRequest request, CancellationToken cancellationToken)
+    [HttpPut("{id}/notes/{noteId:int}")]
+    public async Task<IActionResult> UpdateNote(string id, int noteId, [FromBody] UpdateNoteRequest request, CancellationToken cancellationToken)
     {
-        var result = await _queryService.UpdateNoteAsync(name, noteId, request, cancellationToken);
-        if (result == null) return ErrorResponse("application.note_update_failed", name);
+        var result = await _queryService.UpdateNoteAsync(id, noteId, request, cancellationToken);
+        if (result == null) return ErrorResponse("application.note_update_failed", id);
         return Ok(result);
     }
 
-    [HttpDelete("{name}/notes/{noteId:int}")]
-    public async Task<IActionResult> DeleteNote(string name, int noteId, CancellationToken cancellationToken)
+    [HttpDelete("{id}/notes/{noteId:int}")]
+    public async Task<IActionResult> DeleteNote(string id, int noteId, CancellationToken cancellationToken)
     {
-        var success = await _queryService.DeleteNoteAsync(name, noteId, cancellationToken);
-        if (!success) return ErrorResponse("application.note_del_failed", name);
+        var success = await _queryService.DeleteNoteAsync(id, noteId, cancellationToken);
+        if (!success) return ErrorResponse("application.note_del_failed", id);
         return Ok(new { ok = true });
     }
 
-    [HttpGet("{name}/report")]
-    public async Task<IActionResult> GetReport(string name, CancellationToken cancellationToken)
+    [HttpGet("{id}/report")]
+    public async Task<IActionResult> GetReport(string id, CancellationToken cancellationToken)
     {
-        var html = await _queryService.GetReportHtmlAsync(name, cancellationToken);
+        var html = await _queryService.GetReportHtmlAsync(id, cancellationToken);
         return Ok(new { html = html ?? "<p style='opacity:.5'>No compatibility report found.</p>" });
     }
 
-    [HttpGet("{name}/notes")]
-    public async Task<IActionResult> GetNotes(string name, CancellationToken cancellationToken)
+    [HttpGet("{id}/notes")]
+    public async Task<IActionResult> GetNotes(string id, CancellationToken cancellationToken)
     {
-        var html = await _queryService.GetNotesHtmlAsync(name, cancellationToken);
+        var html = await _queryService.GetNotesHtmlAsync(id, cancellationToken);
         return Ok(new { html = html ?? "<p style='opacity:.5'>No tailoring notes found.</p>" });
     }
 
     [AllowAnonymous]
-    [HttpGet("{name}/pdf/{type}")]
-    public async Task<IActionResult> GetPdf(string name, string type, [FromQuery] string? token, CancellationToken cancellationToken)
+    [HttpGet("{id}/pdf/{type}")]
+    public async Task<IActionResult> GetPdf(string id, string type, [FromQuery] string? token, CancellationToken cancellationToken)
     {
         if (!_tokenService.ValidateToken(token)) return Unauthorized();
 
-        var bytes = await _vaultFileService.GetPdfBytesAsync(name, type, cancellationToken);
-        if (bytes == null) return ErrorResponse("vault.file_not_found", type, name);
+        var companyName = await _queryService.GetCompanyNameAsync(id, cancellationToken);
+        if (companyName == null) return ErrorResponse("application.not_found", id);
+
+        var bytes = await _vaultFileService.GetPdfBytesAsync(companyName, id, type, cancellationToken);
+        if (bytes == null) return ErrorResponse("vault.file_not_found", type, companyName);
 
         return File(bytes, "application/pdf");
     }
@@ -156,37 +159,37 @@ public class ApplicationsController : ApiControllerBase
         return Ok(result);
     }
 
-    [HttpGet("{name}/content")]
-    public async Task<IActionResult> GetContent(string name, CancellationToken cancellationToken)
+    [HttpGet("{id}/content")]
+    public async Task<IActionResult> GetContent(string id, CancellationToken cancellationToken)
     {
-        var result = await _queryService.GetContentAsync(name, cancellationToken);
-        if (result == null) return ErrorResponse("application.not_found", name);
+        var result = await _queryService.GetContentAsync(id, cancellationToken);
+        if (result == null) return ErrorResponse("application.not_found", id);
         return Ok(result);
     }
 
-    [HttpPatch("{name}/content")]
-    public async Task<IActionResult> UpdateContent(string name, [FromBody] UpdateContentRequest request, CancellationToken cancellationToken)
+    [HttpPatch("{id}/content")]
+    public async Task<IActionResult> UpdateContent(string id, [FromBody] UpdateContentRequest request, CancellationToken cancellationToken)
     {
-        var success = await _queryService.UpdateContentAsync(name, request, cancellationToken);
-        if (!success) return ErrorResponse("application.not_found", name);
+        var success = await _queryService.UpdateContentAsync(id, request, cancellationToken);
+        if (!success) return ErrorResponse("application.not_found", id);
         return Ok(new { ok = true });
     }
 
-    [HttpPost("{name}/regenerate")]
+    [HttpPost("{id}/regenerate")]
     [ProducesResponseType(StatusCodes.Status202Accepted)]
-    public async Task<IActionResult> Regenerate(string name, [FromBody] UpdateContentRequest? request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Regenerate(string id, [FromBody] UpdateContentRequest? request, CancellationToken cancellationToken)
     {
-        var applicationId = await _queryService.RegenerateAsync(name, request, cancellationToken);
-        if (applicationId == null) return ErrorResponse("application.not_found", name);
+        var applicationId = await _queryService.RegenerateAsync(id, request, cancellationToken);
+        if (applicationId == null) return ErrorResponse("application.not_found", id);
         return Accepted(new { ok = true, applicationId });
     }
 
-    [HttpPost("{name}/re-queue")]
+    [HttpPost("{id}/re-queue")]
     [ProducesResponseType(StatusCodes.Status202Accepted)]
-    public async Task<IActionResult> ReQueue(string name, [FromBody] ReQueueRequest? request, CancellationToken cancellationToken)
+    public async Task<IActionResult> ReQueue(string id, [FromBody] ReQueueRequest? request, CancellationToken cancellationToken)
     {
-        var jobId = await _queryService.ReQueueAsync(name, request?.Prompt, cancellationToken);
-        if (jobId == null) return ErrorResponse("application.not_found", name);
+        var jobId = await _queryService.ReQueueAsync(id, request?.Prompt, cancellationToken);
+        if (jobId == null) return ErrorResponse("application.not_found", id);
         return Accepted(new { ok = true, jobId });
     }
 

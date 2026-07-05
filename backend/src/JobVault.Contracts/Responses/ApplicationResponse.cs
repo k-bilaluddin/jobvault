@@ -2,6 +2,7 @@ namespace JobVault.Contracts.Responses;
 
 public class ApplicationResponse
 {
+    public string Id { get; init; } = "";
     public string Name { get; init; } = "";
     public string Synced_at { get; init; } = "";
     public bool Has_report { get; init; }

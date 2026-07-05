@@ -59,8 +59,8 @@ public class NotificationRepository : INotificationRepository
                 ["companyName"] = notification.CompanyName is not null
                     ? (BsonValue)notification.CompanyName
                     : BsonNull.Value,
-                ["companySlug"] = notification.CompanySlug is not null
-                    ? (BsonValue)notification.CompanySlug
+                ["companyId"] = notification.CompanyId is not null
+                    ? (BsonValue)notification.CompanyId
                     : BsonNull.Value,
                 ["occurredAt"] = notification.OccurredAt,
                 ["read"] = notification.Read
@@ -132,7 +132,7 @@ public class NotificationRepository : INotificationRepository
         Title = doc["title"].AsString,
         Body = doc["body"].AsString,
         CompanyName = doc["companyName"].IsBsonNull ? null : doc["companyName"].AsString,
-        CompanySlug = doc["companySlug"].IsBsonNull ? null : doc["companySlug"].AsString,
+        CompanyId = doc.GetValue("companyId", BsonNull.Value) is { IsBsonNull: false } companyId ? companyId.AsString : null,
         OccurredAt = doc["occurredAt"].ToUniversalTime(),
         Read = doc["read"].AsBoolean
     };

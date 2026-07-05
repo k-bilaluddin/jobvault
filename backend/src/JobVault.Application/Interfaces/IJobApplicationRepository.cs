@@ -54,23 +54,21 @@ public interface IJobApplicationRepository
         string sortDirection = "desc",
         CancellationToken cancellationToken = default);
 
-    Task<JobApplication?> GetByCompanyNameAsync(string companyName, CancellationToken cancellationToken = default);
+    Task<bool> UpdateStageAsync(string id, string stage, CancellationToken cancellationToken = default);
 
-    Task<bool> UpdateStageAsync(string companyName, string stage, CancellationToken cancellationToken = default);
+    Task<bool> UpdatePersonalNotesAsync(string id, string notes, CancellationToken cancellationToken = default);
 
-    Task<bool> UpdatePersonalNotesAsync(string companyName, string notes, CancellationToken cancellationToken = default);
+    Task<JobApplication?> AddInterviewAsync(string id, InterviewRecord interview, CancellationToken cancellationToken = default);
 
-    Task<JobApplication?> AddInterviewAsync(string companyName, InterviewRecord interview, CancellationToken cancellationToken = default);
+    Task<JobApplication?> UpdateInterviewAsync(string id, int index, string? date, string? type, string? notes, string? outcome, CancellationToken cancellationToken = default);
+    Task<bool> DeleteInterviewAsync(string id, int index, CancellationToken cancellationToken = default);
 
-    Task<JobApplication?> UpdateInterviewAsync(string companyName, int index, string? date, string? type, string? notes, string? outcome, CancellationToken cancellationToken = default);
-    Task<bool> DeleteInterviewAsync(string companyName, int index, CancellationToken cancellationToken = default);
-
-    Task<JobApplication?> AddNoteAsync(string companyName, ApplicationNote note, CancellationToken cancellationToken = default);
-    Task<JobApplication?> UpdateNoteAsync(string companyName, int noteId, string? category, string? content, bool? pinned, CancellationToken cancellationToken = default);
-    Task<bool> DeleteNoteAsync(string companyName, int noteId, CancellationToken cancellationToken = default);
+    Task<JobApplication?> AddNoteAsync(string id, ApplicationNote note, CancellationToken cancellationToken = default);
+    Task<JobApplication?> UpdateNoteAsync(string id, int noteId, string? category, string? content, bool? pinned, CancellationToken cancellationToken = default);
+    Task<bool> DeleteNoteAsync(string id, int noteId, CancellationToken cancellationToken = default);
 
     Task<bool> UpdateContentAsync(
-        string companyName,
+        string id,
         string? headline,
         string? summary,
         List<Domain.ValueObjects.SkillRow>? skills,

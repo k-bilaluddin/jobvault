@@ -4,6 +4,7 @@ using System.Text.Json;
 using JobVault.Application.Common;
 using JobVault.Application.Interfaces;
 using JobVault.Application.Models;
+using JobVault.Infrastructure.Vault;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -31,10 +32,15 @@ public class FileIngestService : IFileIngestService
     public async Task<FileIngestResult> IngestAsync(
         string companyName,
         IReadOnlyCollection<IngestedFile> files,
+        string? applicationId = null,
         CancellationToken cancellationToken = default)
     {
         try
         {
+            var folderName = applicationId != null
+                ? VaultPathBuilder.BuildFolderName(companyName, applicationId)
+                : companyName;
+
             var token = _configuration["GitHub:Token"];
             if (string.IsNullOrWhiteSpace(token))
             {
@@ -70,7 +76,7 @@ public class FileIngestService : IFileIngestService
                 }
 
                 var fileName = Path.GetFileName(file.FileName);
-                var filePath = $"{companyName}/{fileName}";
+                var filePath = $"{folderName}/{fileName}";
 
                 // Read file content and convert to base64
                 using var memoryStream = new MemoryStream();

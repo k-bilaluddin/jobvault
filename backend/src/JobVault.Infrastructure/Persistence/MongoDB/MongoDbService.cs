@@ -350,26 +350,11 @@ public class MongoDbService : IJobApplicationRepository
         };
     }
 
-    public async Task<JobApplication?> GetByCompanyNameAsync(string companyName, CancellationToken cancellationToken = default)
+    public async Task<bool> UpdateStageAsync(string id, string stage, CancellationToken cancellationToken = default)
     {
         try
         {
-            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.CompanyName, companyName);
-            var doc = await _collection.Find(filter).FirstOrDefaultAsync(cancellationToken);
-            return doc == null ? null : JobApplicationMapper.ToDomain(doc);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error fetching job application by companyName={CompanyName}", companyName);
-            return null;
-        }
-    }
-
-    public async Task<bool> UpdateStageAsync(string companyName, string stage, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.CompanyName, companyName);
+            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.Id, id);
 
             var update = Builders<JobApplicationDocument>.Update
                 .Set(d => d.Stage, stage)
@@ -387,16 +372,16 @@ public class MongoDbService : IJobApplicationRepository
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating stage for {CompanyName}", companyName);
+            _logger.LogError(ex, "Error updating stage for id={Id}", id);
             return false;
         }
     }
 
-    public async Task<bool> UpdatePersonalNotesAsync(string companyName, string notes, CancellationToken cancellationToken = default)
+    public async Task<bool> UpdatePersonalNotesAsync(string id, string notes, CancellationToken cancellationToken = default)
     {
         try
         {
-            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.CompanyName, companyName);
+            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.Id, id);
 
             var update = Builders<JobApplicationDocument>.Update
                 .Set(d => d.PersonalNotes, notes)
@@ -407,16 +392,16 @@ public class MongoDbService : IJobApplicationRepository
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating personal notes for {CompanyName}", companyName);
+            _logger.LogError(ex, "Error updating personal notes for id={Id}", id);
             return false;
         }
     }
 
-    public async Task<JobApplication?> AddInterviewAsync(string companyName, Domain.ValueObjects.InterviewRecord interview, CancellationToken cancellationToken = default)
+    public async Task<JobApplication?> AddInterviewAsync(string id, Domain.ValueObjects.InterviewRecord interview, CancellationToken cancellationToken = default)
     {
         try
         {
-            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.CompanyName, companyName);
+            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.Id, id);
             var doc = await _collection.Find(filter).FirstOrDefaultAsync(cancellationToken);
             if (doc == null) return null;
 
@@ -443,16 +428,16 @@ public class MongoDbService : IJobApplicationRepository
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error adding interview for {CompanyName}", companyName);
+            _logger.LogError(ex, "Error adding interview for id={Id}", id);
             return null;
         }
     }
 
-    public async Task<JobApplication?> UpdateInterviewAsync(string companyName, int index, string? date, string? type, string? notes, string? outcome, CancellationToken cancellationToken = default)
+    public async Task<JobApplication?> UpdateInterviewAsync(string id, int index, string? date, string? type, string? notes, string? outcome, CancellationToken cancellationToken = default)
     {
         try
         {
-            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.CompanyName, companyName);
+            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.Id, id);
             var doc = await _collection.Find(filter).FirstOrDefaultAsync(cancellationToken);
             if (doc == null) return null;
 
@@ -474,16 +459,16 @@ public class MongoDbService : IJobApplicationRepository
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating interview for {CompanyName}", companyName);
+            _logger.LogError(ex, "Error updating interview for id={Id}", id);
             return null;
         }
     }
 
-    public async Task<bool> DeleteInterviewAsync(string companyName, int index, CancellationToken cancellationToken = default)
+    public async Task<bool> DeleteInterviewAsync(string id, int index, CancellationToken cancellationToken = default)
     {
         try
         {
-            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.CompanyName, companyName);
+            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.Id, id);
             var doc = await _collection.Find(filter).FirstOrDefaultAsync(cancellationToken);
             if (doc == null) return false;
 
@@ -503,16 +488,16 @@ public class MongoDbService : IJobApplicationRepository
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting interview for {CompanyName}", companyName);
+            _logger.LogError(ex, "Error deleting interview for id={Id}", id);
             return false;
         }
     }
 
-    public async Task<JobApplication?> AddNoteAsync(string companyName, Domain.ValueObjects.ApplicationNote note, CancellationToken cancellationToken = default)
+    public async Task<JobApplication?> AddNoteAsync(string id, Domain.ValueObjects.ApplicationNote note, CancellationToken cancellationToken = default)
     {
         try
         {
-            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.CompanyName, companyName);
+            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.Id, id);
             var doc = await _collection.Find(filter).FirstOrDefaultAsync(cancellationToken);
             if (doc == null) return null;
 
@@ -542,16 +527,16 @@ public class MongoDbService : IJobApplicationRepository
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error adding note for {CompanyName}", companyName);
+            _logger.LogError(ex, "Error adding note for id={Id}", id);
             return null;
         }
     }
 
-    public async Task<JobApplication?> UpdateNoteAsync(string companyName, int noteId, string? category, string? content, bool? pinned, CancellationToken cancellationToken = default)
+    public async Task<JobApplication?> UpdateNoteAsync(string id, int noteId, string? category, string? content, bool? pinned, CancellationToken cancellationToken = default)
     {
         try
         {
-            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.CompanyName, companyName);
+            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.Id, id);
             var doc = await _collection.Find(filter).FirstOrDefaultAsync(cancellationToken);
             if (doc == null) return null;
 
@@ -573,13 +558,13 @@ public class MongoDbService : IJobApplicationRepository
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating note for {CompanyName}", companyName);
+            _logger.LogError(ex, "Error updating note for id={Id}", id);
             return null;
         }
     }
 
     public async Task<bool> UpdateContentAsync(
-        string companyName,
+        string id,
         string? headline,
         string? summary,
         List<Domain.ValueObjects.SkillRow>? skills,
@@ -592,7 +577,7 @@ public class MongoDbService : IJobApplicationRepository
     {
         try
         {
-            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.CompanyName, companyName);
+            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.Id, id);
             var update = Builders<JobApplicationDocument>.Update.Set(d => d.UpdatedAt, DateTime.UtcNow);
 
             if (headline != null) update = update.Set(d => d.Headline, headline);
@@ -609,16 +594,16 @@ public class MongoDbService : IJobApplicationRepository
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating content for {CompanyName}", companyName);
+            _logger.LogError(ex, "Error updating content for id={Id}", id);
             return false;
         }
     }
 
-    public async Task<bool> DeleteNoteAsync(string companyName, int noteId, CancellationToken cancellationToken = default)
+    public async Task<bool> DeleteNoteAsync(string id, int noteId, CancellationToken cancellationToken = default)
     {
         try
         {
-            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.CompanyName, companyName);
+            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.Id, id);
             var doc = await _collection.Find(filter).FirstOrDefaultAsync(cancellationToken);
             if (doc == null) return false;
 
@@ -639,7 +624,7 @@ public class MongoDbService : IJobApplicationRepository
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting note for {CompanyName}", companyName);
+            _logger.LogError(ex, "Error deleting note for id={Id}", id);
             return false;
         }
     }

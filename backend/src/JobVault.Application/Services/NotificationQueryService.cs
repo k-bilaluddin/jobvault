@@ -22,7 +22,7 @@ public class NotificationQueryService : INotificationQueryService
             Title = n.Title,
             Body = n.Body,
             CompanyName = n.CompanyName,
-            CompanySlug = n.CompanySlug,
+            CompanyId = n.CompanyId,
             OccurredAt = n.OccurredAt.ToString("o"),
             Read = n.Read,
         }).ToList();

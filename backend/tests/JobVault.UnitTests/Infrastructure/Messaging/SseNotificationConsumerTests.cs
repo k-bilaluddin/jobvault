@@ -93,41 +93,16 @@ public class SseNotificationConsumerTests
     }
 
     [Fact]
-    public void BuildNotification_CompanySlug_SpacesToHyphens()
+    public void BuildNotification_CompanyId_SetDirectlyFromApplicationId()
     {
         // Arrange
-        var jobEvent = CreateEvent(companyName: "Acme Corp");
+        var jobEvent = CreateEvent();
+        jobEvent.ApplicationId = "68f1a2b3c4d5e6f7a8b9c0d1";
 
         // Act
         var notification = SseNotificationConsumer.BuildNotification(jobEvent);
 
         // Assert
-        notification.CompanySlug.Should().Be("acme-corp");
-    }
-
-    [Fact]
-    public void BuildNotification_CompanySlug_RemovesSpecialChars()
-    {
-        // Arrange
-        var jobEvent = CreateEvent(companyName: "O'Reilly, Inc.");
-
-        // Act
-        var notification = SseNotificationConsumer.BuildNotification(jobEvent);
-
-        // Assert
-        notification.CompanySlug.Should().Be("oreilly-inc");
-    }
-
-    [Fact]
-    public void BuildNotification_CompanySlug_TrimsTrailingHyphen()
-    {
-        // Arrange
-        var jobEvent = CreateEvent(companyName: "Test Corp.");
-
-        // Act
-        var notification = SseNotificationConsumer.BuildNotification(jobEvent);
-
-        // Assert
-        notification.CompanySlug.Should().Be("test-corp");
+        notification.CompanyId.Should().Be("68f1a2b3c4d5e6f7a8b9c0d1");
     }
 }

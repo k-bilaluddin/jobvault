@@ -36,12 +36,13 @@ public class VaultFileService : IVaultFileService
         return null;
     }
 
-    public async Task<byte[]?> GetPdfBytesAsync(string companyName, string type, CancellationToken cancellationToken = default)
+    public async Task<byte[]?> GetPdfBytesAsync(string companyName, string id, string type, CancellationToken cancellationToken = default)
     {
         var settings = await _settingsService.GetAsync(cancellationToken);
 
         var fileName = type == "cv" ? settings.GitHubCvFileName : settings.GitHubCoverLetterFileName;
-        var cacheKey = $"{companyName}/{fileName}.pdf";
+        var folderName = VaultPathBuilder.BuildFolderName(companyName, id);
+        var cacheKey = $"{folderName}/{fileName}.pdf";
 
         if (_pdfCache.TryGetValue(cacheKey, out var cached))
             return cached;
@@ -60,7 +61,7 @@ public class VaultFileService : IVaultFileService
             client.DefaultRequestHeaders.UserAgent.ParseAdd("JobVault.API/1.0");
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github.raw+json"));
 
-            var path = $"{Uri.EscapeDataString(companyName)}/{Uri.EscapeDataString($"{fileName}.pdf")}";
+            var path = $"{Uri.EscapeDataString(folderName)}/{Uri.EscapeDataString($"{fileName}.pdf")}";
             var url = $"https://api.github.com/repos/{settings.GitHubOwner}/{settings.GitHubRepository}/contents/{path}?ref={settings.GitHubBranch}";
 
             var response = await client.GetAsync(url, cancellationToken);
@@ -83,9 +84,10 @@ public class VaultFileService : IVaultFileService
         }
     }
 
-    public void EvictCache(string companyName)
+    public void EvictCache(string companyName, string id)
     {
-        var keysToRemove = _pdfCache.Keys.Where(k => k.StartsWith($"{companyName}/")).ToList();
+        var folderName = VaultPathBuilder.BuildFolderName(companyName, id);
+        var keysToRemove = _pdfCache.Keys.Where(k => k.StartsWith($"{folderName}/")).ToList();
         foreach (var key in keysToRemove)
             _pdfCache.TryRemove(key, out _);
 
