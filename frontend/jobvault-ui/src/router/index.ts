@@ -8,7 +8,7 @@ const router = createRouter({
     { path: '/login',          name: 'login',        component: () => import('@/views/LoginView.vue'),      meta: { public: true } },
     { path: '/dashboard',      name: 'dashboard',    component: DashboardView },
     { path: '/applications',   name: 'applications', component: () => import('@/views/ApplicationsView.vue') },
-    { path: '/company/:name',  name: 'company',      component: () => import('@/views/CompanyDetailView.vue') },
+    { path: '/company/:id',    name: 'company',      component: () => import('@/views/CompanyDetailView.vue') },
     { path: '/pipeline',       name: 'pipeline',     component: () => import('@/views/PipelineView.vue') },
     { path: '/interviews',     name: 'interviews',   component: () => import('@/views/InterviewsView.vue') },
     { path: '/skills-gap',     name: 'skills-gap',   component: () => import('@/views/SkillsGapView.vue') },
