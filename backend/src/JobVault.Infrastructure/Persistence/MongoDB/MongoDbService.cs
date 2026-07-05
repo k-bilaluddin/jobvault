@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
 using JobVault.Application.Common;
 using JobVault.Application.Interfaces;
@@ -14,6 +15,18 @@ public class MongoDbService : IJobApplicationRepository
 {
     private readonly IMongoCollection<JobApplicationDocument> _collection;
     private readonly ILogger<MongoDbService> _logger;
+
+    // Closes the TOCTOU window in UpsertApplicationAsync between FindMatchAsync and the
+    // insert/update decision: two concurrent ingestions resolving to the same identity would
+    // otherwise both miss the match and both insert. Scoped to this process (the only caller,
+    // ApplicationIngestionService, only ever runs in the API process) — a DB-level unique
+    // constraint was considered instead, but a partial unique index on (companyName, jobTitle)
+    // for in-flight statuses would also fire on ReQueueAsync's UpdateStatusAsync("Queued")
+    // transition whenever a second in-flight document for the same company+title legitimately
+    // coexists (which the Tier 3 "create new" design explicitly allows), breaking Re-Analyze.
+    // Entries are never evicted; acceptable at this application's scale (one process, a few
+    // hundred applications over its lifetime).
+    private static readonly ConcurrentDictionary<string, SemaphoreSlim> _ingestionLocks = new();
 
     public MongoDbService(IConfiguration configuration, ILogger<MongoDbService> logger)
     {
@@ -49,14 +62,18 @@ public class MongoDbService : IJobApplicationRepository
 
     public async Task<UpsertResult> UpsertApplicationAsync(JobApplication application)
     {
+        if (string.IsNullOrWhiteSpace(application.CompanyName))
+        {
+            _logger.LogWarning("Cannot upsert application with empty CompanyName");
+            return UpsertResult.Failure();
+        }
+
+        var lockKey = BuildIngestionLockKey(application);
+        var gate = _ingestionLocks.GetOrAdd(lockKey, _ => new SemaphoreSlim(1, 1));
+
+        await gate.WaitAsync();
         try
         {
-            if (string.IsNullOrWhiteSpace(application.CompanyName))
-            {
-                _logger.LogWarning("Cannot upsert application with empty CompanyName");
-                return UpsertResult.Failure();
-            }
-
             var existing = await FindMatchAsync(application);
             if (existing == null)
                 return await InsertNewAsync(application);
@@ -73,7 +90,18 @@ public class MongoDbService : IJobApplicationRepository
             _logger.LogError(ex, "Error upserting job application for {CompanyName}", application.CompanyName);
             return UpsertResult.Failure();
         }
+        finally
+        {
+            gate.Release();
+        }
     }
+
+    // Always keyed by (companyName, jobTitle), never by URL alone: FindMatchAsync falls through
+    // to the company+title fallback whenever the URL doesn't match an existing document, so two
+    // concurrent requests with *different* URLs for what's meant to be the same role (the repost
+    // race) must still serialize against each other, not just requests sharing one exact URL.
+    private static string BuildIngestionLockKey(JobApplication application) =>
+        $"{application.CompanyName.Trim().ToLowerInvariant()}|{application.JobTitle.Trim().ToLowerInvariant()}";
 
     public async Task<UpsertResult> UpdateApplicationByIdAsync(string applicationId, JobApplication application, CancellationToken cancellationToken = default)
     {

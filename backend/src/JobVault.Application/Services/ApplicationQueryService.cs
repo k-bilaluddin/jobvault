@@ -46,7 +46,7 @@ public class ApplicationQueryService : IApplicationQueryService
                     ? a.Status
                     : string.IsNullOrEmpty(a.Stage) ? "Ready to Apply" : a.Stage;
 
-                var (hasCvPdf, hasLetterPdf, hasReport, hasNotes) = _vaultFileService.CheckFiles(a.CompanyName);
+                var (hasCvPdf, hasLetterPdf, hasReport, hasNotes) = _vaultFileService.CheckFiles(a.CompanyName, a.Id ?? "");
 
                 return new ApplicationResponse
                 {
@@ -107,7 +107,7 @@ public class ApplicationQueryService : IApplicationQueryService
                 ? a.Status
                 : string.IsNullOrEmpty(a.Stage) ? "Ready to Apply" : a.Stage;
 
-            var (hasCvPdf, hasLetterPdf, hasReport, hasNotes) = _vaultFileService.CheckFiles(a.CompanyName);
+            var (hasCvPdf, hasLetterPdf, hasReport, hasNotes) = _vaultFileService.CheckFiles(a.CompanyName, a.Id ?? "");
 
             return new ApplicationResponse
             {
@@ -177,7 +177,7 @@ public class ApplicationQueryService : IApplicationQueryService
         var markdown = app.CompatibilityReportMarkdown;
 
         if (string.IsNullOrEmpty(markdown))
-            markdown = _vaultFileService.ReadMarkdown(app.CompanyName, ["compatibility-report", "compatibility_report", "report"]);
+            markdown = _vaultFileService.ReadMarkdown(app.CompanyName, app.Id ?? "", ["compatibility-report", "compatibility_report", "report"]);
 
         if (string.IsNullOrEmpty(markdown)) return null;
 
@@ -192,7 +192,7 @@ public class ApplicationQueryService : IApplicationQueryService
         var markdown = app.TailoringNotesMarkdown;
 
         if (string.IsNullOrEmpty(markdown))
-            markdown = _vaultFileService.ReadMarkdown(app.CompanyName, ["tailoring-notes", "tailoring_notes", "notes"]);
+            markdown = _vaultFileService.ReadMarkdown(app.CompanyName, app.Id ?? "", ["tailoring-notes", "tailoring_notes", "notes"]);
 
         if (string.IsNullOrEmpty(markdown)) return null;
 
@@ -219,7 +219,7 @@ public class ApplicationQueryService : IApplicationQueryService
             // Source 2: parse compatibility report markdown for gap markers
             var reportMarkdown = app.CompatibilityReportMarkdown;
             if (string.IsNullOrEmpty(reportMarkdown))
-                reportMarkdown = _vaultFileService.ReadMarkdown(app.CompanyName, ["compatibility-report", "compatibility_report", "report"]);
+                reportMarkdown = _vaultFileService.ReadMarkdown(app.CompanyName, app.Id ?? "", ["compatibility-report", "compatibility_report", "report"]);
 
             if (!string.IsNullOrEmpty(reportMarkdown))
             {

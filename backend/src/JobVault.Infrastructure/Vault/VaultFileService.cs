@@ -26,12 +26,12 @@ public class VaultFileService : IVaultFileService
         _logger = logger;
     }
 
-    public (bool HasCvPdf, bool HasLetterPdf, bool HasReport, bool HasNotes) CheckFiles(string companyName)
+    public (bool HasCvPdf, bool HasLetterPdf, bool HasReport, bool HasNotes) CheckFiles(string companyName, string id)
     {
         return (false, false, false, false);
     }
 
-    public string? ReadMarkdown(string companyName, string[] fileNames)
+    public string? ReadMarkdown(string companyName, string id, string[] fileNames)
     {
         return null;
     }
