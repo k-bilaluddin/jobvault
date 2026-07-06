@@ -21,7 +21,7 @@ public class NotificationHubTests
         Title = "Test notification",
         Body = "Test body",
         CompanyName = "TestCorp",
-        CompanySlug = "testcorp",
+        CompanyId = "testcorp-id",
         OccurredAt = DateTime.UtcNow,
         Read = false,
     };

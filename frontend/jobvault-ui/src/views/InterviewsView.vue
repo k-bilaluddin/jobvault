@@ -37,11 +37,11 @@ const INTERVIEW_TYPE_COLOR: Record<string, string> = {
           {{ withInterviews.length }} companies · {{ withInterviews.reduce((s,c) => s + c.interviews.length, 0) }} total rounds
         </p>
 
-        <div v-for="c in withInterviews" :key="c.name"
+        <div v-for="c in withInterviews" :key="c.id"
           class="bg-surface-raised border border-border rounded-xl overflow-hidden hover:border-accent/30 transition-colors">
           <!-- Company header -->
           <div class="flex items-center gap-3 px-5 py-3 border-b border-border cursor-pointer hover:bg-surface-overlay transition-colors"
-            @click="router.push(`/company/${encodeURIComponent(c.name)}`)">
+            @click="router.push(`/company/${c.id}`)">
             <CompanyAvatar :name="c.name" size="sm"/>
             <div class="flex-1">
               <p class="text-sm font-semibold text-text-primary">{{ c.name }}</p>

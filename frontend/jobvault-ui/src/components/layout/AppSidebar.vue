@@ -177,11 +177,11 @@ async function syncVault() {
       </div>
 
       <div class="px-2 space-y-0.5">
-        <router-link v-for="c in activeCompanies" :key="c.name"
-          :to="`/company/${encodeURIComponent(c.name)}`"
+        <router-link v-for="c in activeCompanies" :key="c.id"
+          :to="`/company/${c.id}`"
           class="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-surface-overlay transition-colors group"
           :class="[
-            route.params.name === encodeURIComponent(c.name) ? 'bg-surface-overlay' : '',
+            route.params.id === c.id ? 'bg-surface-overlay' : '',
             c.follow_up_date && c.follow_up_date <= today ? 'border-l-2 border-amber-400 pl-1.5' : ''
           ]">
           <CompanyAvatar :name="c.name" size="sm"/>

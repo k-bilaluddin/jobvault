@@ -7,7 +7,7 @@ public class AppNotification
     public string Title { get; set; } = string.Empty;
     public string Body { get; set; } = string.Empty;
     public string? CompanyName { get; set; }
-    public string? CompanySlug { get; set; }
+    public string? CompanyId { get; set; }
     public DateTime OccurredAt { get; set; } = DateTime.UtcNow;
     public bool Read { get; set; } = false;
 }

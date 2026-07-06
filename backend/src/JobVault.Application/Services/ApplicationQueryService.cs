@@ -46,10 +46,11 @@ public class ApplicationQueryService : IApplicationQueryService
                     ? a.Status
                     : string.IsNullOrEmpty(a.Stage) ? "Ready to Apply" : a.Stage;
 
-                var (hasCvPdf, hasLetterPdf, hasReport, hasNotes) = _vaultFileService.CheckFiles(a.CompanyName);
+                var (hasCvPdf, hasLetterPdf, hasReport, hasNotes) = _vaultFileService.CheckFiles(a.CompanyName, a.Id ?? "");
 
                 return new ApplicationResponse
                 {
+                    Id = a.Id ?? "",
                     Name = a.CompanyName,
                     Synced_at = a.UpdatedAt.ToString("o"),
                     Has_report = !string.IsNullOrEmpty(a.CompatibilityReportMarkdown) || hasReport,
@@ -106,10 +107,11 @@ public class ApplicationQueryService : IApplicationQueryService
                 ? a.Status
                 : string.IsNullOrEmpty(a.Stage) ? "Ready to Apply" : a.Stage;
 
-            var (hasCvPdf, hasLetterPdf, hasReport, hasNotes) = _vaultFileService.CheckFiles(a.CompanyName);
+            var (hasCvPdf, hasLetterPdf, hasReport, hasNotes) = _vaultFileService.CheckFiles(a.CompanyName, a.Id ?? "");
 
             return new ApplicationResponse
             {
+                Id = a.Id ?? "",
                 Name = a.CompanyName,
                 Synced_at = a.UpdatedAt.ToString("o"),
                 Has_report = !string.IsNullOrEmpty(a.CompatibilityReportMarkdown) || hasReport,
@@ -161,30 +163,36 @@ public class ApplicationQueryService : IApplicationQueryService
         };
     }
 
-    public async Task<string?> GetReportHtmlAsync(string companyName, CancellationToken cancellationToken = default)
+    public async Task<string?> GetCompanyNameAsync(string id, CancellationToken cancellationToken = default)
     {
-        var app = await _repository.GetByCompanyNameAsync(companyName, cancellationToken);
+        var app = await _repository.GetByIdAsync(id, cancellationToken);
+        return app?.CompanyName;
+    }
+
+    public async Task<string?> GetReportHtmlAsync(string id, CancellationToken cancellationToken = default)
+    {
+        var app = await _repository.GetByIdAsync(id, cancellationToken);
         if (app == null) return null;
 
         var markdown = app.CompatibilityReportMarkdown;
 
         if (string.IsNullOrEmpty(markdown))
-            markdown = _vaultFileService.ReadMarkdown(companyName, ["compatibility-report", "compatibility_report", "report"]);
+            markdown = _vaultFileService.ReadMarkdown(app.CompanyName, app.Id ?? "", ["compatibility-report", "compatibility_report", "report"]);
 
         if (string.IsNullOrEmpty(markdown)) return null;
 
         return _markdownRenderService.RenderToHtml(markdown);
     }
 
-    public async Task<string?> GetNotesHtmlAsync(string companyName, CancellationToken cancellationToken = default)
+    public async Task<string?> GetNotesHtmlAsync(string id, CancellationToken cancellationToken = default)
     {
-        var app = await _repository.GetByCompanyNameAsync(companyName, cancellationToken);
+        var app = await _repository.GetByIdAsync(id, cancellationToken);
         if (app == null) return null;
 
         var markdown = app.TailoringNotesMarkdown;
 
         if (string.IsNullOrEmpty(markdown))
-            markdown = _vaultFileService.ReadMarkdown(companyName, ["tailoring-notes", "tailoring_notes", "notes"]);
+            markdown = _vaultFileService.ReadMarkdown(app.CompanyName, app.Id ?? "", ["tailoring-notes", "tailoring_notes", "notes"]);
 
         if (string.IsNullOrEmpty(markdown)) return null;
 
@@ -211,7 +219,7 @@ public class ApplicationQueryService : IApplicationQueryService
             // Source 2: parse compatibility report markdown for gap markers
             var reportMarkdown = app.CompatibilityReportMarkdown;
             if (string.IsNullOrEmpty(reportMarkdown))
-                reportMarkdown = _vaultFileService.ReadMarkdown(app.CompanyName, ["compatibility-report", "compatibility_report", "report"]);
+                reportMarkdown = _vaultFileService.ReadMarkdown(app.CompanyName, app.Id ?? "", ["compatibility-report", "compatibility_report", "report"]);
 
             if (!string.IsNullOrEmpty(reportMarkdown))
             {
@@ -310,13 +318,13 @@ public class ApplicationQueryService : IApplicationQueryService
         };
     }
 
-    public Task<bool> UpdateStageAsync(string companyName, string stage, CancellationToken cancellationToken = default)
-        => _repository.UpdateStageAsync(companyName, stage, cancellationToken);
+    public Task<bool> UpdateStageAsync(string id, string stage, CancellationToken cancellationToken = default)
+        => _repository.UpdateStageAsync(id, stage, cancellationToken);
 
-    public Task<bool> UpdatePersonalNotesAsync(string companyName, string notes, CancellationToken cancellationToken = default)
-        => _repository.UpdatePersonalNotesAsync(companyName, notes, cancellationToken);
+    public Task<bool> UpdatePersonalNotesAsync(string id, string notes, CancellationToken cancellationToken = default)
+        => _repository.UpdatePersonalNotesAsync(id, notes, cancellationToken);
 
-    public async Task<InterviewListResponse?> AddInterviewAsync(string companyName, AddInterviewRequest request, CancellationToken cancellationToken = default)
+    public async Task<InterviewListResponse?> AddInterviewAsync(string id, AddInterviewRequest request, CancellationToken cancellationToken = default)
     {
         var interview = new InterviewRecord
         {
@@ -326,7 +334,7 @@ public class ApplicationQueryService : IApplicationQueryService
             Outcome = request.Outcome,
         };
 
-        var application = await _repository.AddInterviewAsync(companyName, interview, cancellationToken);
+        var application = await _repository.AddInterviewAsync(id, interview, cancellationToken);
         if (application == null) return null;
 
         return new InterviewListResponse
@@ -339,9 +347,9 @@ public class ApplicationQueryService : IApplicationQueryService
         };
     }
 
-    public async Task<InterviewListResponse?> UpdateInterviewAsync(string companyName, int index, UpdateInterviewRequest request, CancellationToken cancellationToken = default)
+    public async Task<InterviewListResponse?> UpdateInterviewAsync(string id, int index, UpdateInterviewRequest request, CancellationToken cancellationToken = default)
     {
-        var application = await _repository.UpdateInterviewAsync(companyName, index, request.Date, request.Type, request.Notes, request.Outcome, cancellationToken);
+        var application = await _repository.UpdateInterviewAsync(id, index, request.Date, request.Type, request.Notes, request.Outcome, cancellationToken);
         if (application == null) return null;
 
         return new InterviewListResponse
@@ -354,15 +362,15 @@ public class ApplicationQueryService : IApplicationQueryService
         };
     }
 
-    public Task<bool> DeleteInterviewAsync(string companyName, int index, CancellationToken cancellationToken = default)
-        => _repository.DeleteInterviewAsync(companyName, index, cancellationToken);
+    public Task<bool> DeleteInterviewAsync(string id, int index, CancellationToken cancellationToken = default)
+        => _repository.DeleteInterviewAsync(id, index, cancellationToken);
 
-    public async Task<NoteListResponse?> AddNoteAsync(string companyName, AddNoteRequest request, CancellationToken cancellationToken = default)
+    public async Task<NoteListResponse?> AddNoteAsync(string id, AddNoteRequest request, CancellationToken cancellationToken = default)
     {
         var stage = request.Stage;
         if (string.IsNullOrEmpty(stage))
         {
-            var app = await _repository.GetByCompanyNameAsync(companyName, cancellationToken);
+            var app = await _repository.GetByIdAsync(id, cancellationToken);
             stage = app?.Stage is { Length: > 0 } s ? s : "Ready to Apply";
         }
 
@@ -374,22 +382,22 @@ public class ApplicationQueryService : IApplicationQueryService
             Stage = stage,
         };
 
-        var application = await _repository.AddNoteAsync(companyName, note, cancellationToken);
+        var application = await _repository.AddNoteAsync(id, note, cancellationToken);
         if (application == null) return null;
 
         return MapNoteListResponse(application);
     }
 
-    public async Task<NoteListResponse?> UpdateNoteAsync(string companyName, int noteId, UpdateNoteRequest request, CancellationToken cancellationToken = default)
+    public async Task<NoteListResponse?> UpdateNoteAsync(string id, int noteId, UpdateNoteRequest request, CancellationToken cancellationToken = default)
     {
-        var application = await _repository.UpdateNoteAsync(companyName, noteId, request.Category, request.Content, request.Pinned, cancellationToken);
+        var application = await _repository.UpdateNoteAsync(id, noteId, request.Category, request.Content, request.Pinned, cancellationToken);
         if (application == null) return null;
 
         return MapNoteListResponse(application);
     }
 
-    public Task<bool> DeleteNoteAsync(string companyName, int noteId, CancellationToken cancellationToken = default)
-        => _repository.DeleteNoteAsync(companyName, noteId, cancellationToken);
+    public Task<bool> DeleteNoteAsync(string id, int noteId, CancellationToken cancellationToken = default)
+        => _repository.DeleteNoteAsync(id, noteId, cancellationToken);
 
     private static NoteListResponse MapNoteListResponse(JobApplication application) => new()
     {
@@ -403,9 +411,9 @@ public class ApplicationQueryService : IApplicationQueryService
         }).ToList(),
     };
 
-    public async Task<ContentResponse?> GetContentAsync(string companyName, CancellationToken cancellationToken = default)
+    public async Task<ContentResponse?> GetContentAsync(string id, CancellationToken cancellationToken = default)
     {
-        var app = await _repository.GetByCompanyNameAsync(companyName, cancellationToken);
+        var app = await _repository.GetByIdAsync(id, cancellationToken);
         if (app == null) return null;
 
         return new ContentResponse
@@ -421,10 +429,10 @@ public class ApplicationQueryService : IApplicationQueryService
         };
     }
 
-    public async Task<bool> UpdateContentAsync(string companyName, UpdateContentRequest request, CancellationToken cancellationToken = default)
+    public async Task<bool> UpdateContentAsync(string id, UpdateContentRequest request, CancellationToken cancellationToken = default)
     {
         return await _repository.UpdateContentAsync(
-            companyName,
+            id,
             request.Headline,
             request.Summary,
             request.Skills,
@@ -436,15 +444,15 @@ public class ApplicationQueryService : IApplicationQueryService
             cancellationToken);
     }
 
-    public async Task<string?> RegenerateAsync(string companyName, UpdateContentRequest? contentUpdate, CancellationToken cancellationToken = default)
+    public async Task<string?> RegenerateAsync(string id, UpdateContentRequest? contentUpdate, CancellationToken cancellationToken = default)
     {
-        var app = await _repository.GetByCompanyNameAsync(companyName, cancellationToken);
+        var app = await _repository.GetByIdAsync(id, cancellationToken);
         if (app == null) return null;
 
         if (contentUpdate != null)
         {
             await _repository.UpdateContentAsync(
-                companyName,
+                id,
                 contentUpdate.Headline,
                 contentUpdate.Summary,
                 contentUpdate.Skills,
@@ -476,13 +484,13 @@ public class ApplicationQueryService : IApplicationQueryService
         return app.Id;
     }
 
-    public async Task<string?> ReQueueAsync(string companyName, string? prompt, CancellationToken cancellationToken = default)
+    public async Task<string?> ReQueueAsync(string id, string? prompt, CancellationToken cancellationToken = default)
     {
-        var app = await _repository.GetByCompanyNameAsync(companyName, cancellationToken);
+        var app = await _repository.GetByIdAsync(id, cancellationToken);
         if (app == null) return null;
         if (string.IsNullOrWhiteSpace(app.JobUrl)) return null;
 
-        var job = await _pendingJobService.CreateAsync(app.JobUrl, prompt, cancellationToken);
+        var job = await _pendingJobService.CreateAsync(app.JobUrl, prompt, app.Id, cancellationToken);
 
         await _repository.UpdateStatusAsync(app.Id!, "Queued", cancellationToken: cancellationToken);
 

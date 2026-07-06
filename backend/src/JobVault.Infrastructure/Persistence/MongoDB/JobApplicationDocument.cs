@@ -22,6 +22,9 @@ internal class JobApplicationDocument
     [BsonElement("jobUrl")]
     public string? JobUrl { get; set; }
 
+    [BsonElement("jobUrlNormalized")]
+    public string? JobUrlNormalized { get; set; }
+
     [BsonElement("workMode")]
     public string? WorkMode { get; set; }
 

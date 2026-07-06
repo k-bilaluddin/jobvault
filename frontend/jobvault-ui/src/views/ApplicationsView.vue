@@ -126,17 +126,17 @@ function isFollowUpDue(c: Company): boolean {
 const activeActionRow = ref<string | null>(null)
 const stageUpdating   = ref<string | null>(null)
 
-function toggleActions(name: string) {
-  activeActionRow.value = activeActionRow.value === name ? null : name
+function toggleActions(id: string) {
+  activeActionRow.value = activeActionRow.value === id ? null : id
 }
 
 function onDocClick() { activeActionRow.value = null }
 
 async function quickStage(c: Company, stage: ApplicationStage) {
-  stageUpdating.value = c.name
+  stageUpdating.value = c.id
   activeActionRow.value = null
   try {
-    await api.post(`/api/applications/${encodeURIComponent(c.name)}/stage`, { stage })
+    await api.post(`/api/applications/${c.id}/stage`, { stage })
     await fetchPage()
   } finally {
     stageUpdating.value = null
@@ -148,7 +148,7 @@ function openUrl(c: Company) {
 }
 
 function openDetail(c: Company) {
-  router.push(`/company/${encodeURIComponent(c.name)}`)
+  router.push(`/company/${c.id}`)
 }
 
 function copyEmail(email: string) {
@@ -255,14 +255,14 @@ function exportCsv() {
             </div>
 
             <!-- Rows -->
-            <div v-for="c in companies" :key="c.name" class="relative">
+            <div v-for="c in companies" :key="c.id" class="relative">
               <!-- Follow-up left border indicator -->
               <div v-if="isFollowUpDue(c)" class="absolute left-0 top-1 bottom-1 w-0.5 rounded-full bg-amber-400 z-10"/>
 
-              <div @click="router.push(`/company/${encodeURIComponent(c.name)}`)"
+              <div @click="router.push(`/company/${c.id}`)"
                 class="grid grid-cols-[2.5rem_1fr_7rem_9rem_6rem_6rem_6rem_7rem_2rem] gap-3 items-center px-3 py-2.5 rounded-lg border border-transparent cursor-pointer transition-all group"
                 :class="[
-                  stageUpdating === c.name ? 'opacity-50 pointer-events-none' : '',
+                  stageUpdating === c.id ? 'opacity-50 pointer-events-none' : '',
                   isFollowUpDue(c)
                     ? 'hover:bg-amber-500/5 hover:border-amber-500/20'
                     : 'hover:bg-surface-raised hover:border-border'
@@ -316,8 +316,8 @@ function exportCsv() {
                 <!-- Verdict -->
                 <RecommendBadge :recommend="c.recommend" size="sm"/>
 
-                <ApplicationRowActions :company="c" :open="activeActionRow === c.name"
-                  @toggle="toggleActions(c.name)"
+                <ApplicationRowActions :company="c" :open="activeActionRow === c.id"
+                  @toggle="toggleActions(c.id)"
                   @open-detail="openDetail(c)"
                   @open-url="openUrl(c)"
                   @copy-email="copyEmail(c.recruiter.email)"
@@ -328,14 +328,14 @@ function exportCsv() {
 
           <!-- Mobile cards (below md) -->
           <div class="md:hidden space-y-2">
-            <div v-for="c in companies" :key="c.name" class="relative">
+            <div v-for="c in companies" :key="c.id" class="relative">
               <!-- Follow-up left border indicator -->
               <div v-if="isFollowUpDue(c)" class="absolute left-0 top-1 bottom-1 w-0.5 rounded-full bg-amber-400 z-10"/>
 
-              <div @click="router.push(`/company/${encodeURIComponent(c.name)}`)"
+              <div @click="router.push(`/company/${c.id}`)"
                 class="flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all"
                 :class="[
-                  stageUpdating === c.name ? 'opacity-50 pointer-events-none' : '',
+                  stageUpdating === c.id ? 'opacity-50 pointer-events-none' : '',
                   isFollowUpDue(c)
                     ? 'bg-amber-500/5 border-amber-500/20'
                     : 'bg-surface-raised border-border'
@@ -362,8 +362,8 @@ function exportCsv() {
                       <p v-if="roleStr(c.role)" class="text-xs text-text-muted truncate mt-0.5">{{ roleStr(c.role) }}</p>
                     </div>
 
-                    <ApplicationRowActions :company="c" :open="activeActionRow === c.name"
-                      @toggle="toggleActions(c.name)"
+                    <ApplicationRowActions :company="c" :open="activeActionRow === c.id"
+                      @toggle="toggleActions(c.id)"
                       @open-detail="openDetail(c)"
                       @open-url="openUrl(c)"
                       @copy-email="copyEmail(c.recruiter.email)"

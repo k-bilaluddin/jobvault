@@ -5,7 +5,7 @@ import type { Company } from '@/types'
  * Shape mirrors Flask get_companies() response exactly.
  * When backend is ready: swap useMockCompanies() → real API call.
  */
-export const mockCompanies: Company[] = [
+const rawMockCompanies: Omit<Company, 'id'>[] = [
   // ── Interview stage ─────────────────────────────────────────
   {
     name: 'SIG Group', stage: 'Interview', applied: true, applied_date: '2026-04-08', synced_at: '2026-06-01T00:00:00Z',
@@ -616,3 +616,6 @@ export const mockCompanies: Company[] = [
     recruiter: { name: '', email: '', linkedin: '' }, interviews: [], notes: [],
   },
 ]
+
+// Mock data has no real MongoDB id — use the company name as a stable synthetic id for demo mode.
+export const mockCompanies: Company[] = rawMockCompanies.map(c => ({ ...c, id: c.name }))

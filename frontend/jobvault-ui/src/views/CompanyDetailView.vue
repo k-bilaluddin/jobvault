@@ -14,10 +14,10 @@ import ContentEditor from '@/components/company/ContentEditor.vue'
 
 const route  = useRoute()
 const router = useRouter()
-const { getByName, loading } = useCompanies()
+const { getById, loading } = useCompanies()
 
-const companyName = computed(() => decodeURIComponent(route.params.name as string))
-const company     = computed(() => getByName(companyName.value))
+const companyId = computed(() => route.params.id as string)
+const company   = computed(() => getById(companyId.value))
 
 const TABS = ['Analysis', 'Strategy', 'Details', 'My Notes', 'Files', 'Interviews', 'Journey'] as const
 type Tab = typeof TABS[number]
@@ -37,7 +37,7 @@ async function updateStage(newStage: ApplicationStage) {
   stageUpdating.value = true
   stageError.value = ''
   try {
-    await api.post(`/api/applications/${encodeURIComponent(companyName.value)}/stage`, { stage: newStage })
+    await api.post(`/api/applications/${companyId.value}/stage`, { stage: newStage })
     currentStage.value = newStage
     // Update local cache
     const c = company.value
@@ -60,7 +60,7 @@ async function submitReAnalyze() {
   reAnalyzeLoading.value = true
   reAnalyzeError.value = ''
   try {
-    await api.post(`/api/applications/${encodeURIComponent(companyName.value)}/re-queue`, {
+    await api.post(`/api/applications/${companyId.value}/re-queue`, {
       prompt: reAnalyzePrompt.value.trim() || null
     })
     reAnalyzeSuccess.value = true
@@ -89,7 +89,7 @@ async function loadReport() {
   if (reportLoaded.value) return
   reportLoading.value = true
   try {
-    const { data } = await api.get(`/api/applications/${encodeURIComponent(companyName.value)}/report`)
+    const { data } = await api.get(`/api/applications/${companyId.value}/report`)
     reportHtml.value = data.html ?? ''
     reportLoaded.value = true
   } catch {
@@ -109,7 +109,7 @@ async function loadNotes() {
   if (notesLoaded.value) return
   notesLoading.value = true
   try {
-    const { data } = await api.get(`/api/applications/${encodeURIComponent(companyName.value)}/notes`)
+    const { data } = await api.get(`/api/applications/${companyId.value}/notes`)
     notesHtml.value = data.html ?? ''
     notesLoaded.value = true
   } catch {
@@ -127,7 +127,7 @@ watch(activeTab, (tab) => {
 })
 
 // Reset and reload when company changes
-watch(companyName, () => {
+watch(companyId, () => {
   reportLoaded.value = false
   reportHtml.value = ''
   notesLoaded.value = false
@@ -161,7 +161,7 @@ watch(() => company.value, (c) => {
 async function saveNote() {
   noteSaving.value = true
   try {
-    await api.post(`/api/applications/${encodeURIComponent(companyName.value)}/personal-notes`, { notes: noteText.value })
+    await api.post(`/api/applications/${companyId.value}/personal-notes`, { notes: noteText.value })
     if (company.value) company.value.personal_notes = noteText.value
     noteEditing.value = false
     noteSaved.value = true
@@ -177,7 +177,7 @@ const showEditor = ref(false)
 const pdfUrl = computed(() => {
   if (!pdfViewer.value) return ''
   const token = localStorage.getItem('jv_token') ?? ''
-  return `${API_BASE}/api/applications/${encodeURIComponent(companyName.value)}/pdf/${pdfViewer.value}?token=${encodeURIComponent(token)}`
+  return `${API_BASE}/api/applications/${companyId.value}/pdf/${pdfViewer.value}?token=${encodeURIComponent(token)}`
 })
 
 // ── Salary formatter ─────────────────────────────────────────
@@ -246,7 +246,7 @@ async function saveInterview() {
   ivError.value  = ''
   try {
     const payload = { ...newInterview.value, type: resolvedType }
-    const { data } = await api.post(`/api/applications/${encodeURIComponent(companyName.value)}/interviews`, payload)
+    const { data } = await api.post(`/api/applications/${companyId.value}/interviews`, payload)
     if (data.ok) {
       localInterviews.value = data.interviews
       if (company.value) company.value.interviews = data.interviews
@@ -260,7 +260,7 @@ async function saveInterview() {
 
 async function updateInterviewOutcome(idx: number, outcome: string) {
   try {
-    const { data } = await api.put(`/api/applications/${encodeURIComponent(companyName.value)}/interviews/${idx}`, { outcome })
+    const { data } = await api.put(`/api/applications/${companyId.value}/interviews/${idx}`, { outcome })
     if (data.ok) {
       localInterviews.value = data.interviews
       if (company.value) company.value.interviews = data.interviews
@@ -270,7 +270,7 @@ async function updateInterviewOutcome(idx: number, outcome: string) {
 
 async function deleteInterview(idx: number) {
   try {
-    const { data } = await api.delete(`/api/applications/${encodeURIComponent(companyName.value)}/interviews?idx=${idx}`)
+    const { data } = await api.delete(`/api/applications/${companyId.value}/interviews?idx=${idx}`)
     if (data.ok) {
       localInterviews.value = localInterviews.value.filter((_, i) => i !== idx)
       if (company.value) company.value.interviews = localInterviews.value
@@ -316,7 +316,7 @@ async function saveNewNote() {
   noteSavingNew.value = true
   noteError.value = ''
   try {
-    const { data } = await api.post(`/api/applications/${encodeURIComponent(companyName.value)}/notes`, newNote.value)
+    const { data } = await api.post(`/api/applications/${companyId.value}/notes`, newNote.value)
     if (data.ok) {
       localNotes.value = data.notes
       if (company.value) company.value.notes = data.notes
@@ -329,7 +329,7 @@ async function saveNewNote() {
 
 async function togglePin(note: ApplicationNote) {
   try {
-    const { data } = await api.put(`/api/applications/${encodeURIComponent(companyName.value)}/notes/${note.id}`, { pinned: !note.pinned })
+    const { data } = await api.put(`/api/applications/${companyId.value}/notes/${note.id}`, { pinned: !note.pinned })
     if (data.ok) {
       localNotes.value = data.notes
       if (company.value) company.value.notes = data.notes
@@ -339,7 +339,7 @@ async function togglePin(note: ApplicationNote) {
 
 async function deleteNote(noteId: number) {
   try {
-    const { data } = await api.delete(`/api/applications/${encodeURIComponent(companyName.value)}/notes/${noteId}`)
+    const { data } = await api.delete(`/api/applications/${companyId.value}/notes/${noteId}`)
     if (data.ok) {
       localNotes.value = localNotes.value.filter(n => n.id !== noteId)
       if (company.value) company.value.notes = localNotes.value
@@ -973,7 +973,7 @@ const OUTCOME_STYLE: Record<string, { selected: string; unselected: string }> = 
           <!-- Content Editor -->
           <div v-if="showEditor || company.status === 'Regenerating'" class="flex-1 min-w-0">
             <ContentEditor
-              :company-name="company.name"
+              :id="company.id"
               :job-url="company.job_url"
               :is-regenerating="company.status === 'Regenerating'"
               @regenerated="company.status = 'Regenerating'; showEditor = false"

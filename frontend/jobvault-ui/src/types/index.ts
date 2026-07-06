@@ -66,6 +66,7 @@ export interface Recruiter {
 
 // ─── Full company record — mirrors Flask get_companies() response ──
 export interface Company {
+  id: string
   name: string
   synced_at: string        // ISO 8601 UTC — folder mtime, set by Flask on each sync
   // From folder scan
@@ -119,7 +120,7 @@ export interface AppNotification {
   title: string
   body: string
   companyName: string | null
-  companySlug: string | null
+  companyId: string | null
   occurredAt: string  // ISO 8601 UTC
   read: boolean
 }

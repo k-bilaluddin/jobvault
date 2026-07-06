@@ -1,6 +1,9 @@
+using System.Collections.Concurrent;
+using System.Text.RegularExpressions;
 using JobVault.Application.Common;
 using JobVault.Application.Interfaces;
 using JobVault.Domain.Entities;
+using JobVault.Domain.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using MongoDB.Bson;
@@ -12,6 +15,18 @@ public class MongoDbService : IJobApplicationRepository
 {
     private readonly IMongoCollection<JobApplicationDocument> _collection;
     private readonly ILogger<MongoDbService> _logger;
+
+    // Closes the TOCTOU window in UpsertApplicationAsync between FindMatchAsync and the
+    // insert/update decision: two concurrent ingestions resolving to the same identity would
+    // otherwise both miss the match and both insert. Scoped to this process (the only caller,
+    // ApplicationIngestionService, only ever runs in the API process) — a DB-level unique
+    // constraint was considered instead, but a partial unique index on (companyName, jobTitle)
+    // for in-flight statuses would also fire on ReQueueAsync's UpdateStatusAsync("Queued")
+    // transition whenever a second in-flight document for the same company+title legitimately
+    // coexists (which the Tier 3 "create new" design explicitly allows), breaking Re-Analyze.
+    // Entries are never evicted; acceptable at this application's scale (one process, a few
+    // hundred applications over its lifetime).
+    private static readonly ConcurrentDictionary<string, SemaphoreSlim> _ingestionLocks = new();
 
     public MongoDbService(IConfiguration configuration, ILogger<MongoDbService> logger)
     {
@@ -30,71 +45,148 @@ public class MongoDbService : IJobApplicationRepository
         var database = client.GetDatabase(databaseName);
         _collection = database.GetCollection<JobApplicationDocument>(collectionName);
 
+        EnsureIndexes();
+
         _logger.LogInformation("MongoDbService initialized with database: {Database}, collection: {Collection}",
             databaseName, collectionName);
     }
 
+    private void EnsureIndexes()
+    {
+        var jobUrlNormalizedIndex = new CreateIndexModel<JobApplicationDocument>(
+            Builders<JobApplicationDocument>.IndexKeys.Ascending(d => d.JobUrlNormalized),
+            new CreateIndexOptions { Sparse = true });
+
+        _collection.Indexes.CreateMany([jobUrlNormalizedIndex]);
+    }
+
     public async Task<UpsertResult> UpsertApplicationAsync(JobApplication application)
     {
+        if (string.IsNullOrWhiteSpace(application.CompanyName))
+        {
+            _logger.LogWarning("Cannot upsert application with empty CompanyName");
+            return UpsertResult.Failure();
+        }
+
+        var lockKey = BuildIngestionLockKey(application);
+        var gate = _ingestionLocks.GetOrAdd(lockKey, _ => new SemaphoreSlim(1, 1));
+
+        await gate.WaitAsync();
         try
         {
-            if (string.IsNullOrWhiteSpace(application.CompanyName))
+            var existing = await FindMatchAsync(application);
+            if (existing == null)
+                return await InsertNewAsync(application);
+
+            return ApplicationStatusGuard.Resolve(existing.Status) switch
             {
-                _logger.LogWarning("Cannot upsert application with empty CompanyName");
-                return UpsertResult.Failure();
-            }
-
-            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.CompanyName, application.CompanyName);
-            var existing = await _collection.Find(filter).FirstOrDefaultAsync();
-
-            application.UpdatedAt = DateTime.UtcNow;
-            var isNew = existing == null;
-
-            string id;
-            if (isNew)
-            {
-                application.CreatedAt = DateTime.UtcNow;
-                id = ObjectId.GenerateNewId().ToString();
-            }
-            else
-            {
-                application.CreatedAt = existing!.CreatedAt ?? DateTime.UtcNow;
-                id = existing.Id;
-            }
-
-            var doc = JobApplicationMapper.ToDocument(application, id);
-
-            if (isNew)
-            {
-                await _collection.InsertOneAsync(doc);
-                _logger.LogInformation("Inserted new job application for {CompanyName} (id={Id})", application.CompanyName, id);
-            }
-            else
-            {
-                // Preserve existing tracker fields on re-ingestion
-                doc.Stage = (existing!.Stage?.Length > 0) ? existing.Stage : "Ready to Apply";
-                doc.Applied = existing.Applied ?? false;
-                doc.AppliedDate = existing.AppliedDate;
-                doc.PersonalNotes = existing.PersonalNotes ?? "";
-                doc.Interviews = existing.Interviews ?? [];
-                doc.Notes = existing.Notes ?? [];
-                doc.Salary = existing.Salary ?? new SalaryDocument();
-                doc.Recruiter = existing.Recruiter ?? new RecruiterDocument();
-                doc.FollowUpDate = existing.FollowUpDate;
-                doc.Source = (existing.Source?.Length > 0) ? existing.Source : doc.Source;
-                doc.IsHistorical = existing.IsHistorical ?? false;
-
-                await _collection.ReplaceOneAsync(filter, doc);
-                _logger.LogInformation("Updated existing job application for {CompanyName} (id={Id})", application.CompanyName, id);
-            }
-
-            return UpsertResult.Success(isNew, id);
+                IngestionMatchAction.UpdateInPlace => await ReplaceExistingAsync(existing, application),
+                IngestionMatchAction.NoOp => UpsertResult.NoOp(existing.Id),
+                _ => await InsertNewAsync(application),
+            };
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error upserting job application for {CompanyName}", application.CompanyName);
             return UpsertResult.Failure();
         }
+        finally
+        {
+            gate.Release();
+        }
+    }
+
+    // Always keyed by (companyName, jobTitle), never by URL alone: FindMatchAsync falls through
+    // to the company+title fallback whenever the URL doesn't match an existing document, so two
+    // concurrent requests with *different* URLs for what's meant to be the same role (the repost
+    // race) must still serialize against each other, not just requests sharing one exact URL.
+    private static string BuildIngestionLockKey(JobApplication application) =>
+        $"{application.CompanyName.Trim().ToLowerInvariant()}|{application.JobTitle.Trim().ToLowerInvariant()}";
+
+    public async Task<UpsertResult> UpdateApplicationByIdAsync(string applicationId, JobApplication application, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.Id, applicationId);
+            var existing = await _collection.Find(filter).FirstOrDefaultAsync(cancellationToken);
+            if (existing == null)
+            {
+                _logger.LogWarning("UpdateApplicationByIdAsync: application not found: {Id}", applicationId);
+                return UpsertResult.Failure();
+            }
+
+            return await ReplaceExistingAsync(existing, application);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating job application by id={Id}", applicationId);
+            return UpsertResult.Failure();
+        }
+    }
+
+    /// <summary>
+    /// Tier 1 (normalized URL) then Tier 2 (company+title fallback) of the identity resolution
+    /// cascade. Tier 0 (PendingJob.SourceApplicationId) is resolved by the caller before this is
+    /// ever reached — see ApplicationIngestionService.
+    /// </summary>
+    private async Task<JobApplicationDocument?> FindMatchAsync(JobApplication application)
+    {
+        if (!string.IsNullOrWhiteSpace(application.JobUrlNormalized))
+        {
+            var urlFilter = Builders<JobApplicationDocument>.Filter.Eq(d => d.JobUrlNormalized, application.JobUrlNormalized);
+            var urlMatch = await _collection.Find(urlFilter).FirstOrDefaultAsync();
+            if (urlMatch != null)
+                return urlMatch;
+        }
+
+        var companyPattern = new BsonRegularExpression($"^{Regex.Escape(application.CompanyName.Trim())}$", "i");
+        var titlePattern = new BsonRegularExpression($"^{Regex.Escape(application.JobTitle.Trim())}$", "i");
+
+        var fallbackFilter = Builders<JobApplicationDocument>.Filter.And(
+            Builders<JobApplicationDocument>.Filter.Regex(d => d.CompanyName, companyPattern),
+            Builders<JobApplicationDocument>.Filter.Regex(d => d.JobTitle, titlePattern));
+
+        return await _collection.Find(fallbackFilter).FirstOrDefaultAsync();
+    }
+
+    private async Task<UpsertResult> InsertNewAsync(JobApplication application)
+    {
+        var id = ObjectId.GenerateNewId().ToString();
+        application.CreatedAt = DateTime.UtcNow;
+        application.UpdatedAt = DateTime.UtcNow;
+
+        var doc = JobApplicationMapper.ToDocument(application, id);
+        await _collection.InsertOneAsync(doc);
+
+        _logger.LogInformation("Inserted new job application for {CompanyName} (id={Id})", application.CompanyName, id);
+        return UpsertResult.Success(isNewDocument: true, id);
+    }
+
+    private async Task<UpsertResult> ReplaceExistingAsync(JobApplicationDocument existing, JobApplication application)
+    {
+        application.UpdatedAt = DateTime.UtcNow;
+        application.CreatedAt = existing.CreatedAt ?? DateTime.UtcNow;
+
+        var doc = JobApplicationMapper.ToDocument(application, existing.Id);
+
+        // Preserve existing tracker fields on re-ingestion
+        doc.Stage = (existing.Stage?.Length > 0) ? existing.Stage : "Ready to Apply";
+        doc.Applied = existing.Applied ?? false;
+        doc.AppliedDate = existing.AppliedDate;
+        doc.PersonalNotes = existing.PersonalNotes ?? "";
+        doc.Interviews = existing.Interviews ?? [];
+        doc.Notes = existing.Notes ?? [];
+        doc.Salary = existing.Salary ?? new SalaryDocument();
+        doc.Recruiter = existing.Recruiter ?? new RecruiterDocument();
+        doc.FollowUpDate = existing.FollowUpDate;
+        doc.Source = (existing.Source?.Length > 0) ? existing.Source : doc.Source;
+        doc.IsHistorical = existing.IsHistorical ?? false;
+
+        var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.Id, existing.Id);
+        await _collection.ReplaceOneAsync(filter, doc);
+
+        _logger.LogInformation("Updated existing job application for {CompanyName} (id={Id})", application.CompanyName, existing.Id);
+        return UpsertResult.Success(isNewDocument: false, existing.Id);
     }
 
     public async Task<JobApplication?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
@@ -286,26 +378,11 @@ public class MongoDbService : IJobApplicationRepository
         };
     }
 
-    public async Task<JobApplication?> GetByCompanyNameAsync(string companyName, CancellationToken cancellationToken = default)
+    public async Task<bool> UpdateStageAsync(string id, string stage, CancellationToken cancellationToken = default)
     {
         try
         {
-            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.CompanyName, companyName);
-            var doc = await _collection.Find(filter).FirstOrDefaultAsync(cancellationToken);
-            return doc == null ? null : JobApplicationMapper.ToDomain(doc);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error fetching job application by companyName={CompanyName}", companyName);
-            return null;
-        }
-    }
-
-    public async Task<bool> UpdateStageAsync(string companyName, string stage, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.CompanyName, companyName);
+            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.Id, id);
 
             var update = Builders<JobApplicationDocument>.Update
                 .Set(d => d.Stage, stage)
@@ -323,16 +400,16 @@ public class MongoDbService : IJobApplicationRepository
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating stage for {CompanyName}", companyName);
+            _logger.LogError(ex, "Error updating stage for id={Id}", id);
             return false;
         }
     }
 
-    public async Task<bool> UpdatePersonalNotesAsync(string companyName, string notes, CancellationToken cancellationToken = default)
+    public async Task<bool> UpdatePersonalNotesAsync(string id, string notes, CancellationToken cancellationToken = default)
     {
         try
         {
-            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.CompanyName, companyName);
+            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.Id, id);
 
             var update = Builders<JobApplicationDocument>.Update
                 .Set(d => d.PersonalNotes, notes)
@@ -343,16 +420,16 @@ public class MongoDbService : IJobApplicationRepository
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating personal notes for {CompanyName}", companyName);
+            _logger.LogError(ex, "Error updating personal notes for id={Id}", id);
             return false;
         }
     }
 
-    public async Task<JobApplication?> AddInterviewAsync(string companyName, Domain.ValueObjects.InterviewRecord interview, CancellationToken cancellationToken = default)
+    public async Task<JobApplication?> AddInterviewAsync(string id, Domain.ValueObjects.InterviewRecord interview, CancellationToken cancellationToken = default)
     {
         try
         {
-            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.CompanyName, companyName);
+            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.Id, id);
             var doc = await _collection.Find(filter).FirstOrDefaultAsync(cancellationToken);
             if (doc == null) return null;
 
@@ -379,16 +456,16 @@ public class MongoDbService : IJobApplicationRepository
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error adding interview for {CompanyName}", companyName);
+            _logger.LogError(ex, "Error adding interview for id={Id}", id);
             return null;
         }
     }
 
-    public async Task<JobApplication?> UpdateInterviewAsync(string companyName, int index, string? date, string? type, string? notes, string? outcome, CancellationToken cancellationToken = default)
+    public async Task<JobApplication?> UpdateInterviewAsync(string id, int index, string? date, string? type, string? notes, string? outcome, CancellationToken cancellationToken = default)
     {
         try
         {
-            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.CompanyName, companyName);
+            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.Id, id);
             var doc = await _collection.Find(filter).FirstOrDefaultAsync(cancellationToken);
             if (doc == null) return null;
 
@@ -410,16 +487,16 @@ public class MongoDbService : IJobApplicationRepository
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating interview for {CompanyName}", companyName);
+            _logger.LogError(ex, "Error updating interview for id={Id}", id);
             return null;
         }
     }
 
-    public async Task<bool> DeleteInterviewAsync(string companyName, int index, CancellationToken cancellationToken = default)
+    public async Task<bool> DeleteInterviewAsync(string id, int index, CancellationToken cancellationToken = default)
     {
         try
         {
-            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.CompanyName, companyName);
+            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.Id, id);
             var doc = await _collection.Find(filter).FirstOrDefaultAsync(cancellationToken);
             if (doc == null) return false;
 
@@ -439,16 +516,16 @@ public class MongoDbService : IJobApplicationRepository
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting interview for {CompanyName}", companyName);
+            _logger.LogError(ex, "Error deleting interview for id={Id}", id);
             return false;
         }
     }
 
-    public async Task<JobApplication?> AddNoteAsync(string companyName, Domain.ValueObjects.ApplicationNote note, CancellationToken cancellationToken = default)
+    public async Task<JobApplication?> AddNoteAsync(string id, Domain.ValueObjects.ApplicationNote note, CancellationToken cancellationToken = default)
     {
         try
         {
-            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.CompanyName, companyName);
+            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.Id, id);
             var doc = await _collection.Find(filter).FirstOrDefaultAsync(cancellationToken);
             if (doc == null) return null;
 
@@ -478,16 +555,16 @@ public class MongoDbService : IJobApplicationRepository
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error adding note for {CompanyName}", companyName);
+            _logger.LogError(ex, "Error adding note for id={Id}", id);
             return null;
         }
     }
 
-    public async Task<JobApplication?> UpdateNoteAsync(string companyName, int noteId, string? category, string? content, bool? pinned, CancellationToken cancellationToken = default)
+    public async Task<JobApplication?> UpdateNoteAsync(string id, int noteId, string? category, string? content, bool? pinned, CancellationToken cancellationToken = default)
     {
         try
         {
-            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.CompanyName, companyName);
+            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.Id, id);
             var doc = await _collection.Find(filter).FirstOrDefaultAsync(cancellationToken);
             if (doc == null) return null;
 
@@ -509,13 +586,13 @@ public class MongoDbService : IJobApplicationRepository
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating note for {CompanyName}", companyName);
+            _logger.LogError(ex, "Error updating note for id={Id}", id);
             return null;
         }
     }
 
     public async Task<bool> UpdateContentAsync(
-        string companyName,
+        string id,
         string? headline,
         string? summary,
         List<Domain.ValueObjects.SkillRow>? skills,
@@ -528,7 +605,7 @@ public class MongoDbService : IJobApplicationRepository
     {
         try
         {
-            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.CompanyName, companyName);
+            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.Id, id);
             var update = Builders<JobApplicationDocument>.Update.Set(d => d.UpdatedAt, DateTime.UtcNow);
 
             if (headline != null) update = update.Set(d => d.Headline, headline);
@@ -545,16 +622,16 @@ public class MongoDbService : IJobApplicationRepository
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating content for {CompanyName}", companyName);
+            _logger.LogError(ex, "Error updating content for id={Id}", id);
             return false;
         }
     }
 
-    public async Task<bool> DeleteNoteAsync(string companyName, int noteId, CancellationToken cancellationToken = default)
+    public async Task<bool> DeleteNoteAsync(string id, int noteId, CancellationToken cancellationToken = default)
     {
         try
         {
-            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.CompanyName, companyName);
+            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.Id, id);
             var doc = await _collection.Find(filter).FirstOrDefaultAsync(cancellationToken);
             if (doc == null) return false;
 
@@ -575,7 +652,7 @@ public class MongoDbService : IJobApplicationRepository
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting note for {CompanyName}", companyName);
+            _logger.LogError(ex, "Error deleting note for id={Id}", id);
             return false;
         }
     }
