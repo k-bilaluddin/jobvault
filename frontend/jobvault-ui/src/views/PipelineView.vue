@@ -51,8 +51,8 @@ const COLUMN_STYLE: Record<string, { border: string; header: string; headerText:
 
           <!-- Cards -->
           <div class="flex-1 overflow-y-auto space-y-2 pr-1">
-            <div v-for="c in byStage[stage]" :key="c.name"
-              @click="router.push(`/company/${encodeURIComponent(c.name)}`)"
+            <div v-for="c in byStage[stage]" :key="c.id"
+              @click="router.push(`/company/${c.id}`)"
               class="bg-surface-raised border border-border rounded-lg p-3 cursor-pointer hover:border-accent/40 transition-all group">
               <div class="flex items-start gap-2 mb-2">
                 <CompanyAvatar :name="c.name" size="sm"/>

@@ -27,7 +27,7 @@ public class PendingJobRepository : IPendingJobRepository
         _collection = database.GetCollection<PendingJobDocument>(collectionName);
     }
 
-    public async Task<PendingJob> CreateAsync(string url, string? prompt = null, CancellationToken ct = default)
+    public async Task<PendingJob> CreateAsync(string url, string? prompt = null, string? sourceApplicationId = null, CancellationToken ct = default)
     {
         var doc = new PendingJobDocument
         {
@@ -37,6 +37,7 @@ public class PendingJobRepository : IPendingJobRepository
             Prompt = prompt,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
+            SourceApplicationId = sourceApplicationId,
         };
 
         await _collection.InsertOneAsync(doc, cancellationToken: ct);
@@ -109,5 +110,6 @@ public class PendingJobRepository : IPendingJobRepository
         Prompt = doc.Prompt,
         CreatedAt = doc.CreatedAt,
         UpdatedAt = doc.UpdatedAt,
+        SourceApplicationId = doc.SourceApplicationId,
     };
 }

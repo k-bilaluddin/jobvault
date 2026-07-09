@@ -441,4 +441,100 @@ public class ApplicationIngestionServiceTests
         result.IsSuccess.Should().BeFalse();
         result.ErrorMessage.Should().Be("An unexpected error occurred");
     }
+
+    // ─── Identity Resolution Cascade Tests (Tier 0 / No-Op) ───────────
+
+    [Fact]
+    public async Task IngestAsync_JobIdResolvesToSourceApplicationId_UpdatesByIdInsteadOfUpserting()
+    {
+        // Arrange
+        var request = CreateValidRequest();
+        request.JobId = "pending-job-1";
+        _pendingJobRepository
+            .GetByIdAsync("pending-job-1", Arg.Any<CancellationToken>())
+            .Returns(new PendingJob { Id = "pending-job-1", Url = "https://example.com/job", SourceApplicationId = "existing-app-id" });
+        _repository
+            .UpdateApplicationByIdAsync("existing-app-id", Arg.Any<JobApplication>(), Arg.Any<CancellationToken>())
+            .Returns(UpsertResult.Success(false, "existing-app-id"));
+
+        // Act
+        var result = await _sut.IngestAsync(request, CancellationToken.None);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.ApplicationId.Should().Be("existing-app-id");
+        await _repository.Received(1).UpdateApplicationByIdAsync("existing-app-id", Arg.Any<JobApplication>(), Arg.Any<CancellationToken>());
+        await _repository.DidNotReceive().UpsertApplicationAsync(Arg.Any<JobApplication>());
+    }
+
+    [Fact]
+    public async Task IngestAsync_JobIdWithNoSourceApplicationId_FallsBackToUpsert()
+    {
+        // Arrange
+        var request = CreateValidRequest();
+        request.JobId = "pending-job-1";
+        _pendingJobRepository
+            .GetByIdAsync("pending-job-1", Arg.Any<CancellationToken>())
+            .Returns(new PendingJob { Id = "pending-job-1", Url = "https://example.com/job", SourceApplicationId = null });
+
+        // Act
+        var result = await _sut.IngestAsync(request, CancellationToken.None);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        await _repository.Received(1).UpsertApplicationAsync(Arg.Any<JobApplication>());
+        await _repository.DidNotReceive().UpdateApplicationByIdAsync(Arg.Any<string>(), Arg.Any<JobApplication>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task IngestAsync_NoJobId_CallsUpsertApplicationAsync()
+    {
+        // Arrange
+        var request = CreateValidRequest();
+
+        // Act
+        await _sut.IngestAsync(request, CancellationToken.None);
+
+        // Assert
+        await _repository.Received(1).UpsertApplicationAsync(Arg.Any<JobApplication>());
+        await _pendingJobRepository.DidNotReceive().GetByIdAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task IngestAsync_UpsertResultIsNoOp_DoesNotPublishEventButStillReturnsSuccess()
+    {
+        // Arrange
+        var request = CreateValidRequest();
+        _repository
+            .UpsertApplicationAsync(Arg.Any<JobApplication>())
+            .Returns(UpsertResult.NoOp("existing-app-id"));
+
+        // Act
+        var result = await _sut.IngestAsync(request, CancellationToken.None);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.ApplicationId.Should().Be("existing-app-id");
+        await _publisher.DidNotReceive().PublishJobApplicationEventAsync(Arg.Any<JobApplicationEvent>());
+    }
+
+    [Fact]
+    public async Task IngestAsync_NoOpResultWithJobId_StillMarksPendingJobDone()
+    {
+        // Arrange
+        var request = CreateValidRequest();
+        request.JobId = "pending-job-1";
+        _pendingJobRepository
+            .GetByIdAsync("pending-job-1", Arg.Any<CancellationToken>())
+            .Returns(new PendingJob { Id = "pending-job-1", Url = "https://example.com/job" });
+        _repository
+            .UpsertApplicationAsync(Arg.Any<JobApplication>())
+            .Returns(UpsertResult.NoOp("existing-app-id"));
+
+        // Act
+        await _sut.IngestAsync(request, CancellationToken.None);
+
+        // Assert
+        await _pendingJobRepository.Received(1).SetStatusAsync("pending-job-1", "done", Arg.Any<CancellationToken>());
+    }
 }

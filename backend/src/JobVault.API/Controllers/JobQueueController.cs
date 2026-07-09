@@ -42,7 +42,7 @@ public class JobQueueController : ApiControllerBase
         if (string.IsNullOrWhiteSpace(request.Url))
             return ErrorResponse("queue.url_required");
 
-        var job = await _service.CreateAsync(request.Url.Trim(), request.Prompt?.Trim(), ct);
+        var job = await _service.CreateAsync(request.Url.Trim(), request.Prompt?.Trim(), ct: ct);
         return Created($"/api/ingest/queue/{job.Id}", ToResponse(job));
     }
 

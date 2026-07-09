@@ -23,4 +23,7 @@ public class PendingJobDocument
 
     [BsonElement("updatedAt")]
     public DateTime UpdatedAt { get; set; }
+
+    [BsonElement("sourceApplicationId")]
+    public string? SourceApplicationId { get; set; }
 }

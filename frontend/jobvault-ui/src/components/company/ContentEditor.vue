@@ -4,7 +4,7 @@ import { api } from '@/api'
 import type { ApplicationContent, RolePayload } from '@/types'
 
 const props = defineProps<{
-  companyName: string
+  id: string
   jobUrl?: string
   isRegenerating: boolean
 }>()
@@ -23,7 +23,7 @@ async function loadContent() {
   loading.value = true
   error.value = ''
   try {
-    const { data } = await api.get(`/api/applications/${encodeURIComponent(props.companyName)}/content`)
+    const { data } = await api.get(`/api/applications/${props.id}/content`)
     content.value = data
   } catch {
     error.value = 'Failed to load content'
@@ -32,7 +32,7 @@ async function loadContent() {
   }
 }
 
-watch(() => props.companyName, loadContent, { immediate: true })
+watch(() => props.id, loadContent, { immediate: true })
 
 function addBullet(role: RolePayload) {
   role.bullets.push('')
@@ -63,7 +63,7 @@ async function regenerate() {
   saving.value = true
   error.value = ''
   try {
-    await api.post(`/api/applications/${encodeURIComponent(props.companyName)}/regenerate`, {
+    await api.post(`/api/applications/${props.id}/regenerate`, {
       headline: content.value.headline,
       summary: content.value.summary,
       skills: content.value.skills,

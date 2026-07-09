@@ -179,19 +179,11 @@ public class SseNotificationConsumer : BackgroundService
             Title = title,
             Body = body,
             CompanyName = jobEvent.CompanyName,
-            CompanySlug = SlugifyCompanyName(jobEvent.CompanyName),
+            CompanyId = jobEvent.ApplicationId,
             OccurredAt = jobEvent.Timestamp == default ? DateTime.UtcNow : jobEvent.Timestamp,
             Read = false
         };
     }
-
-    private static string SlugifyCompanyName(string name) =>
-        name.ToLowerInvariant()
-            .Replace(" ", "-")
-            .Replace(".", "")
-            .Replace(",", "")
-            .Replace("'", "")
-            .Trim('-');
 
     public override async Task StopAsync(CancellationToken cancellationToken)
     {

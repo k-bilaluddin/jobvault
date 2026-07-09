@@ -3,6 +3,7 @@ using JobVault.Application.Interfaces;
 using JobVault.Contracts.Events;
 using JobVault.Contracts.Requests;
 using JobVault.Domain.Entities;
+using JobVault.Domain.Services;
 using Microsoft.Extensions.Logging;
 
 namespace JobVault.Application.Services;
@@ -42,6 +43,7 @@ public class ApplicationIngestionService : IApplicationIngestionService
                 JobTitle = request.JobTitle,
                 Location = request.Location ?? string.Empty,
                 JobUrl = request.JobUrl ?? string.Empty,
+                JobUrlNormalized = JobUrlNormalizer.Normalize(request.JobUrl),
                 WorkMode = request.WorkMode ?? string.Empty,
                 EmploymentType = request.EmploymentType ?? string.Empty,
                 SalaryMin = request.SalaryMin,
@@ -65,34 +67,51 @@ public class ApplicationIngestionService : IApplicationIngestionService
                 TailoringNotesMarkdown = request.TailoringNotesMarkdown,
             };
 
-            var upsertResult = await _repository.UpsertApplicationAsync(application);
+            // Tier 0: if this ingestion completes a re-queue, the pending job already links back to
+            // the exact application — update it unconditionally, bypassing the resolution cascade
+            // and status-guard entirely (see issue #104).
+            var sourceApplicationId = await ResolveSourceApplicationIdAsync(request.JobId, cancellationToken);
+
+            var upsertResult = sourceApplicationId != null
+                ? await _repository.UpdateApplicationByIdAsync(sourceApplicationId, application, cancellationToken)
+                : await _repository.UpsertApplicationAsync(application);
+
             if (!upsertResult.IsSuccess || upsertResult.Id == null)
             {
                 _logger.LogError("Failed to upsert application for {CompanyName}", request.CompanyName);
                 return ApplicationIngestionResult.Failure("Failed to persist application");
             }
 
-            try
+            if (upsertResult.IsNoOp)
             {
-                var jobEvent = new JobApplicationEvent
-                {
-                    ApplicationId = upsertResult.Id,
-                    CompanyName = application.CompanyName,
-                    JobTitle = application.JobTitle,
-                    MatchScore = application.MatchScore,
-                    Recommendation = application.Recommendation,
-                    Status = application.Status,
-                    URL = application.JobUrl,
-                    EventType = "received",
-                    Timestamp = DateTime.UtcNow
-                };
-
-                await _publisher.PublishJobApplicationEventAsync(jobEvent);
+                _logger.LogInformation(
+                    "Ingestion for {CompanyName} matched an actively-engaged application (id={Id}); skipping",
+                    request.CompanyName, upsertResult.Id);
             }
-            catch (Exception ex)
+            else
             {
-                // Application is already persisted — don't fail the request over RabbitMQ
-                _logger.LogError(ex, "Failed to publish received event for {CompanyName}; returning 202 anyway", request.CompanyName);
+                try
+                {
+                    var jobEvent = new JobApplicationEvent
+                    {
+                        ApplicationId = upsertResult.Id,
+                        CompanyName = application.CompanyName,
+                        JobTitle = application.JobTitle,
+                        MatchScore = application.MatchScore,
+                        Recommendation = application.Recommendation,
+                        Status = application.Status,
+                        URL = application.JobUrl,
+                        EventType = "received",
+                        Timestamp = DateTime.UtcNow
+                    };
+
+                    await _publisher.PublishJobApplicationEventAsync(jobEvent);
+                }
+                catch (Exception ex)
+                {
+                    // Application is already persisted — don't fail the request over RabbitMQ
+                    _logger.LogError(ex, "Failed to publish received event for {CompanyName}; returning 202 anyway", request.CompanyName);
+                }
             }
 
             if (!string.IsNullOrWhiteSpace(request.JobId))
@@ -116,6 +135,15 @@ public class ApplicationIngestionService : IApplicationIngestionService
             _logger.LogError(ex, "Unexpected error ingesting application for {CompanyName}", request.CompanyName);
             return ApplicationIngestionResult.Failure("An unexpected error occurred");
         }
+    }
+
+    private async Task<string?> ResolveSourceApplicationIdAsync(string? jobId, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(jobId))
+            return null;
+
+        var pendingJob = await _pendingJobRepository.GetByIdAsync(jobId, cancellationToken);
+        return pendingJob?.SourceApplicationId;
     }
 
     private static string? Validate(IngestApplicationRequest request)

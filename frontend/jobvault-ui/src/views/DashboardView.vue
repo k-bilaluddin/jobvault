@@ -295,8 +295,8 @@ const avgSalary = computed(() => {
 
         <!-- Filtered list -->
         <div v-if="selectedDate && filteredByDate?.length" class="mt-3 pt-3 border-t border-border space-y-1">
-          <div v-for="c in filteredByDate" :key="c.name"
-            @click="router.push(`/company/${encodeURIComponent(c.name)}`)"
+          <div v-for="c in filteredByDate" :key="c.id"
+            @click="router.push(`/company/${c.id}`)"
             class="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-surface-overlay cursor-pointer transition-colors group">
             <CompanyAvatar :name="c.name" size="sm"/>
             <span class="text-xs font-medium text-text-primary group-hover:text-accent transition-colors flex-1">{{ c.name }}</span>
@@ -349,8 +349,8 @@ const avgSalary = computed(() => {
           </div>
         </div>
         <div class="space-y-1">
-          <div v-for="c in followUpsDue" :key="c.name"
-            @click="router.push(`/company/${encodeURIComponent(c.name)}`)"
+          <div v-for="c in followUpsDue" :key="c.id"
+            @click="router.push(`/company/${c.id}`)"
             class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-amber-500/10 cursor-pointer transition-colors group">
             <CompanyAvatar :name="c.name" size="sm"/>
             <div class="flex-1 min-w-0">
@@ -375,8 +375,8 @@ const avgSalary = computed(() => {
             <span class="text-[10px] text-text-muted">Active only</span>
           </div>
           <div class="space-y-1">
-            <div v-for="(c, i) in topMatches" :key="c.name"
-              @click="router.push(`/company/${encodeURIComponent(c.name)}`)"
+            <div v-for="(c, i) in topMatches" :key="c.id"
+              @click="router.push(`/company/${c.id}`)"
               class="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-surface-overlay cursor-pointer transition-colors group">
               <span class="text-[10px] font-mono text-text-muted w-4 flex-shrink-0">{{ i + 1 }}</span>
               <CompanyAvatar :name="c.name" size="sm"/>
@@ -396,8 +396,8 @@ const avgSalary = computed(() => {
             <button @click="router.push('/applications')" class="text-xs text-accent hover:underline">View all</button>
           </div>
           <div class="space-y-1">
-            <div v-for="c in recentActivity" :key="c.name"
-              @click="router.push(`/company/${encodeURIComponent(c.name)}`)"
+            <div v-for="c in recentActivity" :key="c.id"
+              @click="router.push(`/company/${c.id}`)"
               class="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-surface-overlay cursor-pointer transition-colors group">
               <CompanyAvatar :name="c.name" size="sm"/>
               <div class="flex-1 min-w-0">

@@ -54,8 +54,8 @@ export function useCompanies() {
     return list
   })
 
-  const getByName = (name: string) =>
-    _companies.value.find(c => c.name === name) ?? null
+  const getById = (id: string) =>
+    _companies.value.find(c => c.id === id) ?? null
 
   // Dashboard stats computed from real data — mirrors Flask logic
   const stats = computed<DashboardStats>(() => {
@@ -122,7 +122,7 @@ export function useCompanies() {
     error: _error,
     search,
     filterStage,
-    getByName,
+    getById,
     stats,
     pipelineCounts,
     scoreDistribution,
