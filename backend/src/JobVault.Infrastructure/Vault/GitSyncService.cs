@@ -26,8 +26,8 @@ public class GitSyncService : IGitSyncService
         {
             var applications = await _repository.GetAllApplicationsAsync(cancellationToken);
 
-            foreach (var app in applications)
-                _vaultFileService.EvictCache(app.CompanyName);
+            foreach (var app in applications.Where(a => a.Id != null))
+                _vaultFileService.EvictCache(app.CompanyName, app.Id!);
 
             _logger.LogInformation("Cache evicted for {Count} applications", applications.Count);
 

@@ -149,7 +149,7 @@ public class VaultControllerTests
         };
 
         _fileIngestService
-            .IngestAsync("Acme", Arg.Any<IReadOnlyCollection<IngestedFile>>(), Arg.Any<CancellationToken>())
+            .IngestAsync("Acme", Arg.Any<IReadOnlyCollection<IngestedFile>>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(FileIngestResult.Failure("GitHub error"));
 
         // Act
@@ -177,7 +177,7 @@ public class VaultControllerTests
         };
 
         _fileIngestService
-            .IngestAsync("Acme", Arg.Any<IReadOnlyCollection<IngestedFile>>(), Arg.Any<CancellationToken>())
+            .IngestAsync("Acme", Arg.Any<IReadOnlyCollection<IngestedFile>>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .ThrowsAsync(new Exception("Boom"));
 
         // Act & Assert — exception bubbles to GlobalExceptionHandler middleware

@@ -9,6 +9,7 @@ public class JobApplication
     public string JobTitle { get; set; } = string.Empty;
     public string Location { get; set; } = string.Empty;
     public string JobUrl { get; set; } = string.Empty;
+    public string? JobUrlNormalized { get; set; }
     public string WorkMode { get; set; } = string.Empty;
     public string EmploymentType { get; set; } = string.Empty;
     public int? SalaryMin { get; set; }

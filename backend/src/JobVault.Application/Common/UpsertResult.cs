@@ -21,6 +21,13 @@ public class UpsertResult
     public string? Id { get; init; }
 
     /// <summary>
+    /// Gets whether the ingestion matched an actively-engaged application (per the status-guard) and was
+    /// deliberately skipped — nothing was created or modified. <see cref="Id"/> still carries the matched
+    /// application's id for logging purposes.
+    /// </summary>
+    public bool IsNoOp { get; init; }
+
+    /// <summary>
     /// Creates a successful upsert result.
     /// </summary>
     /// <param name="isNewDocument">Whether a new document was created.</param>
@@ -31,6 +38,18 @@ public class UpsertResult
         IsSuccess = true,
         IsNewDocument = isNewDocument,
         Id = id
+    };
+
+    /// <summary>
+    /// Creates a successful no-op result: the ingestion matched an actively-engaged application
+    /// (Ready to Apply / Regenerating / Researching) and nothing was created or modified.
+    /// </summary>
+    public static UpsertResult NoOp(string? matchedId) => new()
+    {
+        IsSuccess = true,
+        IsNewDocument = false,
+        Id = matchedId,
+        IsNoOp = true,
     };
 
     /// <summary>

@@ -2,8 +2,17 @@
 import { ref, onMounted, computed } from 'vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import { useRouter } from 'vue-router'
+import { useCompanies } from '@/composables/useCompanies'
 import { api } from '@/api'
 const router = useRouter()
+const { companies } = useCompanies()
+
+// The skills-gap endpoint aggregates by company name only (no id) — resolve to a company
+// record client-side. If two applications share a name, this picks the first match.
+function goToCompany(name: string) {
+  const match = companies.value.find(c => c.name === name)
+  if (match) router.push(`/company/${match.id}`)
+}
 
 interface GapSkill {
   skill: string
@@ -163,7 +172,7 @@ const topGaps = computed(() => gaps.value.slice(0, 3))
               <p class="text-[10px] font-semibold text-text-muted uppercase tracking-wider mt-3 mb-2">Flagged in:</p>
               <div class="flex flex-wrap gap-1.5">
                 <button v-for="company in gap.companies" :key="company"
-                  @click.stop="router.push(`/company/${encodeURIComponent(company)}`)"
+                  @click.stop="goToCompany(company)"
                   class="text-xs px-2.5 py-1 rounded-lg bg-surface-overlay hover:bg-border text-text-secondary hover:text-text-primary transition-colors">
                   {{ company }}
                 </button>

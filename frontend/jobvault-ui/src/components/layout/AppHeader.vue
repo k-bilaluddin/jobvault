@@ -38,11 +38,11 @@ async function handleMarkAllRead() {
   await markAllRead()
 }
 
-async function handleNotificationClick(id: string, companySlug: string | null) {
+async function handleNotificationClick(id: string, companyId: string | null) {
   await markRead(id)
   closeDropdown()
-  if (companySlug) {
-    router.push(`/company/${companySlug}`)
+  if (companyId) {
+    router.push(`/company/${companyId}`)
   }
 }
 
@@ -159,7 +159,7 @@ onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
               <button
                 v-for="n in recentNotifications"
                 :key="n.id"
-                @click="handleNotificationClick(n.id, n.companySlug)"
+                @click="handleNotificationClick(n.id, n.companyId)"
                 class="w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-surface-overlay transition-colors border-b border-border/50 last:border-0"
                 :class="!n.read ? 'border-l-2 border-l-accent bg-accent/5' : ''"
               >

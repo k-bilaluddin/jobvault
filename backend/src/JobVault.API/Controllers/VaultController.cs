@@ -86,7 +86,7 @@ public class VaultController : ApiControllerBase
         if (ingestedFiles.Count == 0)
             return ErrorResponse("vault.empty_files");
 
-        var result = await _fileIngestService.IngestAsync(request.CompanyName, ingestedFiles, cancellationToken);
+        var result = await _fileIngestService.IngestAsync(request.CompanyName, ingestedFiles, cancellationToken: cancellationToken);
 
         if (!result.IsSuccess)
             return ErrorResponse("ingest.upsert_failed", request.CompanyName);

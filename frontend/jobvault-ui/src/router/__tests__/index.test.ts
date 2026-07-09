@@ -9,7 +9,7 @@ function makeRouter() {
       { path: '/login', name: 'login', component: { template: '<div>Login</div>' }, meta: { public: true } },
       { path: '/dashboard', name: 'dashboard', component: { template: '<div>Dashboard</div>' } },
       { path: '/applications', name: 'applications', component: { template: '<div>Apps</div>' } },
-      { path: '/company/:name', name: 'company', component: { template: '<div>Company</div>' } },
+      { path: '/company/:id', name: 'company', component: { template: '<div>Company</div>' } },
       { path: '/pipeline', name: 'pipeline', component: { template: '<div>Pipeline</div>' } },
       { path: '/interviews', name: 'interviews', component: { template: '<div>Interviews</div>' } },
       { path: '/skills-gap', name: 'skills-gap', component: { template: '<div>Skills</div>' } },
@@ -59,10 +59,10 @@ describe('router', () => {
     expect(dashboardRoute?.meta.public).toBeFalsy()
   })
 
-  it('company route has name param', () => {
+  it('company route has id param', () => {
     const router = makeRouter()
     const companyRoute = router.getRoutes().find(r => r.name === 'company')
-    expect(companyRoute?.path).toContain(':name')
+    expect(companyRoute?.path).toContain(':id')
   })
 
   describe('auth guard', () => {

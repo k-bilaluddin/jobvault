@@ -4,6 +4,7 @@ import { withSetup } from './helpers'
 
 function makeCompany(overrides: Record<string, unknown> = {}) {
   return {
+    id: 'test-id',
     name: 'TestCorp',
     has_report: true,
     has_notes: false,
@@ -114,18 +115,18 @@ describe('useCompanies', () => {
     })
   })
 
-  describe('getByName', () => {
+  describe('getById', () => {
     it('returns matching company', async () => {
       const { result } = await loadWithMock()
-      result.companies.value = [makeCompany({ name: 'TestCorp' })] as any
-      expect(result.getByName('TestCorp')).not.toBeNull()
-      expect(result.getByName('TestCorp')!.name).toBe('TestCorp')
+      result.companies.value = [makeCompany({ id: 'abc123', name: 'TestCorp' })] as any
+      expect(result.getById('abc123')).not.toBeNull()
+      expect(result.getById('abc123')!.name).toBe('TestCorp')
     })
 
-    it('returns null for unknown name', async () => {
+    it('returns null for unknown id', async () => {
       const { result } = await loadWithMock()
-      result.companies.value = [makeCompany({ name: 'TestCorp' })] as any
-      expect(result.getByName('Unknown')).toBeNull()
+      result.companies.value = [makeCompany({ id: 'abc123', name: 'TestCorp' })] as any
+      expect(result.getById('unknown-id')).toBeNull()
     })
   })
 

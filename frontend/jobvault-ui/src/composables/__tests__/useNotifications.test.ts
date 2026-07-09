@@ -12,7 +12,7 @@ function makeNotification(overrides: Partial<AppNotification> = {}): AppNotifica
     title: 'Test',
     body: 'Test body',
     companyName: 'Acme',
-    companySlug: 'acme',
+    companyId: 'acme-id',
     occurredAt: '2026-06-18T10:00:00Z',
     read: false,
     ...overrides,
