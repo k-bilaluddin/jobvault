@@ -263,6 +263,8 @@ public class MongoDbService : IJobApplicationRepository
         string? stage = null,
         string sortBy = "synced_at",
         string sortDirection = "desc",
+        DateTime? dateFrom = null,
+        DateTime? dateTo = null,
         CancellationToken cancellationToken = default)
     {
         try
@@ -277,6 +279,12 @@ public class MongoDbService : IJobApplicationRepository
                     builder.Regex(d => d.CompanyName, regex),
                     builder.Regex(d => d.JobTitle, regex));
             }
+
+            // "Received" date filter — matches UpdatedAt, the field surfaced to the UI as synced_at.
+            if (dateFrom.HasValue)
+                filter &= builder.Gte(d => d.UpdatedAt, dateFrom.Value.Date);
+            if (dateTo.HasValue)
+                filter &= builder.Lt(d => d.UpdatedAt, dateTo.Value.Date.AddDays(1));
 
             if (!string.IsNullOrWhiteSpace(stage) && stage != "All")
             {
@@ -309,6 +317,10 @@ public class MongoDbService : IJobApplicationRepository
                     builder.Regex(d => d.CompanyName, regex),
                     builder.Regex(d => d.JobTitle, regex));
             }
+            if (dateFrom.HasValue)
+                baseFilter &= builder.Gte(d => d.UpdatedAt, dateFrom.Value.Date);
+            if (dateTo.HasValue)
+                baseFilter &= builder.Lt(d => d.UpdatedAt, dateTo.Value.Date.AddDays(1));
 
             var allDocs = await _collection.Find(baseFilter)
                 .Project(Builders<JobApplicationDocument>.Projection.Include(d => d.Stage).Include(d => d.Status))
@@ -421,6 +433,27 @@ public class MongoDbService : IJobApplicationRepository
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating personal notes for id={Id}", id);
+            return false;
+        }
+    }
+
+    public async Task<bool> UpdateDisplayNameAsync(string id, string? displayName, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.Id, id);
+            var trimmed = string.IsNullOrWhiteSpace(displayName) ? null : displayName.Trim();
+
+            var update = Builders<JobApplicationDocument>.Update
+                .Set(d => d.DisplayName, trimmed)
+                .Set(d => d.UpdatedAt, DateTime.UtcNow);
+
+            var result = await _collection.UpdateOneAsync(filter, update, cancellationToken: cancellationToken);
+            return result.MatchedCount > 0;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating display name for id={Id}", id);
             return false;
         }
     }

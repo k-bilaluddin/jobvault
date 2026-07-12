@@ -13,6 +13,9 @@ internal class JobApplicationDocument
     [BsonElement("companyName")]
     public string? CompanyName { get; set; }
 
+    [BsonElement("displayName")]
+    public string? DisplayName { get; set; }
+
     [BsonElement("jobTitle")]
     public string? JobTitle { get; set; }
 

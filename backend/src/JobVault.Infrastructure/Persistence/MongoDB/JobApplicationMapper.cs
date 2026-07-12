@@ -9,6 +9,7 @@ internal static class JobApplicationMapper
     {
         Id = doc.Id,
         CompanyName = doc.CompanyName ?? "",
+        DisplayName = doc.DisplayName,
         JobTitle = doc.JobTitle ?? "",
         Location = doc.Location ?? "",
         JobUrl = doc.JobUrl ?? "",
@@ -94,6 +95,7 @@ internal static class JobApplicationMapper
     {
         Id = existingId ?? entity.Id ?? "",
         CompanyName = entity.CompanyName,
+        DisplayName = entity.DisplayName,
         JobTitle = entity.JobTitle,
         Location = entity.Location,
         JobUrl = entity.JobUrl,
