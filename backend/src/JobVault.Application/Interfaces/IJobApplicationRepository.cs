@@ -52,11 +52,19 @@ public interface IJobApplicationRepository
         string? stage = null,
         string sortBy = "synced_at",
         string sortDirection = "desc",
+        DateTime? dateFrom = null,
+        DateTime? dateTo = null,
         CancellationToken cancellationToken = default);
 
     Task<bool> UpdateStageAsync(string id, string stage, CancellationToken cancellationToken = default);
 
     Task<bool> UpdatePersonalNotesAsync(string id, string notes, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sets the user-facing DisplayName override. Passing null or whitespace clears the override,
+    /// reverting display to CompanyName.
+    /// </summary>
+    Task<bool> UpdateDisplayNameAsync(string id, string? displayName, CancellationToken cancellationToken = default);
 
     Task<JobApplication?> AddInterviewAsync(string id, InterviewRecord interview, CancellationToken cancellationToken = default);
 
