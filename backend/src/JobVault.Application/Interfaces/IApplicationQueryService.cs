@@ -6,7 +6,7 @@ namespace JobVault.Application.Interfaces;
 public interface IApplicationQueryService
 {
     Task<IReadOnlyList<ApplicationResponse>> GetAllAsync(CancellationToken cancellationToken = default);
-    Task<PagedResponse<ApplicationResponse>> GetPagedAsync(int page, int pageSize, string? search, string? stage, string sortBy, string sortDirection, CancellationToken cancellationToken = default);
+    Task<PagedResponse<ApplicationResponse>> GetPagedAsync(int page, int pageSize, string? search, string? stage, string sortBy, string sortDirection, DateTime? dateFrom = null, DateTime? dateTo = null, CancellationToken cancellationToken = default);
     Task<string?> GetCompanyNameAsync(string id, CancellationToken cancellationToken = default);
     Task<string?> GetReportHtmlAsync(string id, CancellationToken cancellationToken = default);
     Task<string?> GetNotesHtmlAsync(string id, CancellationToken cancellationToken = default);
@@ -14,6 +14,7 @@ public interface IApplicationQueryService
     Task<HistoricalResponse> GetHistoricalAsync(CancellationToken cancellationToken = default);
     Task<bool> UpdateStageAsync(string id, string stage, CancellationToken cancellationToken = default);
     Task<bool> UpdatePersonalNotesAsync(string id, string notes, CancellationToken cancellationToken = default);
+    Task<bool> UpdateDisplayNameAsync(string id, string? displayName, CancellationToken cancellationToken = default);
     Task<InterviewListResponse?> AddInterviewAsync(string id, AddInterviewRequest request, CancellationToken cancellationToken = default);
     Task<InterviewListResponse?> UpdateInterviewAsync(string id, int index, UpdateInterviewRequest request, CancellationToken cancellationToken = default);
     Task<bool> DeleteInterviewAsync(string id, int index, CancellationToken cancellationToken = default);

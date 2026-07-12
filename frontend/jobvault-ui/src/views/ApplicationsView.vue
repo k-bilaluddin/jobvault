@@ -25,6 +25,22 @@ const stageCounts = ref<Record<string, number>>({})
 const search = ref('')
 const filterStage = ref<ApplicationStage | 'All'>('All')
 
+// ── Date filter (filters on Received/synced_at date) ────────
+type DatePreset = 'all' | 'week' | 'month' | 'custom'
+const datePreset = ref<DatePreset>('all')
+const dateFrom = ref('') // yyyy-mm-dd, used when datePreset === 'custom'
+const dateTo = ref('')
+
+function computeDateRange(): { from: string | null; to: string | null } {
+  if (datePreset.value === 'all') return { from: null, to: null }
+  if (datePreset.value === 'custom') return { from: dateFrom.value || null, to: dateTo.value || null }
+  const days = datePreset.value === 'week' ? 7 : 30
+  const to = new Date()
+  const from = new Date()
+  from.setDate(from.getDate() - days)
+  return { from: from.toISOString().split('T')[0], to: to.toISOString().split('T')[0] }
+}
+
 type SortKey = 'name' | 'synced_at' | 'applied_date' | 'stage' | 'match_pct' | 'salary'
 const sortKey = ref<SortKey>('synced_at')
 const sortDir = ref<'asc' | 'desc'>('desc')
@@ -43,6 +59,9 @@ async function fetchPage() {
     }
     if (search.value.trim()) params.search = search.value.trim()
     if (filterStage.value !== 'All') params.stage = filterStage.value
+    const { from, to } = computeDateRange()
+    if (from) params.dateFrom = from
+    if (to) params.dateTo = to
 
     const { data } = await api.get<{
       items: Company[]
@@ -66,7 +85,7 @@ async function fetchPage() {
 
 onMounted(fetchPage)
 
-watch([page, sortKey, sortDir, filterStage], fetchPage)
+watch([page, sortKey, sortDir, filterStage, datePreset], fetchPage)
 
 watch(search, () => {
   if (searchDebounce) clearTimeout(searchDebounce)
@@ -77,9 +96,17 @@ watch(search, () => {
 })
 
 watch(filterStage, () => { page.value = 1 })
+watch(datePreset, () => { page.value = 1 })
+
+watch([dateFrom, dateTo], () => {
+  if (datePreset.value !== 'custom') return
+  page.value = 1
+  fetchPage()
+})
 
 // ── Tabs ────────────────────────────────────────────────────
-const STAGE_TABS = ['All', ...PIPELINE_STAGES] as const
+// "Ready to Apply" surfaced right after "All" — it's the stage people check most often.
+const STAGE_TABS = ['All', 'Ready to Apply', ...PIPELINE_STAGES.filter(s => s !== 'Ready to Apply')] as const
 
 // ── Sort ────────────────────────────────────────────────────
 function toggleSort(key: SortKey) {
@@ -195,6 +222,20 @@ function exportCsv() {
             <input v-model="search" type="text" placeholder="Search company or role..."
               class="w-full bg-surface-raised border border-border rounded-lg pl-9 pr-4 py-2 text-sm text-text-primary placeholder:text-text-muted outline-none focus:border-accent transition-colors"/>
           </div>
+          <select v-model="datePreset"
+            class="bg-surface-raised border border-border text-text-secondary text-xs rounded-lg px-2 py-2 outline-none focus:border-accent flex-shrink-0">
+            <option value="all">All time</option>
+            <option value="week">Last 7 days</option>
+            <option value="month">Last 30 days</option>
+            <option value="custom">Custom range</option>
+          </select>
+          <template v-if="datePreset === 'custom'">
+            <input v-model="dateFrom" type="date" :max="dateTo || undefined"
+              class="bg-surface-raised border border-border text-text-secondary text-xs rounded-lg px-2 py-2 outline-none focus:border-accent flex-shrink-0"/>
+            <span class="text-text-muted text-xs flex-shrink-0">to</span>
+            <input v-model="dateTo" type="date" :min="dateFrom || undefined"
+              class="bg-surface-raised border border-border text-text-secondary text-xs rounded-lg px-2 py-2 outline-none focus:border-accent flex-shrink-0"/>
+          </template>
           <button @click.stop="exportCsv"
             class="flex items-center gap-1.5 px-3 py-2 text-xs text-text-muted hover:text-text-primary bg-surface-raised border border-border rounded-lg hover:border-accent/50 transition-colors flex-shrink-0">
             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -285,6 +326,14 @@ function exportCsv() {
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
                       </svg>
                     </a>
+                    <!-- Open company in a new tab — keeps this list/search intact -->
+                    <router-link :to="`/company/${c.id}`" target="_blank" @click.stop
+                      class="flex-shrink-0 text-text-muted hover:text-accent transition-colors opacity-0 group-hover:opacity-100"
+                      title="Open in new tab">
+                      <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                      </svg>
+                    </router-link>
                   </div>
                   <p v-if="roleStr(c.role)" class="text-xs text-text-muted truncate mt-0.5">{{ roleStr(c.role) }}</p>
                 </div>
@@ -358,6 +407,13 @@ function exportCsv() {
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
                           </svg>
                         </a>
+                        <router-link :to="`/company/${c.id}`" target="_blank" @click.stop
+                          class="flex-shrink-0 text-text-muted hover:text-accent transition-colors"
+                          title="Open in new tab">
+                          <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                          </svg>
+                        </router-link>
                       </div>
                       <p v-if="roleStr(c.role)" class="text-xs text-text-muted truncate mt-0.5">{{ roleStr(c.role) }}</p>
                     </div>

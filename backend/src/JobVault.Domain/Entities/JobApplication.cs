@@ -6,6 +6,13 @@ public class JobApplication
 {
     public string? Id { get; set; }
     public string CompanyName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// User-editable override of CompanyName shown in the UI. CompanyName itself stays untouched
+    /// because it is baked into the GitHub vault folder path (see VaultPathBuilder), so renaming
+    /// via DisplayName can't break existing CV/cover-letter PDF lookups.
+    /// </summary>
+    public string? DisplayName { get; set; }
     public string JobTitle { get; set; } = string.Empty;
     public string Location { get; set; } = string.Empty;
     public string JobUrl { get; set; } = string.Empty;

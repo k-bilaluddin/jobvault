@@ -22,6 +22,7 @@ public class SseNotificationConsumer : BackgroundService
     private readonly IConfiguration _configuration;
     private readonly IServiceProvider _serviceProvider;
     private readonly INotificationHub _notificationHub;
+    private readonly IVaultFileService _vaultFileService;
     private readonly ILogger<SseNotificationConsumer> _logger;
     private IConnection? _connection;
     private IChannel? _channel;
@@ -30,11 +31,13 @@ public class SseNotificationConsumer : BackgroundService
         IConfiguration configuration,
         IServiceProvider serviceProvider,
         INotificationHub notificationHub,
+        IVaultFileService vaultFileService,
         ILogger<SseNotificationConsumer> logger)
     {
         _configuration = configuration;
         _serviceProvider = serviceProvider;
         _notificationHub = notificationHub;
+        _vaultFileService = vaultFileService;
         _logger = logger;
     }
 
@@ -139,6 +142,14 @@ public class SseNotificationConsumer : BackgroundService
 
     private async Task ProcessJobEventAsync(JobApplicationEvent jobEvent)
     {
+        // The Worker process regenerates CV/cover-letter PDFs and evicts its own VaultFileService
+        // cache, but the API process (which actually serves GetPdf) holds a separate in-memory
+        // cache. This "created"/"updated" event is the only signal the API gets that the vault
+        // changed, so evict here too — otherwise stale PDFs keep being served until a manual
+        // "Sync from GitHub".
+        if (!string.IsNullOrEmpty(jobEvent.ApplicationId))
+            _vaultFileService.EvictCache(jobEvent.CompanyName, jobEvent.ApplicationId);
+
         var notification = BuildNotification(jobEvent);
 
         using var scope = _serviceProvider.CreateScope();

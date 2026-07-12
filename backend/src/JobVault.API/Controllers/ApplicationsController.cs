@@ -37,6 +37,8 @@ public class ApplicationsController : ApiControllerBase
         [FromQuery] string? stage = null,
         [FromQuery] string sortBy = "synced_at",
         [FromQuery] string sortDirection = "desc",
+        [FromQuery] DateTime? dateFrom = null,
+        [FromQuery] DateTime? dateTo = null,
         CancellationToken cancellationToken = default)
     {
         if (page == null)
@@ -48,7 +50,7 @@ public class ApplicationsController : ApiControllerBase
         var p = page.Value < 1 ? 1 : page.Value;
         if (pageSize is < 1 or > 50) pageSize = 10;
 
-        var result = await _queryService.GetPagedAsync(p, pageSize, search, stage, sortBy, sortDirection, cancellationToken);
+        var result = await _queryService.GetPagedAsync(p, pageSize, search, stage, sortBy, sortDirection, dateFrom, dateTo, cancellationToken);
         return Ok(result);
     }
 
@@ -65,6 +67,14 @@ public class ApplicationsController : ApiControllerBase
     {
         var success = await _queryService.UpdatePersonalNotesAsync(id, request.Notes, cancellationToken);
         if (!success) return ErrorResponse("application.notes_update_failed", id);
+        return Ok(new { ok = true });
+    }
+
+    [HttpPatch("{id}/name")]
+    public async Task<IActionResult> UpdateDisplayName(string id, [FromBody] UpdateDisplayNameRequest request, CancellationToken cancellationToken)
+    {
+        var success = await _queryService.UpdateDisplayNameAsync(id, request.Name, cancellationToken);
+        if (!success) return ErrorResponse("application.name_update_failed", id);
         return Ok(new { ok = true });
     }
 
