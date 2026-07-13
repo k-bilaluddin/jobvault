@@ -25,6 +25,22 @@ const stageCounts = ref<Record<string, number>>({})
 const search = ref('')
 const filterStage = ref<ApplicationStage | 'All'>('All')
 
+// ── Date filter (filters on Received/synced_at date) ────────
+type DatePreset = 'all' | 'week' | 'month' | 'custom'
+const datePreset = ref<DatePreset>('all')
+const dateFrom = ref('') // yyyy-mm-dd, used when datePreset === 'custom'
+const dateTo = ref('')
+
+function computeDateRange(): { from: string | null; to: string | null } {
+  if (datePreset.value === 'all') return { from: null, to: null }
+  if (datePreset.value === 'custom') return { from: dateFrom.value || null, to: dateTo.value || null }
+  const days = datePreset.value === 'week' ? 7 : 30
+  const to = new Date()
+  const from = new Date()
+  from.setDate(from.getDate() - days)
+  return { from: from.toISOString().split('T')[0], to: to.toISOString().split('T')[0] }
+}
+
 type SortKey = 'name' | 'synced_at' | 'applied_date' | 'stage' | 'match_pct' | 'salary'
 const sortKey = ref<SortKey>('synced_at')
 const sortDir = ref<'asc' | 'desc'>('desc')
@@ -43,6 +59,9 @@ async function fetchPage() {
     }
     if (search.value.trim()) params.search = search.value.trim()
     if (filterStage.value !== 'All') params.stage = filterStage.value
+    const { from, to } = computeDateRange()
+    if (from) params.dateFrom = from
+    if (to) params.dateTo = to
 
     const { data } = await api.get<{
       items: Company[]
@@ -66,7 +85,7 @@ async function fetchPage() {
 
 onMounted(fetchPage)
 
-watch([page, sortKey, sortDir, filterStage], fetchPage)
+watch([page, sortKey, sortDir, filterStage, datePreset], fetchPage)
 
 watch(search, () => {
   if (searchDebounce) clearTimeout(searchDebounce)
@@ -77,9 +96,17 @@ watch(search, () => {
 })
 
 watch(filterStage, () => { page.value = 1 })
+watch(datePreset, () => { page.value = 1 })
+
+watch([dateFrom, dateTo], () => {
+  if (datePreset.value !== 'custom') return
+  page.value = 1
+  fetchPage()
+})
 
 // ── Tabs ────────────────────────────────────────────────────
-const STAGE_TABS = ['All', ...PIPELINE_STAGES] as const
+// "Ready to Apply" surfaced right after "All" — it's the stage people check most often.
+const STAGE_TABS = ['All', 'Ready to Apply', ...PIPELINE_STAGES.filter(s => s !== 'Ready to Apply')] as const
 
 // ── Sort ────────────────────────────────────────────────────
 function toggleSort(key: SortKey) {
@@ -125,6 +152,11 @@ function isFollowUpDue(c: Company): boolean {
 // ── Row actions ──────────────────────────────────────────────
 const activeActionRow = ref<string | null>(null)
 const stageUpdating   = ref<string | null>(null)
+
+// Row hover — driven from JS rather than a CSS :hover/peer-hover selector, since the row's
+// visible content sits pointer-events:none on top of the full-row link (see template); the
+// link is what the mouse actually hovers, so events on it drive the visual hover state instead.
+const hoveredRowId = ref<string | null>(null)
 
 function toggleActions(id: string) {
   activeActionRow.value = activeActionRow.value === id ? null : id
@@ -195,6 +227,20 @@ function exportCsv() {
             <input v-model="search" type="text" placeholder="Search company or role..."
               class="w-full bg-surface-raised border border-border rounded-lg pl-9 pr-4 py-2 text-sm text-text-primary placeholder:text-text-muted outline-none focus:border-accent transition-colors"/>
           </div>
+          <select v-model="datePreset"
+            class="bg-surface-raised border border-border text-text-secondary text-xs rounded-lg px-2 py-2 outline-none focus:border-accent flex-shrink-0">
+            <option value="all">All time</option>
+            <option value="week">Last 7 days</option>
+            <option value="month">Last 30 days</option>
+            <option value="custom">Custom range</option>
+          </select>
+          <template v-if="datePreset === 'custom'">
+            <input v-model="dateFrom" type="date" :max="dateTo || undefined"
+              class="bg-surface-raised border border-border text-text-secondary text-xs rounded-lg px-2 py-2 outline-none focus:border-accent flex-shrink-0"/>
+            <span class="text-text-muted text-xs flex-shrink-0">to</span>
+            <input v-model="dateTo" type="date" :min="dateFrom || undefined"
+              class="bg-surface-raised border border-border text-text-secondary text-xs rounded-lg px-2 py-2 outline-none focus:border-accent flex-shrink-0"/>
+          </template>
           <button @click.stop="exportCsv"
             class="flex items-center gap-1.5 px-3 py-2 text-xs text-text-muted hover:text-text-primary bg-surface-raised border border-border rounded-lg hover:border-accent/50 transition-colors flex-shrink-0">
             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -259,13 +305,22 @@ function exportCsv() {
               <!-- Follow-up left border indicator -->
               <div v-if="isFollowUpDue(c)" class="absolute left-0 top-1 bottom-1 w-0.5 rounded-full bg-amber-400 z-10"/>
 
-              <div @click="router.push(`/company/${c.id}`)"
-                class="grid grid-cols-[2.5rem_1fr_7rem_9rem_6rem_6rem_6rem_7rem_2rem] gap-3 items-center px-3 py-2.5 rounded-lg border border-transparent cursor-pointer transition-all group"
+              <!-- Full-row link, stretched behind the content — gives native ctrl/cmd/middle-click
+                   and right-click "open in new tab" without nesting an <a> inside the job-posting <a>.
+                   Hover state is driven from JS (see hoveredRowId) since this link — not the
+                   pointer-events:none content div on top of it — is what the mouse actually hovers. -->
+              <router-link :to="`/company/${c.id}`" :aria-label="`Open ${c.name}`"
+                @mouseenter="hoveredRowId = c.id" @mouseleave="hoveredRowId = null"
+                class="absolute inset-0 z-0 rounded-lg"
+                :class="stageUpdating === c.id ? 'pointer-events-none' : ''"/>
+
+              <div
+                class="relative z-[1] grid grid-cols-[2.5rem_1fr_7rem_9rem_6rem_6rem_6rem_7rem_2rem] gap-3 items-center px-3 py-2.5 rounded-lg border border-transparent pointer-events-none transition-all"
                 :class="[
-                  stageUpdating === c.id ? 'opacity-50 pointer-events-none' : '',
-                  isFollowUpDue(c)
-                    ? 'hover:bg-amber-500/5 hover:border-amber-500/20'
-                    : 'hover:bg-surface-raised hover:border-border'
+                  stageUpdating === c.id ? 'opacity-50' : '',
+                  hoveredRowId === c.id
+                    ? (isFollowUpDue(c) ? 'bg-amber-500/5 border-amber-500/20' : 'bg-surface-raised border-border')
+                    : ''
                 ]">
 
                 <CompanyAvatar :name="c.name" size="sm"/>
@@ -273,13 +328,13 @@ function exportCsv() {
                 <!-- Company + role -->
                 <div class="min-w-0">
                   <div class="flex items-center gap-1.5 min-w-0">
-                    <p class="text-sm font-semibold text-text-primary truncate group-hover:text-accent transition-colors">{{ c.name }}</p>
+                    <p class="text-sm font-semibold truncate transition-colors" :class="hoveredRowId === c.id ? 'text-accent' : 'text-text-primary'">{{ c.name }}</p>
                     <span v-if="c.has_report" class="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0" title="Has report"/>
                     <span v-if="(c.interviews?.length ?? 0) > 0" class="text-[10px] text-violet-400 flex-shrink-0 font-medium">{{ c.interviews.length }}✦</span>
                     <span v-if="isFollowUpDue(c)" class="text-[10px] text-amber-400 flex-shrink-0" title="Follow-up due">⏰</span>
                     <!-- Job posting link — always visible when URL exists -->
-                    <a v-if="c.job_url" :href="c.job_url" target="_blank" @click.stop
-                      class="flex-shrink-0 text-text-muted hover:text-blue-400 transition-colors"
+                    <a v-if="c.job_url" :href="c.job_url" target="_blank"
+                      class="pointer-events-auto flex-shrink-0 text-text-muted hover:text-blue-400 transition-colors"
                       title="Open job posting">
                       <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
@@ -316,7 +371,7 @@ function exportCsv() {
                 <!-- Verdict -->
                 <RecommendBadge :recommend="c.recommend" size="sm"/>
 
-                <ApplicationRowActions :company="c" :open="activeActionRow === c.id"
+                <ApplicationRowActions class="pointer-events-auto" :company="c" :open="activeActionRow === c.id"
                   @toggle="toggleActions(c.id)"
                   @open-detail="openDetail(c)"
                   @open-url="openUrl(c)"
@@ -332,10 +387,14 @@ function exportCsv() {
               <!-- Follow-up left border indicator -->
               <div v-if="isFollowUpDue(c)" class="absolute left-0 top-1 bottom-1 w-0.5 rounded-full bg-amber-400 z-10"/>
 
-              <div @click="router.push(`/company/${c.id}`)"
-                class="flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all"
+              <router-link :to="`/company/${c.id}`" :aria-label="`Open ${c.name}`"
+                class="absolute inset-0 z-0 rounded-lg"
+                :class="stageUpdating === c.id ? 'pointer-events-none' : ''"/>
+
+              <div
+                class="relative z-[1] flex items-start gap-3 p-3 rounded-lg border pointer-events-none transition-all"
                 :class="[
-                  stageUpdating === c.id ? 'opacity-50 pointer-events-none' : '',
+                  stageUpdating === c.id ? 'opacity-50' : '',
                   isFollowUpDue(c)
                     ? 'bg-amber-500/5 border-amber-500/20'
                     : 'bg-surface-raised border-border'
@@ -351,8 +410,8 @@ function exportCsv() {
                         <span v-if="c.has_report" class="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0" title="Has report"/>
                         <span v-if="(c.interviews?.length ?? 0) > 0" class="text-[10px] text-violet-400 flex-shrink-0 font-medium">{{ c.interviews.length }}✦</span>
                         <span v-if="isFollowUpDue(c)" class="text-[10px] text-amber-400 flex-shrink-0" title="Follow-up due">⏰</span>
-                        <a v-if="c.job_url" :href="c.job_url" target="_blank" @click.stop
-                          class="flex-shrink-0 text-text-muted hover:text-blue-400 transition-colors"
+                        <a v-if="c.job_url" :href="c.job_url" target="_blank"
+                          class="pointer-events-auto flex-shrink-0 text-text-muted hover:text-blue-400 transition-colors"
                           title="Open job posting">
                           <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
@@ -362,7 +421,7 @@ function exportCsv() {
                       <p v-if="roleStr(c.role)" class="text-xs text-text-muted truncate mt-0.5">{{ roleStr(c.role) }}</p>
                     </div>
 
-                    <ApplicationRowActions :company="c" :open="activeActionRow === c.id"
+                    <ApplicationRowActions class="pointer-events-auto" :company="c" :open="activeActionRow === c.id"
                       @toggle="toggleActions(c.id)"
                       @open-detail="openDetail(c)"
                       @open-url="openUrl(c)"

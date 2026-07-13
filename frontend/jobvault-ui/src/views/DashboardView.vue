@@ -295,13 +295,12 @@ const avgSalary = computed(() => {
 
         <!-- Filtered list -->
         <div v-if="selectedDate && filteredByDate?.length" class="mt-3 pt-3 border-t border-border space-y-1">
-          <div v-for="c in filteredByDate" :key="c.id"
-            @click="router.push(`/company/${c.id}`)"
+          <router-link v-for="c in filteredByDate" :key="c.id" :to="`/company/${c.id}`"
             class="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-surface-overlay cursor-pointer transition-colors group">
             <CompanyAvatar :name="c.name" size="sm"/>
             <span class="text-xs font-medium text-text-primary group-hover:text-accent transition-colors flex-1">{{ c.name }}</span>
             <span v-if="c.match_pct !== null" :class="['text-xs font-mono font-bold', matchPctColor(c.match_pct)]">{{ c.match_pct }}%</span>
-          </div>
+          </router-link>
         </div>
       </div>
 
@@ -349,8 +348,7 @@ const avgSalary = computed(() => {
           </div>
         </div>
         <div class="space-y-1">
-          <div v-for="c in followUpsDue" :key="c.id"
-            @click="router.push(`/company/${c.id}`)"
+          <router-link v-for="c in followUpsDue" :key="c.id" :to="`/company/${c.id}`"
             class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-amber-500/10 cursor-pointer transition-colors group">
             <CompanyAvatar :name="c.name" size="sm"/>
             <div class="flex-1 min-w-0">
@@ -361,7 +359,7 @@ const avgSalary = computed(() => {
               <p class="text-xs font-mono text-amber-400 font-semibold">{{ c.follow_up_date }}</p>
               <p class="text-[10px] text-text-muted">follow-up</p>
             </div>
-          </div>
+          </router-link>
         </div>
       </div>
 
@@ -375,8 +373,7 @@ const avgSalary = computed(() => {
             <span class="text-[10px] text-text-muted">Active only</span>
           </div>
           <div class="space-y-1">
-            <div v-for="(c, i) in topMatches" :key="c.id"
-              @click="router.push(`/company/${c.id}`)"
+            <router-link v-for="(c, i) in topMatches" :key="c.id" :to="`/company/${c.id}`"
               class="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-surface-overlay cursor-pointer transition-colors group">
               <span class="text-[10px] font-mono text-text-muted w-4 flex-shrink-0">{{ i + 1 }}</span>
               <CompanyAvatar :name="c.name" size="sm"/>
@@ -385,7 +382,7 @@ const avgSalary = computed(() => {
                 <p class="text-[10px] text-text-muted">{{ c.stage }}</p>
               </div>
               <span :class="['text-xs font-mono font-bold', matchPctColor(c.match_pct)]">{{ c.match_pct }}%</span>
-            </div>
+            </router-link>
           </div>
         </div>
 
@@ -396,8 +393,7 @@ const avgSalary = computed(() => {
             <button @click="router.push('/applications')" class="text-xs text-accent hover:underline">View all</button>
           </div>
           <div class="space-y-1">
-            <div v-for="c in recentActivity" :key="c.id"
-              @click="router.push(`/company/${c.id}`)"
+            <router-link v-for="c in recentActivity" :key="c.id" :to="`/company/${c.id}`"
               class="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-surface-overlay cursor-pointer transition-colors group">
               <CompanyAvatar :name="c.name" size="sm"/>
               <div class="flex-1 min-w-0">
@@ -407,7 +403,7 @@ const avgSalary = computed(() => {
               <span :class="['text-[10px] px-2 py-0.5 rounded-full font-medium', STAGE_COLORS[c.stage as ApplicationStage]?.bg, STAGE_COLORS[c.stage as ApplicationStage]?.text]">
                 {{ c.stage }}
               </span>
-            </div>
+            </router-link>
           </div>
         </div>
       </div>

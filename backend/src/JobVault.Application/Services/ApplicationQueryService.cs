@@ -51,7 +51,7 @@ public class ApplicationQueryService : IApplicationQueryService
                 return new ApplicationResponse
                 {
                     Id = a.Id ?? "",
-                    Name = a.CompanyName,
+                    Name = a.DisplayName ?? a.CompanyName,
                     Synced_at = a.UpdatedAt.ToString("o"),
                     Has_report = !string.IsNullOrEmpty(a.CompatibilityReportMarkdown) || hasReport,
                     Has_notes = !string.IsNullOrEmpty(a.TailoringNotesMarkdown) || hasNotes,
@@ -96,10 +96,10 @@ public class ApplicationQueryService : IApplicationQueryService
 
     public async Task<PagedResponse<ApplicationResponse>> GetPagedAsync(
         int page, int pageSize, string? search, string? stage,
-        string sortBy, string sortDirection, CancellationToken cancellationToken = default)
+        string sortBy, string sortDirection, DateTime? dateFrom = null, DateTime? dateTo = null, CancellationToken cancellationToken = default)
     {
         var result = await _repository.GetPagedApplicationsAsync(
-            page, pageSize, search, stage, sortBy, sortDirection, cancellationToken);
+            page, pageSize, search, stage, sortBy, sortDirection, dateFrom, dateTo, cancellationToken);
 
         var items = result.Items.Select(a =>
         {
@@ -112,7 +112,7 @@ public class ApplicationQueryService : IApplicationQueryService
             return new ApplicationResponse
             {
                 Id = a.Id ?? "",
-                Name = a.CompanyName,
+                Name = a.DisplayName ?? a.CompanyName,
                 Synced_at = a.UpdatedAt.ToString("o"),
                 Has_report = !string.IsNullOrEmpty(a.CompatibilityReportMarkdown) || hasReport,
                 Has_notes = !string.IsNullOrEmpty(a.TailoringNotesMarkdown) || hasNotes,
@@ -298,7 +298,7 @@ public class ApplicationQueryService : IApplicationQueryService
                 .Where(a => a.IsHistorical)
                 .Select(a => new HistoricalEntry
                 {
-                    Name = a.CompanyName,
+                    Name = a.DisplayName ?? a.CompanyName,
                     Applied_date = a.AppliedDate?.ToString("yyyy-MM-dd") ?? "",
                     Stage = string.IsNullOrEmpty(a.Stage) ? "Applied" : a.Stage,
                     Source = a.Source,
@@ -308,7 +308,7 @@ public class ApplicationQueryService : IApplicationQueryService
                 .Where(a => !a.IsHistorical && a.Applied)
                 .Select(a => new CurrentEntry
                 {
-                    Name = a.CompanyName,
+                    Name = a.DisplayName ?? a.CompanyName,
                     Applied_date = a.AppliedDate?.ToString("yyyy-MM-dd") ?? "",
                     Stage = string.IsNullOrEmpty(a.Stage) ? "Applied" : a.Stage,
                     Source = a.Source,
@@ -323,6 +323,9 @@ public class ApplicationQueryService : IApplicationQueryService
 
     public Task<bool> UpdatePersonalNotesAsync(string id, string notes, CancellationToken cancellationToken = default)
         => _repository.UpdatePersonalNotesAsync(id, notes, cancellationToken);
+
+    public Task<bool> UpdateDisplayNameAsync(string id, string? displayName, CancellationToken cancellationToken = default)
+        => _repository.UpdateDisplayNameAsync(id, displayName, cancellationToken);
 
     public async Task<InterviewListResponse?> AddInterviewAsync(string id, AddInterviewRequest request, CancellationToken cancellationToken = default)
     {

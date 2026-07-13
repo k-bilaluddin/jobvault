@@ -49,6 +49,44 @@ async function updateStage(newStage: ApplicationStage) {
   }
 }
 
+// ── Inline company name rename ──────────────────────────────
+const editingName = ref(false)
+const nameInput = ref('')
+const nameUpdating = ref(false)
+const nameError = ref('')
+
+function startEditName() {
+  if (!company.value) return
+  nameInput.value = company.value.name
+  nameError.value = ''
+  editingName.value = true
+}
+
+function cancelEditName() {
+  editingName.value = false
+  nameError.value = ''
+}
+
+async function saveName() {
+  const trimmed = nameInput.value.trim()
+  const c = company.value
+  if (!c || !trimmed || trimmed === c.name) {
+    editingName.value = false
+    return
+  }
+  nameUpdating.value = true
+  nameError.value = ''
+  try {
+    await api.patch(`/api/applications/${companyId.value}/name`, { name: trimmed })
+    c.name = trimmed
+    editingName.value = false
+  } catch (e) {
+    nameError.value = 'Failed to rename'
+  } finally {
+    nameUpdating.value = false
+  }
+}
+
 // ── Re-analyze (re-queue for Claude agent) ──────────────────
 const showReAnalyze = ref(false)
 const reAnalyzePrompt = ref('')
@@ -462,7 +500,25 @@ const OUTCOME_STYLE: Record<string, { selected: string; unselected: string }> = 
         <div class="flex items-center gap-4 md:flex-1 min-w-0">
           <CompanyAvatar :name="company.name" size="lg"/>
           <div class="flex-1 min-w-0">
-            <h2 class="text-lg font-bold text-text-primary">{{ company.name }}</h2>
+            <div v-if="editingName" class="flex items-center gap-2">
+              <input
+                v-model="nameInput"
+                type="text"
+                autofocus
+                :disabled="nameUpdating"
+                @keyup.enter="saveName"
+                @keyup.escape="cancelEditName"
+                @blur="saveName"
+                class="text-lg font-bold text-text-primary bg-surface-raised border border-accent rounded-lg px-2 py-0.5 outline-none disabled:opacity-50 min-w-0 flex-1"/>
+            </div>
+            <div v-else class="group flex items-center gap-2 min-w-0">
+              <h2 class="text-lg font-bold text-text-primary truncate">{{ company.name }}</h2>
+              <button @click="startEditName" title="Rename company"
+                class="text-text-muted hover:text-accent opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+              </button>
+            </div>
+            <p v-if="nameError" class="text-xs text-red-400 mt-0.5">{{ nameError }}</p>
             <div class="flex items-center gap-2 mt-0.5 flex-wrap text-xs text-text-muted">
               <span v-if="company.applied_date">Applied {{ company.applied_date }}</span>
               <span v-if="company.recruiter?.name"> · {{ company.recruiter.name }}</span>
