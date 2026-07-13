@@ -277,6 +277,7 @@ public class MongoDbService : IJobApplicationRepository
                 var regex = new BsonRegularExpression(search, "i");
                 filter &= builder.Or(
                     builder.Regex(d => d.CompanyName, regex),
+                    builder.Regex(d => d.DisplayName, regex),
                     builder.Regex(d => d.JobTitle, regex));
             }
 
@@ -315,6 +316,7 @@ public class MongoDbService : IJobApplicationRepository
                 var regex = new BsonRegularExpression(search, "i");
                 baseFilter &= builder.Or(
                     builder.Regex(d => d.CompanyName, regex),
+                    builder.Regex(d => d.DisplayName, regex),
                     builder.Regex(d => d.JobTitle, regex));
             }
             if (dateFrom.HasValue)
@@ -444,9 +446,11 @@ public class MongoDbService : IJobApplicationRepository
             var filter = Builders<JobApplicationDocument>.Filter.Eq(d => d.Id, id);
             var trimmed = string.IsNullOrWhiteSpace(displayName) ? null : displayName.Trim();
 
+            // Deliberately does NOT touch UpdatedAt — it's a purely cosmetic rename, and UpdatedAt
+            // backs the "Received" column/date filter, which shouldn't shift just because someone
+            // edited the display name.
             var update = Builders<JobApplicationDocument>.Update
-                .Set(d => d.DisplayName, trimmed)
-                .Set(d => d.UpdatedAt, DateTime.UtcNow);
+                .Set(d => d.DisplayName, trimmed);
 
             var result = await _collection.UpdateOneAsync(filter, update, cancellationToken: cancellationToken);
             return result.MatchedCount > 0;
