@@ -16,6 +16,7 @@ namespace JobVault.Infrastructure.Routines;
 public sealed class ClaudeRoutineTriggerClient : IRoutineTriggerClient
 {
     private const string BetaHeaderValue = "experimental-cc-routine-2026-04-01";
+    private const string ApiVersion = "2023-06-01";
 
     private readonly HttpClient _http;
     private readonly IConfiguration _configuration;
@@ -42,6 +43,7 @@ public sealed class ClaudeRoutineTriggerClient : IRoutineTriggerClient
         using var request = new HttpRequestMessage(HttpMethod.Post, $"/v1/claude_code/routines/{triggerId}/fire");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         request.Headers.Add("anthropic-beta", BetaHeaderValue);
+        request.Headers.Add("anthropic-version", ApiVersion);
 
         _logger.LogInformation("Firing job-queue routine {TriggerId}", triggerId);
         using var response = await _http.SendAsync(request, ct);
