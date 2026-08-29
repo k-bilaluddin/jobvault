@@ -263,7 +263,7 @@ Not all failures deserve retries. Transient errors (network timeout, generation 
 
 ![CI/CD Pipeline](docs/ci-cd-pipeline.svg)
 
-[API Reference (35 endpoints)](docs/api-reference.md) · [CI/CD Details](docs/ci-cd.md) · [Local Development](docs/local-development.md) · [Environment Variables](docs/env.md)
+[API Reference (35 endpoints)](docs/api-reference.md) · [CI/CD Details](docs/ci-cd.md) · [Local Development](docs/local-development.md) · [Environment Variables](docs/env.md) · [Multi-Tenancy Plan](docs/multi-tenancy.md)
 
 ---
 

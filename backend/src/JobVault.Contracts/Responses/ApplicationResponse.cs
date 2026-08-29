@@ -17,6 +17,10 @@ public class ApplicationResponse
     public string Applied_date { get; init; } = "";
     public string Stage { get; init; } = "";
     public string Personal_notes { get; init; } = "";
+    public int? Salary_min { get; init; }
+    public int? Salary_max { get; init; }
+    public string Currency { get; init; } = "";
+    public string Salary_period { get; init; } = "";
     public List<InterviewResponse> Interviews { get; init; } = [];
     public List<NoteResponse> Notes { get; init; } = [];
     public SalaryResponse Salary { get; init; } = new();

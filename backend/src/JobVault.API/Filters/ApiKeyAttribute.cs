@@ -1,3 +1,4 @@
+using JobVault.API.Auth;
 using JobVault.Contracts.Errors;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
@@ -7,23 +8,19 @@ namespace JobVault.API.Filters;
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class)]
 public class ApiKeyAttribute : Attribute, IAsyncActionFilter
 {
-    private const string HeaderName = "X-Api-Key";
-    private const string ConfigKey = "Ingestion:ApiKey";
-
     public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
     {
         var configuration = context.HttpContext.RequestServices.GetRequiredService<IConfiguration>();
-        var expectedKey = configuration.GetValue<string>(ConfigKey);
+        var result = ApiKeyValidator.Validate(context.HttpContext.Request.Headers, configuration);
 
-        if (string.IsNullOrWhiteSpace(expectedKey))
+        if (result == ApiKeyValidationResult.NotConfigured)
         {
             var problem = ErrorCatalog.ToProblem("auth.api_key_not_configured", context.HttpContext);
             context.Result = new ObjectResult(problem) { StatusCode = problem.Status };
             return;
         }
 
-        if (!context.HttpContext.Request.Headers.TryGetValue(HeaderName, out var providedKey)
-            || !string.Equals(expectedKey, providedKey.ToString(), StringComparison.Ordinal))
+        if (result != ApiKeyValidationResult.Valid)
         {
             var problem = ErrorCatalog.ToProblem("auth.api_key_missing", context.HttpContext);
             context.Result = new ObjectResult(problem) { StatusCode = problem.Status };

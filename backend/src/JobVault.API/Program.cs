@@ -1,4 +1,5 @@
 using System.Text;
+using JobVault.API.Auth;
 using JobVault.API.Middleware;
 using JobVault.Application.Interfaces;
 using JobVault.Application.Services;
@@ -9,6 +10,7 @@ using JobVault.Infrastructure.Notifications;
 using JobVault.Infrastructure.Notifications.Telegram;
 using JobVault.Infrastructure.Persistence.MongoDB;
 using JobVault.Infrastructure.Processing;
+using JobVault.Infrastructure.Routines;
 using JobVault.Infrastructure.Vault;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -51,6 +53,9 @@ builder.Configuration.AddInMemoryCollection(
         ["LibreOffice:ExecutablePath"]               = E("LIBREOFFICE_EXECUTABLE_PATH"),
         ["Vault:RootDir"]                            = E("APP_VAULT_ROOT_DIR"),
         ["Ingestion:ApiKey"]                         = E("INGESTION_API_KEY"),
+        ["Routine:TriggerToken"]                     = E("ROUTINE_TRIGGER_TOKEN"),
+        ["Routine:TriggerId"]                        = E("ROUTINE_TRIGGER_ID"),
+        ["Routine:BaseUrl"]                          = E("ROUTINE_BASE_URL"),
     }
     .Where(kv => kv.Value is not null)
     .ToDictionary(kv => kv.Key, kv => kv.Value));
@@ -64,6 +69,13 @@ builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 // Register HTTP client factory
 builder.Services.AddHttpClient();
+
+// Job-queue routine trigger — fires the claude.ai routine that evaluates pending queue entries
+builder.Services.AddHttpClient<IRoutineTriggerClient, ClaudeRoutineTriggerClient>(client =>
+{
+    var baseUrl = builder.Configuration["Routine:BaseUrl"] ?? "https://api.claude.ai";
+    client.BaseAddress = new Uri(baseUrl);
+});
 
 // CORS — set via CORS_ALLOWED_ORIGINS env var or Cors:AllowedOrigins config key
 var rawOrigins = builder.Configuration["Cors:AllowedOrigins"];
@@ -104,7 +116,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateLifetime         = true,
             ClockSkew                = TimeSpan.Zero
         };
-    });
+    })
+    // Lets endpoints opt into accepting a static API key as an alternative to a dashboard JWT
+    // (see AuthSchemes.JwtOrApiKey) — used by the LinkedIn capture extension and other
+    // machine callers, without weakening JWT-only endpoints elsewhere.
+    .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(
+        AuthSchemes.ApiKey, options => { });
 
 builder.Services.AddAuthorization();
 
@@ -122,11 +139,13 @@ builder.Services.AddSingleton<ITokenService, TokenService>();
 builder.Services.AddSingleton<ISettingsRepository, SettingsRepository>();
 builder.Services.AddSingleton<ISettingsService, SettingsService>();
 builder.Services.AddSingleton<IAuthenticationService, AuthenticationService>();
+builder.Services.AddSingleton<IRoutineTriggerStateStore, RoutineTriggerStateRepository>();
 builder.Services.AddScoped<IWebhookHandler, WebhookHandler>();
 builder.Services.AddScoped<IFileIngestService, FileIngestService>();
 builder.Services.AddScoped<IApplicationIngestionService, ApplicationIngestionService>();
 builder.Services.AddScoped<IApplicationQueryService, ApplicationQueryService>();
 builder.Services.AddScoped<IPendingJobService, PendingJobService>();
+builder.Services.AddScoped<IRoutineTriggerService, RoutineTriggerService>();
 
 // Notification services
 builder.Services.AddSingleton<INotificationHub, NotificationHub>();

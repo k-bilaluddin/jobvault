@@ -384,8 +384,8 @@ public class MongoDbService : IJobApplicationRepository
                 ? Builders<JobApplicationDocument>.Sort.Ascending(d => d.Stage)
                 : Builders<JobApplicationDocument>.Sort.Descending(d => d.Stage),
             "salary" => isAsc
-                ? Builders<JobApplicationDocument>.Sort.Ascending("salary.advertised")
-                : Builders<JobApplicationDocument>.Sort.Descending("salary.advertised"),
+                ? Builders<JobApplicationDocument>.Sort.Ascending(d => d.SalaryMin)
+                : Builders<JobApplicationDocument>.Sort.Descending(d => d.SalaryMin),
             _ => isAsc
                 ? Builders<JobApplicationDocument>.Sort.Ascending(d => d.UpdatedAt)
                 : Builders<JobApplicationDocument>.Sort.Descending(d => d.UpdatedAt),
