@@ -7,11 +7,16 @@ namespace JobVault.Infrastructure.Routines;
 
 /// <summary>
 /// Fires the claude.ai routine ("Job Queue (API)") that evaluates pending job-queue entries.
-/// Calls POST {Routine:BaseUrl}/v1/code/triggers/{Routine:TriggerId}/run with the routine's
-/// API token — see docs/env.md for ROUTINE_TRIGGER_TOKEN / ROUTINE_TRIGGER_ID.
+/// Calls POST {Routine:BaseUrl}/v1/claude_code/routines/{Routine:TriggerId}/fire with the
+/// routine's API token — see docs/env.md for ROUTINE_TRIGGER_TOKEN / ROUTINE_TRIGGER_ID.
+/// This is a beta endpoint and requires the anthropic-beta header below; both were confirmed
+/// directly against Anthropic's own spec after https://api.claude.ai (an earlier guess, since
+/// that host doesn't even resolve) returned DNS failures in production.
 /// </summary>
 public sealed class ClaudeRoutineTriggerClient : IRoutineTriggerClient
 {
+    private const string BetaHeaderValue = "experimental-cc-routine-2026-04-01";
+
     private readonly HttpClient _http;
     private readonly IConfiguration _configuration;
     private readonly ILogger<ClaudeRoutineTriggerClient> _logger;
@@ -34,8 +39,9 @@ public sealed class ClaudeRoutineTriggerClient : IRoutineTriggerClient
                 "Routine:TriggerToken / Routine:TriggerId are not configured (ROUTINE_TRIGGER_TOKEN / ROUTINE_TRIGGER_ID env vars). See docs/env.md.");
         }
 
-        using var request = new HttpRequestMessage(HttpMethod.Post, $"/v1/code/triggers/{triggerId}/run");
+        using var request = new HttpRequestMessage(HttpMethod.Post, $"/v1/claude_code/routines/{triggerId}/fire");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        request.Headers.Add("anthropic-beta", BetaHeaderValue);
 
         _logger.LogInformation("Firing job-queue routine {TriggerId}", triggerId);
         using var response = await _http.SendAsync(request, ct);
