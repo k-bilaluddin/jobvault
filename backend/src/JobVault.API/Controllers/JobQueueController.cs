@@ -5,6 +5,7 @@ using JobVault.Contracts.Requests;
 using JobVault.Contracts.Responses;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 
 namespace JobVault.API.Controllers;
 
@@ -13,11 +14,13 @@ public class JobQueueController : ApiControllerBase
 {
     private readonly IPendingJobService _service;
     private readonly IRoutineTriggerService _routineTriggerService;
+    private readonly ILogger<JobQueueController> _logger;
 
-    public JobQueueController(IPendingJobService service, IRoutineTriggerService routineTriggerService)
+    public JobQueueController(IPendingJobService service, IRoutineTriggerService routineTriggerService, ILogger<JobQueueController> logger)
     {
         _service = service;
         _routineTriggerService = routineTriggerService;
+        _logger = logger;
     }
 
     [AllowAnonymous]
@@ -88,6 +91,7 @@ public class JobQueueController : ApiControllerBase
         }
         catch (Exception ex) when (ex is InvalidOperationException or HttpRequestException)
         {
+            _logger.LogError(ex, "Failed to trigger job-queue routine");
             return ErrorResponse("queue.trigger_failed", ex.Message);
         }
     }
