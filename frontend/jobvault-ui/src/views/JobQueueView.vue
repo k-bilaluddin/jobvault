@@ -3,12 +3,13 @@ import { ref } from 'vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import { useJobQueue } from '@/composables/useJobQueue'
 
-const { jobs, loading, filterStatus, counts, addJob, updateJob, deleteJob, cleanup } = useJobQueue()
+const { jobs, loading, filterStatus, counts, addJob, updateJob, deleteJob, cleanup, triggerRoutine } = useJobQueue()
 
 const newUrl = ref('')
 const newPrompt = ref('')
 const showPrompt = ref(false)
 const adding = ref(false)
+const triggering = ref(false)
 const editingId = ref<string | null>(null)
 const editUrl = ref('')
 const toast = ref('')
@@ -58,6 +59,18 @@ async function handleDelete(id: string) {
     showToast('Deleted')
   } catch {
     showToast('Delete failed', true)
+  }
+}
+
+async function handleTrigger() {
+  triggering.value = true
+  try {
+    await triggerRoutine()
+    showToast('Evaluation started — check back shortly')
+  } catch {
+    showToast('Failed to start evaluation', true)
+  } finally {
+    triggering.value = false
   }
 }
 
@@ -116,6 +129,14 @@ function formatDate(iso: string) {
           </button>
         </div>
         <div class="flex gap-2">
+          <button @click="handleTrigger" :disabled="triggering || counts.pending === 0"
+            class="px-3 py-1.5 text-xs font-medium rounded-lg bg-accent/15 text-accent hover:bg-accent/25 disabled:opacity-40 disabled:cursor-not-allowed transition-colors inline-flex items-center gap-1.5"
+            :title="counts.pending === 0 ? 'No pending jobs to evaluate' : 'Run the Claude evaluation routine now'">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+            {{ triggering ? 'Starting...' : 'Evaluate Jobs' }}
+          </button>
           <button v-if="counts.done > 0" @click="handleCleanup('done')"
             class="px-3 py-1.5 text-xs text-text-muted hover:text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-colors">
             Clear done ({{ counts.done }})

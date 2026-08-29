@@ -37,6 +37,9 @@ public static class ErrorCatalog
         ["vault.empty_files"]              = new(400, "Empty Files",                "All uploaded files are empty"),
         ["vault.sync_failed"]              = new(502, "Sync Failed",                "Git sync failed: {0}"),
 
+        // Routine
+        ["queue.trigger_failed"]            = new(502, "Trigger Failed",            "Failed to trigger job evaluation routine: {0}"),
+
         // Processing
         ["processing.application_missing"]  = new(404, "Application Missing",       "Application not found during processing"),
         ["processing.conversion_failed"]    = new(500, "Conversion Failed",         "LibreOffice PDF conversion failed for '{0}'"),

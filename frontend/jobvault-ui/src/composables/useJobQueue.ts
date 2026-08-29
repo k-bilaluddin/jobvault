@@ -47,6 +47,10 @@ export function useJobQueue() {
     return data.deleted
   }
 
+  async function triggerRoutine() {
+    await api.post('/api/ingest/queue/trigger')
+  }
+
   const counts = computed(() => {
     const all = jobs.value
     return {
@@ -59,5 +63,5 @@ export function useJobQueue() {
 
   onMounted(load)
 
-  return { jobs, loading, filterStatus, counts, load, addJob, updateJob, deleteJob, cleanup }
+  return { jobs, loading, filterStatus, counts, load, addJob, updateJob, deleteJob, cleanup, triggerRoutine }
 }

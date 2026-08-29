@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import CompanyAvatar from '@/components/common/CompanyAvatar.vue'
@@ -76,6 +76,7 @@ async function fetchPage() {
     totalCount.value = data.totalCount
     totalPages.value = data.totalPages
     stageCounts.value = data.stageCounts
+    selectedIds.value = new Set()
   } catch {
     companies.value = []
   } finally {
@@ -126,15 +127,21 @@ function goToPage(p: number) {
 }
 
 // ── Salary ───────────────────────────────────────────────────
+const CURRENCY_SYMBOLS: Record<string, string> = { EUR: '€', USD: '$', GBP: '£' }
+
+function fmtAmount(n: number): string {
+  return n >= 1000 ? `${Math.round(n / 1000)}k` : String(n)
+}
+
 function fmtSalary(c: Company): string {
-  const v = c.salary?.advertised
-  if (!v) return ''
-  if (v.includes('-')) {
-    const parts = v.split('-').map(n => { const x = parseInt(n); return x >= 1000 ? Math.round(x/1000)+'k' : '' })
-    return parts[0] && parts[1] ? `€${parts[0]}–${parts[1]}` : ''
+  const { salary_min: min, salary_max: max, currency } = c
+  if (min || max) {
+    const symbol = currency ? (CURRENCY_SYMBOLS[currency] ?? currency + ' ') : ''
+    if (min && max) return `${symbol}${fmtAmount(min)}–${fmtAmount(max)}`
+    return `${symbol}${fmtAmount((min ?? max)!)}`
   }
-  const n = parseInt(v)
-  return n >= 1000 ? `€${Math.round(n/1000)}k` : ''
+  // Fall back to the manually-entered figure once negotiation is underway
+  return c.salary?.discussed || c.salary?.offered || c.salary?.target || c.salary?.advertised || ''
 }
 
 // ── Role ────────────────────────────────────────────────────
@@ -147,6 +154,47 @@ function roleStr(role: string | string[] | undefined): string {
 const today = new Date().toISOString().split('T')[0]
 function isFollowUpDue(c: Company): boolean {
   return !!c.follow_up_date && c.follow_up_date <= today
+}
+
+// ── Bulk selection & actions ─────────────────────────────────
+const selectedIds = ref<Set<string>>(new Set())
+const selectedCount = computed(() => selectedIds.value.size)
+const allOnPageSelected = computed(() =>
+  companies.value.length > 0 && companies.value.every(c => selectedIds.value.has(c.id)))
+const bulkUpdating = ref(false)
+const BULK_STAGES: ApplicationStage[] = [
+  'Ready to Apply', 'Applied', 'Interview', 'Offer', 'Rejected', 'Not Interested', 'Archived',
+]
+
+function toggleSelect(id: string) {
+  const next = new Set(selectedIds.value)
+  if (next.has(id)) next.delete(id)
+  else next.add(id)
+  selectedIds.value = next
+}
+
+function toggleSelectAll() {
+  selectedIds.value = allOnPageSelected.value ? new Set() : new Set(companies.value.map(c => c.id))
+}
+
+function clearSelection() { selectedIds.value = new Set() }
+
+async function bulkMoveStage(stage: ApplicationStage | '') {
+  if (!stage || selectedIds.value.size === 0) return
+  bulkUpdating.value = true
+  try {
+    await Promise.all([...selectedIds.value].map(id => api.post(`/api/applications/${id}/stage`, { stage })))
+    await fetchPage()
+  } finally {
+    bulkUpdating.value = false
+  }
+}
+
+function onBulkStageChange(e: Event) {
+  const select = e.target as HTMLSelectElement
+  const stage = select.value as ApplicationStage
+  select.value = ''
+  bulkMoveStage(stage)
 }
 
 // ── Row actions ──────────────────────────────────────────────
@@ -261,6 +309,20 @@ function exportCsv() {
         </div>
       </div>
 
+      <!-- Bulk action bar -->
+      <div v-if="selectedCount > 0" class="sticky top-0 z-20 flex items-center gap-3 px-4 md:px-6 py-2 bg-accent/10 border-b border-accent/30">
+        <span class="text-xs font-medium text-text-primary">{{ selectedCount }} selected</span>
+        <select :disabled="bulkUpdating" @change="onBulkStageChange"
+          class="bg-surface-raised border border-border text-text-secondary text-xs rounded-lg px-2 py-1.5 outline-none focus:border-accent disabled:opacity-50">
+          <option value="">Move to stage...</option>
+          <option v-for="stage in BULK_STAGES" :key="stage" :value="stage">{{ stage }}</option>
+        </select>
+        <span v-if="bulkUpdating" class="text-xs text-text-muted">Updating…</span>
+        <button @click="clearSelection" class="ml-auto text-xs text-text-muted hover:text-text-primary transition-colors">
+          Clear
+        </button>
+      </div>
+
       <!-- Table -->
       <div class="px-4 md:px-6 py-4">
         <div v-if="loading" class="space-y-2 animate-pulse">
@@ -276,7 +338,9 @@ function exportCsv() {
           <!-- Desktop table (md and up) -->
           <div class="hidden md:block">
             <!-- Header -->
-            <div class="grid grid-cols-[2.5rem_1fr_7rem_9rem_6rem_6rem_6rem_7rem_2rem] gap-3 px-3 pb-2 text-[10px] font-semibold text-text-muted uppercase tracking-wider select-none">
+            <div class="grid grid-cols-[1.5rem_2.5rem_1fr_7rem_9rem_6rem_6rem_6rem_7rem_2rem] gap-3 px-3 pb-2 text-[10px] font-semibold text-text-muted uppercase tracking-wider select-none">
+              <input type="checkbox" :checked="allOnPageSelected" @change="toggleSelectAll"
+                class="accent-accent w-3.5 h-3.5 cursor-pointer"/>
               <div/>
               <button class="text-left flex items-center gap-1 hover:text-text-primary transition-colors" @click="toggleSort('name')">
                 Company / Role <span class="opacity-40 font-mono">{{ sortIcon('name') }}</span>
@@ -315,13 +379,16 @@ function exportCsv() {
                 :class="stageUpdating === c.id ? 'pointer-events-none' : ''"/>
 
               <div
-                class="relative z-[1] grid grid-cols-[2.5rem_1fr_7rem_9rem_6rem_6rem_6rem_7rem_2rem] gap-3 items-center px-3 py-2.5 rounded-lg border border-transparent pointer-events-none transition-all"
+                class="relative z-[1] grid grid-cols-[1.5rem_2.5rem_1fr_7rem_9rem_6rem_6rem_6rem_7rem_2rem] gap-3 items-center px-3 py-2.5 rounded-lg border border-transparent pointer-events-none transition-all"
                 :class="[
                   stageUpdating === c.id ? 'opacity-50' : '',
                   hoveredRowId === c.id
                     ? (isFollowUpDue(c) ? 'bg-amber-500/5 border-amber-500/20' : 'bg-surface-raised border-border')
                     : ''
                 ]">
+
+                <input type="checkbox" :checked="selectedIds.has(c.id)" @change="toggleSelect(c.id)"
+                  class="pointer-events-auto accent-accent w-3.5 h-3.5 cursor-pointer"/>
 
                 <CompanyAvatar :name="c.name" size="sm"/>
 
@@ -399,6 +466,9 @@ function exportCsv() {
                     ? 'bg-amber-500/5 border-amber-500/20'
                     : 'bg-surface-raised border-border'
                 ]">
+
+                <input type="checkbox" :checked="selectedIds.has(c.id)" @change="toggleSelect(c.id)"
+                  class="pointer-events-auto accent-accent w-3.5 h-3.5 cursor-pointer mt-1.5 flex-shrink-0"/>
 
                 <CompanyAvatar :name="c.name" size="sm"/>
 
