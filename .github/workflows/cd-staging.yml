@@ -135,6 +135,8 @@ jobs:
           APP_GH_BRANCH: ${{ secrets.APP_GH_BRANCH }}
           APP_VAULT_ROOT_DIR: ${{ secrets.STG_APP_VAULT_ROOT_DIR }}
           INGESTION_API_KEY: ${{ secrets.STG_INGESTION_API_KEY }}
+          ROUTINE_TRIGGER_TOKEN: ${{ secrets.ROUTINE_TRIGGER_TOKEN }}
+          ROUTINE_TRIGGER_ID: ${{ secrets.ROUTINE_TRIGGER_ID }}
         run: |
           $dir = "$env:USERPROFILE\${{ env.ENV_DIR }}"
           if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
@@ -163,6 +165,8 @@ jobs:
           APP_GH_BRANCH=$env:APP_GH_BRANCH
           APP_VAULT_ROOT_DIR=$env:APP_VAULT_ROOT_DIR
           INGESTION_API_KEY=$env:INGESTION_API_KEY
+          ROUTINE_TRIGGER_TOKEN=$env:ROUTINE_TRIGGER_TOKEN
+          ROUTINE_TRIGGER_ID=$env:ROUTINE_TRIGGER_ID
           "@ | Set-Content -Path "$dir\.env.staging" -Encoding utf8
 
       - name: Ensure jobvault-internal network exists

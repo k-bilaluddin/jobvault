@@ -8,6 +8,7 @@ using JobVault.Infrastructure.Notifications;
 using JobVault.Infrastructure.Notifications.Telegram;
 using JobVault.Infrastructure.Persistence.MongoDB;
 using JobVault.Infrastructure.Processing;
+using JobVault.Infrastructure.Routines;
 using JobVault.Infrastructure.Vault;
 
 namespace JobVault.Worker;
@@ -55,6 +56,9 @@ public class Program
                 ["GitHub:CoverLetterFileName"]               = E("APP_GH_COVER_LETTER_FILE_NAME"),
                 ["DocumentGeneration:BaseUrl"]               = E("DOCUMENT_GENERATION_BASE_URL"),
                 ["LibreOffice:ExecutablePath"]               = E("LIBREOFFICE_EXECUTABLE_PATH"),
+                ["Routine:TriggerToken"]                     = E("ROUTINE_TRIGGER_TOKEN"),
+                ["Routine:TriggerId"]                        = E("ROUTINE_TRIGGER_ID"),
+                ["Routine:BaseUrl"]                          = E("ROUTINE_BASE_URL"),
             }
             .Where(kv => kv.Value is not null)
             .ToDictionary(kv => kv.Key, kv => kv.Value));
@@ -72,10 +76,21 @@ public class Program
         })
         .AddHttpMessageHandler<TracePropagationHandler>();
 
+        // Job-queue routine trigger — fires the claude.ai routine that evaluates pending queue entries
+        builder.Services.AddHttpClient<IRoutineTriggerClient, ClaudeRoutineTriggerClient>(client =>
+        {
+            var baseUrl = builder.Configuration["Routine:BaseUrl"] ?? "https://api.claude.ai";
+            client.BaseAddress = new Uri(baseUrl);
+        });
+
         // Persistence
         builder.Services.AddSingleton<IJobApplicationRepository, MongoDbService>();
+        builder.Services.AddSingleton<IPendingJobRepository, PendingJobRepository>();
         builder.Services.AddSingleton<ISettingsRepository, SettingsRepository>();
         builder.Services.AddSingleton<ISettingsService, SettingsService>();
+        builder.Services.AddSingleton<IRoutineTriggerStateStore, RoutineTriggerStateRepository>();
+        builder.Services.AddScoped<IPendingJobService, PendingJobService>();
+        builder.Services.AddScoped<IRoutineTriggerService, RoutineTriggerService>();
 
         // GitHub
         builder.Services.AddSingleton<IGitHubFileService, GitHubFileService>();
@@ -97,6 +112,7 @@ public class Program
         // Hosted consumers
         builder.Services.AddHostedService<RabbitMqConsumer>();           // Telegram + SSE fan-out
         builder.Services.AddHostedService<ApplicationIngestionConsumer>(); // Async ingestion pipeline
+        builder.Services.AddHostedService<RoutineSchedulerBackgroundService>(); // Daily auto-trigger for pending jobs
 
         var host = builder.Build();
         host.Run();

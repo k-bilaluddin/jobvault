@@ -126,6 +126,10 @@ public class ApplicationQueryService : IApplicationQueryService
                 Applied_date = a.AppliedDate?.ToString("yyyy-MM-dd") ?? "",
                 Stage = effectiveStage,
                 Personal_notes = a.PersonalNotes,
+                Salary_min = a.SalaryMin,
+                Salary_max = a.SalaryMax,
+                Currency = a.Currency,
+                Salary_period = a.SalaryPeriod,
                 Interviews = a.Interviews.Select(i => new InterviewResponse
                 {
                     Id = i.Id, Date = i.Date, Type = i.Type, Notes = i.Notes, Outcome = i.Outcome,

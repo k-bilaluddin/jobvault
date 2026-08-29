@@ -52,6 +52,7 @@ const userMessages: Record<string, string> = {
   'vault.empty_files': 'All uploaded files are empty.',
   'queue.url_required': 'Job URL is required.',
   'queue.not_found': 'Job not found.',
+  'queue.trigger_failed': 'Could not start job evaluation. Try again shortly.',
 }
 
 const fallbackMessage = 'Something went wrong. Please try again later.'

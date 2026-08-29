@@ -1,9 +1,11 @@
+using JobVault.API.Auth;
 using JobVault.API.Filters;
 using JobVault.Application.Interfaces;
 using JobVault.Contracts.Requests;
 using JobVault.Contracts.Responses;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 
 namespace JobVault.API.Controllers;
 
@@ -11,10 +13,14 @@ namespace JobVault.API.Controllers;
 public class JobQueueController : ApiControllerBase
 {
     private readonly IPendingJobService _service;
+    private readonly IRoutineTriggerService _routineTriggerService;
+    private readonly ILogger<JobQueueController> _logger;
 
-    public JobQueueController(IPendingJobService service)
+    public JobQueueController(IPendingJobService service, IRoutineTriggerService routineTriggerService, ILogger<JobQueueController> logger)
     {
         _service = service;
+        _routineTriggerService = routineTriggerService;
+        _logger = logger;
     }
 
     [AllowAnonymous]
@@ -35,7 +41,7 @@ public class JobQueueController : ApiControllerBase
         return Ok(jobs.Select(ToResponse));
     }
 
-    [Authorize]
+    [Authorize(AuthenticationSchemes = AuthSchemes.JwtOrApiKey)]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreatePendingJobRequest request, CancellationToken ct)
     {
@@ -70,6 +76,24 @@ public class JobQueueController : ApiControllerBase
     {
         var count = await _service.CleanupByStatusAsync(status, ct);
         return Ok(new { deleted = count });
+    }
+
+    // Dashboard-only manual trigger for the Claude evaluation routine — not exposed to the
+    // ingestion API key, since this fires an external agent run rather than reading/writing data.
+    [Authorize]
+    [HttpPost("trigger")]
+    public async Task<IActionResult> Trigger(CancellationToken ct)
+    {
+        try
+        {
+            await _routineTriggerService.TriggerAsync(ct);
+            return Accepted(new { triggered = true });
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or HttpRequestException)
+        {
+            _logger.LogError(ex, "Failed to trigger job-queue routine");
+            return ErrorResponse("queue.trigger_failed", ex.Message);
+        }
     }
 
     private static PendingJobResponse ToResponse(Domain.Entities.PendingJob j) => new()

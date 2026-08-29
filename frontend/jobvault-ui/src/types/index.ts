@@ -87,6 +87,10 @@ export interface Company {
   interviews: Interview[]
   notes: ApplicationNote[]
   salary: Salary
+  salary_min?: number | null
+  salary_max?: number | null
+  currency?: string
+  salary_period?: string
   recruiter: Recruiter
   follow_up_date: string
   source: string
