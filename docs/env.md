@@ -95,13 +95,13 @@ All environment variables use `SCREAMING_SNAKE_CASE`. At startup, both the API a
 
 ## Job-queue routine trigger
 
-Fires the claude.ai routine that evaluates pending job-queue entries (`POST {ROUTINE_BASE_URL}/v1/code/triggers/{ROUTINE_TRIGGER_ID}/run`). Used by the "Evaluate Jobs" button on the Job Queue dashboard page (API) and by the Worker's daily auto-trigger, which fires at most once every 24h and only when pending jobs exist.
+Fires the claude.ai routine that evaluates pending job-queue entries (`POST {ROUTINE_BASE_URL}/v1/claude_code/routines/{ROUTINE_TRIGGER_ID}/fire`, with header `anthropic-beta: experimental-cc-routine-2026-04-01` — this is a beta endpoint on Anthropic's own API, not claude.ai's web host). Used by the "Evaluate Jobs" button on the Job Queue dashboard page (API) and by the Worker's daily auto-trigger, which fires at most once every 24h and only when pending jobs exist.
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `ROUTINE_TRIGGER_TOKEN` | yes (to use this feature) | — | claude.ai API token for the routine (`sk-ant-oat01-...`). Treat as a secret — never commit it. |
 | `ROUTINE_TRIGGER_ID` | yes (to use this feature) | — | Trigger id of the routine to fire, e.g. `trig_...`. Find it from the routine's settings on claude.ai. |
-| `ROUTINE_BASE_URL` | no | `https://api.claude.ai` | Base URL for the remote-trigger API. |
+| `ROUTINE_BASE_URL` | no | `https://api.anthropic.com` | Base URL for the remote-trigger API. |
 
 Both the API and Worker need these set — the API fires on the manual button click, the Worker fires on the daily schedule.
 

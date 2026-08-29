@@ -73,7 +73,7 @@ builder.Services.AddHttpClient();
 // Job-queue routine trigger — fires the claude.ai routine that evaluates pending queue entries
 builder.Services.AddHttpClient<IRoutineTriggerClient, ClaudeRoutineTriggerClient>(client =>
 {
-    var baseUrl = builder.Configuration["Routine:BaseUrl"] ?? "https://api.claude.ai";
+    var baseUrl = builder.Configuration["Routine:BaseUrl"] ?? "https://api.anthropic.com";
     client.BaseAddress = new Uri(baseUrl);
 });
 
